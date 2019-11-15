@@ -1,14 +1,13 @@
 package com.lunatech.library.domain;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.*;
 
 import javax.persistence.*;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Past;
-import javax.validation.constraints.PastOrPresent;
-import java.sql.Date;
-import java.util.Optional;
+import java.time.LocalDate;
 
 @Entity
 @Data
@@ -18,17 +17,21 @@ import java.util.Optional;
 public class Checkout {
 
     @Id
-    /*  see comment in Book.java
-    @GeneratedValue(strategy = GenerationType.IDENTITY) */
+    /*  see comment in Book.java */
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     @NotNull(message = "Checkout : BookId needs a value")
     private Long bookId;
 
     @NotNull(message = "Checkout : dateFrom needs a value")
-    private Date dateFrom;
+    @JsonDeserialize(using = LocalDateDeserializer.class)
+    @JsonSerialize(using = LocalDateSerializer.class)
+    private LocalDate dateFrom;
 
-    private Date dateTo;
+    @JsonDeserialize(using = LocalDateDeserializer.class)
+    @JsonSerialize(using = LocalDateSerializer.class)
+    private LocalDate dateTo;
 
     @NotBlank(message = "Checkout : who needs a value")
     private String who;

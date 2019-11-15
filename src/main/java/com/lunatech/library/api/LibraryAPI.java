@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import javax.naming.AuthenticationException;
-import java.sql.Date;
+import java.time.LocalDate;
 import java.util.Optional;
 
 @RestController
@@ -34,7 +34,7 @@ public class LibraryAPI {
             Book book = bookService.findById(bookId);
 
             Optional<String> optUsername = Optional.ofNullable(libraryAPIBodyParams.getUsername());
-            Optional<Date> optDate = Optional.ofNullable(libraryAPIBodyParams.getDate());
+            Optional<LocalDate> optDate = Optional.ofNullable(libraryAPIBodyParams.getDate());
 
             return ResponseEntity.ok(checkoutService.checkout(bookId, optUsername, optDate));
         }
@@ -58,7 +58,7 @@ public class LibraryAPI {
             // is there a book with book Id?
             Book book = bookService.findById(bookId);
 
-            Optional<Date> optDate = Optional.empty();
+            Optional<LocalDate> optDate = Optional.empty();
             if (optionalLibraryAPIBodyParams.isPresent()) {
                 optDate = Optional.ofNullable(optionalLibraryAPIBodyParams.get().getDate());
             }

@@ -85,7 +85,7 @@ public class BookAPITests extends AbstractTest {
     @Test
     public void postBook() throws Exception {
         String uri = "/api/v1/books";
-        Book book = new Book(-1L, "Boek", "Auteur", "1920");
+        Book book = new Book(0L, "Boek", "Auteur", "1920");
 
         String inputJson = super.mapToJson(book);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post(uri)

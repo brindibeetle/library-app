@@ -15,8 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import javax.naming.AuthenticationException;
-import java.sql.Date;
-import java.util.Calendar;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -28,11 +27,13 @@ public class CheckoutService {
     private final CheckoutRepository checkoutRepository;
     private final BookRepository bookRepository;
 
-    private static Date futureDate() {
-        return new Date(Calendar.getInstance().getTimeInMillis() + 100 * 365 * 24 * 60 * 60 * 1000 );
+    private static LocalDate futureDate() {
+        LocalDate future = LocalDate.now().plusYears(100);
+        return future;
     }
-    private static Date currentDate() {
-        return new Date(Calendar.getInstance().getTime().getTime());
+    private static LocalDate currentDate() {
+        LocalDate today = LocalDate.now();
+        return today;
     }
     private String username() throws AuthenticationException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -47,8 +48,8 @@ public class CheckoutService {
         return -1L;
     }
 
-    private void check4ConflictingCheckout(Long bookId, Date fromDate) throws CheckoutException{
-        Date toDate = futureDate();
+    private void check4ConflictingCheckout(Long bookId, LocalDate fromDate) throws CheckoutException{
+        LocalDate toDate = futureDate();
         Optional<List<Checkout>> checkoutOptionals = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, fromDate, toDate);
 
         if (checkoutOptionals.isPresent()) {
@@ -63,7 +64,7 @@ public class CheckoutService {
         }
     }
 
-    private void check4ConflictingCheckout(Long id, Long bookId, Date fromDate, Date toDate) throws CheckoutException{
+    private void check4ConflictingCheckout(Long id, Long bookId, LocalDate fromDate, LocalDate toDate) throws CheckoutException{
         Optional<List<Checkout>> checkoutOptionals = checkoutRepository.findOtherCheckoutOfBookBetweenDates(id, bookId, fromDate, toDate);
 
         if (checkoutOptionals.isPresent()) {
@@ -78,7 +79,7 @@ public class CheckoutService {
         }
     }
 
-    private Checkout findCheckout(Long bookId, Date date) throws CheckoutException{
+    private Checkout findCheckout(Long bookId, LocalDate date) throws CheckoutException{
         Optional<List<Checkout>> optionalCheckouts = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, date, futureDate());
 
         if ( !optionalCheckouts.isPresent() || optionalCheckouts.get().size() == 0 ) {
@@ -100,10 +101,10 @@ public class CheckoutService {
     }
 
     // Checkout
-    public Checkout checkout(Long bookId, Optional<String> optUsername, Optional<Date> optDate) throws CheckoutException, BookNotFoundException, AuthenticationException {
+    public Checkout checkout(Long bookId, Optional<String> optUsername, Optional<LocalDate> optDate) throws CheckoutException, BookNotFoundException, AuthenticationException {
 
         String username = optUsername.isPresent() ? optUsername.get() : username();
-        Date date = optDate.orElse(currentDate());
+        LocalDate date = optDate.orElse(currentDate());
 
         check4ConflictingCheckout(bookId, date);
 
@@ -112,9 +113,9 @@ public class CheckoutService {
     }
 
     // Checkin
-    public Checkout checkin(Long bookId, Optional<Date> optDate) throws CheckoutException, BookNotFoundException {
+    public Checkout checkin(Long bookId, Optional<LocalDate> optDate) throws CheckoutException, BookNotFoundException {
 
-        Date date = optDate.orElse(currentDate());
+        LocalDate date = optDate.orElse(currentDate());
 
         Checkout checkout = findCheckout(bookId, date);
         checkout.setDateTo(date);
@@ -123,24 +124,24 @@ public class CheckoutService {
     }
 
     public Checkout save(Checkout checkout) throws CheckoutException, BookNotFoundException {
-        Date checkoutDateFrom = checkout.getDateFrom();
-        if ( checkoutDateFrom.after(currentDate()) ) {
+        LocalDate checkoutDateFrom = checkout.getDateFrom();
+        if ( checkoutDateFrom.isAfter(currentDate()) ) {
             throw new CheckoutException(
                     "The from date cannot be in the future."
             );
         }
 
-        Date checkoutDateTo = checkout.getDateTo();
+        LocalDate checkoutDateTo = checkout.getDateTo();
         if (checkoutDateTo == null) {
             checkoutDateTo = futureDate();
         }
-        else if (checkoutDateTo.after(currentDate())) {
+        else if (checkoutDateTo.isAfter(currentDate())) {
             throw new CheckoutException(
                     "The to date cannot be in the future."
             );
         }
 
-        if (checkoutDateFrom.after(checkoutDateTo)) {
+        if (checkoutDateFrom.isAfter(checkoutDateTo)) {
             throw new CheckoutException(
                     "The from date cannot be after the to date."
             );

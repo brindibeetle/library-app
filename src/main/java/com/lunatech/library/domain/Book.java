@@ -19,8 +19,8 @@ public class Book {
 
     @Id
 /*    H2 database gives problems with GeneratedValue here (NULL not allowed for column "ID"; SQL statement:)
-    see : https://github.com/alexbt/sample-spring-boot-data-jpa-embedded/issues/2
-    @GeneratedValue(strategy = GenerationType.IDENTITY */
+    see : https://github.com/alexbt/sample-spring-boot-data-jpa-embedded/issues/2 */
+    @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
     @NotBlank( message = "Book : title needs a value")
