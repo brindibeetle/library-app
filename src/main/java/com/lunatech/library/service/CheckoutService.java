@@ -48,10 +48,19 @@ public class CheckoutService {
     }
 
     private void check4ConflictingCheckout(Long bookId, Date fromDate) throws CheckoutException{
-        Long id = emptyId();
         Date toDate = futureDate();
+        Optional<List<Checkout>> checkoutOptionals = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, fromDate, toDate);
 
-        check4ConflictingCheckout(id, bookId, fromDate, toDate);
+        if (checkoutOptionals.isPresent()) {
+            Checkout checkout1 = checkoutOptionals.get().get(0);
+            throw new CheckoutException(
+                    "Book has already been checked out "
+                            + "id: " + checkout1.getId()
+                            + " from: " + checkout1.getDateFrom()
+                            + (checkout1.getDateTo() != null ? " to: " + checkout1.getDateTo() : "")
+                            + " by: " + checkout1.getWho()
+            );
+        }
     }
 
     private void check4ConflictingCheckout(Long id, Long bookId, Date fromDate, Date toDate) throws CheckoutException{
@@ -62,8 +71,8 @@ public class CheckoutService {
             throw new CheckoutException(
                     "Book has already been checked out "
                             + "id: " + checkout1.getId()
-                            + " from: " + checkout1.getFromDate()
-                            + (checkout1.getToDate() != null ? " to: " + checkout1.getToDate() : "")
+                            + " from: " + checkout1.getDateFrom()
+                            + (checkout1.getDateTo() != null ? " to: " + checkout1.getDateTo() : "")
                             + " by: " + checkout1.getWho()
             );
         }
@@ -108,20 +117,20 @@ public class CheckoutService {
         Date date = optDate.orElse(currentDate());
 
         Checkout checkout = findCheckout(bookId, date);
-        checkout.setToDate(date);
+        checkout.setDateTo(date);
 
         return save(checkout);
     }
 
     public Checkout save(Checkout checkout) throws CheckoutException, BookNotFoundException {
-        Date checkoutDateFrom = checkout.getFromDate();
+        Date checkoutDateFrom = checkout.getDateFrom();
         if ( checkoutDateFrom.after(currentDate()) ) {
             throw new CheckoutException(
                     "The from date cannot be in the future."
             );
         }
 
-        Date checkoutDateTo = checkout.getToDate();
+        Date checkoutDateTo = checkout.getDateTo();
         if (checkoutDateTo == null) {
             checkoutDateTo = futureDate();
         }

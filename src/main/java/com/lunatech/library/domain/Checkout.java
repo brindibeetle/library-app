@@ -18,16 +18,17 @@ import java.util.Optional;
 public class Checkout {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    /*  see comment in Book.java
+    @GeneratedValue(strategy = GenerationType.IDENTITY) */
     private Long id;
 
     @NotNull(message = "Checkout : BookId needs a value")
     private Long bookId;
 
-    @NotNull(message = "Checkout : fromDate needs a value")
-    private Date fromDate;
+    @NotNull(message = "Checkout : dateFrom needs a value")
+    private Date dateFrom;
 
-    private Date toDate;
+    private Date dateTo;
 
     @NotBlank(message = "Checkout : who needs a value")
     private String who;
