@@ -26,9 +26,33 @@ public class LibraryAPI {
     private final CheckoutService checkoutService;
     private final BookService bookService;
 
-
     @PutMapping("/checkout/{bookId}")
-    public ResponseEntity doCheckout(@PathVariable Long bookId, @RequestBody LibraryAPIBodyParams libraryAPIBodyParams) {
+    public ResponseEntity doCheckout(@PathVariable Long bookId) {
+        try {
+            // is there a book with book Id?
+            Book book = bookService.findById(bookId);
+
+            Optional<String> optUsername = Optional.empty();
+            Optional<LocalDate> optDate = Optional.empty();
+
+            return ResponseEntity.ok(checkoutService.checkout(bookId, optUsername, optDate));
+        }
+        catch (BookNotFoundException bookNotFoundException) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Book not found with id: " + Long.toString(bookId), bookNotFoundException);
+        }
+        catch (CheckoutException checkoutException) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, checkoutException.getMessage(), checkoutException);
+        }
+        catch (AuthenticationException authenticationException) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, authenticationException.getMessage(), authenticationException);
+        }
+    }
+
+    @PutMapping("/checkoutopt/{bookId}")
+    public ResponseEntity doCheckoutWithOptions(@PathVariable Long bookId, @RequestBody LibraryAPIBodyParams libraryAPIBodyParams) {
         try {
             // is there a book with book Id?
             Book book = bookService.findById(bookId);
@@ -53,15 +77,32 @@ public class LibraryAPI {
     }
 
     @PutMapping("/checkin/{bookId}")
-    public ResponseEntity doCheckin(@PathVariable Long bookId, @RequestBody Optional<LibraryAPIBodyParams> optionalLibraryAPIBodyParams) {
+    public ResponseEntity doCheckin(@PathVariable Long bookId) {
         try {
             // is there a book with book Id?
             Book book = bookService.findById(bookId);
 
             Optional<LocalDate> optDate = Optional.empty();
-            if (optionalLibraryAPIBodyParams.isPresent()) {
-                optDate = Optional.ofNullable(optionalLibraryAPIBodyParams.get().getDate());
-            }
+
+            return ResponseEntity.ok(checkoutService.checkin(bookId, optDate));
+        }
+        catch (BookNotFoundException bookNotFoundException) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Book not found with id: " + Long.toString(bookId), bookNotFoundException);
+        }
+        catch (CheckoutException ce) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, ce.getMessage(), ce);
+        }
+    }
+
+    @PutMapping("/checkinopt/{bookId}")
+    public ResponseEntity doCheckinWithOptions(@PathVariable Long bookId, @RequestBody LibraryAPIBodyParams libraryAPIBodyParams) {
+        try {
+            // is there a book with book Id?
+            Book book = bookService.findById(bookId);
+
+            Optional<LocalDate> optDate = Optional.ofNullable(libraryAPIBodyParams.getDate());
 
             return ResponseEntity.ok(checkoutService.checkin(bookId, optDate));
         }
