@@ -32,10 +32,10 @@ public class LibraryAPI {
             // is there a book with book Id?
             Book book = bookService.findById(bookId);
 
-            Optional<String> optUsername = Optional.empty();
+            Optional<String> optEmail = Optional.empty();
             Optional<LocalDate> optDate = Optional.empty();
 
-            return ResponseEntity.ok(checkoutService.checkout(bookId, optUsername, optDate));
+            return ResponseEntity.ok(checkoutService.checkout(bookId, optEmail, optDate));
         }
         catch (BookNotFoundException bookNotFoundException) {
             throw new ResponseStatusException(
@@ -57,10 +57,10 @@ public class LibraryAPI {
             // is there a book with book Id?
             Book book = bookService.findById(bookId);
 
-            Optional<String> optUsername = Optional.ofNullable(libraryAPIBodyParams.getUsername());
+            Optional<String> optEmail = Optional.ofNullable(libraryAPIBodyParams.getEmail());
             Optional<LocalDate> optDate = Optional.ofNullable(libraryAPIBodyParams.getDate());
 
-            return ResponseEntity.ok(checkoutService.checkout(bookId, optUsername, optDate));
+            return ResponseEntity.ok(checkoutService.checkout(bookId, optEmail, optDate));
         }
         catch (BookNotFoundException bookNotFoundException) {
             throw new ResponseStatusException(

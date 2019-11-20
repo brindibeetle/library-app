@@ -50,6 +50,6 @@ public class CheckoutAPITests extends AbstractTest {
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
         Checkout checkout = super.mapFromJson(content, Checkout.class);
-        assertEquals("Emile", checkout.getWho());
+        assertEquals("emile@ei.nl", checkout.getUserEmail());
     }
 }

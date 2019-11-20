@@ -11,7 +11,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 class LibraryAPIBodyParams {
 
-    private String username;
+    private String email;
 
     private LocalDate date;
 

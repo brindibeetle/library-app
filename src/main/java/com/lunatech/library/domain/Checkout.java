@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.*;
 
 import javax.persistence.*;
+import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
@@ -17,7 +18,6 @@ import java.time.LocalDate;
 public class Checkout {
 
     @Id
-    /*  see comment in Book.java */
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
@@ -33,7 +33,8 @@ public class Checkout {
     @JsonSerialize(using = LocalDateSerializer.class)
     private LocalDate dateTo;
 
+    @Email(message= "An appropriate email address is required")
     @NotBlank(message = "Checkout : who needs a value")
-    private String who;
+    private String userEmail;
 
 }

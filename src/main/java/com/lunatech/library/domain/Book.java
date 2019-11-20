@@ -18,8 +18,6 @@ import java.util.Set;
 public class Book {
 
     @Id
-/*    H2 database gives problems with GeneratedValue here (NULL not allowed for column "ID"; SQL statement:)
-    see : https://github.com/alexbt/sample-spring-boot-data-jpa-embedded/issues/2 */
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
@@ -29,14 +27,13 @@ public class Book {
     @NotBlank( message = "Book : authors needs a value")
     private String authors;
 
-//    @NotBlank( message = "Book : publishedDate needs a value")
     private String publishedDate;
 
-//    @OneToMany(
-//        cascade = CascadeType.ALL,
-//        orphanRemoval = true
-//    )
-//    private List<Checkout> checkouts;
+    @Column(length=400)
+    private String description;
 
-//    private String thumbnailLink;
+    private String owner;
+
+    private String location;
+
 }

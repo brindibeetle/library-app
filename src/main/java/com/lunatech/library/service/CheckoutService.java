@@ -1,6 +1,5 @@
 package com.lunatech.library.service;
 
-import com.lunatech.library.domain.Book;
 import com.lunatech.library.domain.Checkout;
 import com.lunatech.library.exception.BookNotFoundException;
 import com.lunatech.library.exception.CheckoutException;
@@ -8,14 +7,15 @@ import com.lunatech.library.exception.CheckoutNotFoundException;
 import com.lunatech.library.repository.BookRepository;
 import com.lunatech.library.repository.CheckoutRepository;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.annotations.Check;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Service;
 
 import javax.naming.AuthenticationException;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,9 +40,16 @@ public class CheckoutService {
         if (authentication instanceof AnonymousAuthenticationToken) {
             throw new AuthenticationException("Anonimous user not allowed");
         }
-
         String currentUserName = authentication.getName();
         return currentUserName;
+    }
+    private String userEmail() throws AuthenticationException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof AnonymousAuthenticationToken) {
+            throw new AuthenticationException("Anonymous user not allowed");
+        }
+        String currentUserEmail = authentication.getName();
+        return currentUserEmail;
     }
     private Long emptyId() {
         return -1L;
@@ -59,7 +66,7 @@ public class CheckoutService {
                             + "id: " + checkout1.getId()
                             + " from: " + checkout1.getDateFrom()
                             + (checkout1.getDateTo() != null ? " to: " + checkout1.getDateTo() : "")
-                            + " by: " + checkout1.getWho()
+                            + " by: " + checkout1.getUserEmail()
             );
         }
     }
@@ -74,7 +81,7 @@ public class CheckoutService {
                             + "id: " + checkout1.getId()
                             + " from: " + checkout1.getDateFrom()
                             + (checkout1.getDateTo() != null ? " to: " + checkout1.getDateTo() : "")
-                            + " by: " + checkout1.getWho()
+                            + " by: " + checkout1.getUserEmail()
             );
         }
     }
@@ -101,14 +108,14 @@ public class CheckoutService {
     }
 
     // Checkout
-    public Checkout checkout(Long bookId, Optional<String> optUsername, Optional<LocalDate> optDate) throws CheckoutException, BookNotFoundException, AuthenticationException {
+    public Checkout checkout(Long bookId, Optional<String> optUserEmail, Optional<LocalDate> optDate) throws CheckoutException, BookNotFoundException, AuthenticationException {
 
-        String username = optUsername.isPresent() ? optUsername.get() : username();
+        String userEmail = optUserEmail.isPresent() ? optUserEmail.get() : userEmail();
         LocalDate date = optDate.orElse(currentDate());
 
         check4ConflictingCheckout(bookId, date);
 
-        Checkout checkout = new Checkout(-1L, bookId, date, null, username);
+        Checkout checkout = new Checkout(-1L, bookId, date, null, userEmail);
         return save(checkout);
     }
 
