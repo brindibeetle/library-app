@@ -7,20 +7,19 @@ import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 
-public class LocalDateDeserializer extends StdDeserializer<LocalDate> {
+public class ZonedDateDeserializer extends StdDeserializer<ZonedDateTime> {
 
     private static final long serialVersionUID = 1L;
 
-    protected LocalDateDeserializer() {
-        super(LocalDate.class);
+    protected ZonedDateDeserializer() {
+        super(ZonedDateTime.class);
     }
-
 
     @Override
-    public LocalDate deserialize(JsonParser jp, DeserializationContext ctxt)
+    public ZonedDateTime deserialize(JsonParser jp, DeserializationContext ctxt)
             throws IOException, JsonProcessingException {
-        return LocalDate.parse(jp.readValueAs(String.class));
+        return ZonedDateTime.parse(jp.readValueAs(String.class));
     }
-
 }
