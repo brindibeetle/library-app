@@ -2,10 +2,11 @@ package com.lunatech.library.api;
 
 import com.lunatech.library.domain.Book;
 import com.lunatech.library.domain.Checkout;
-import com.lunatech.library.exception.BookNotFoundException;
-import com.lunatech.library.exception.CheckoutException;
+import com.lunatech.library.exception.APIException;
 import com.lunatech.library.service.BookService;
 import com.lunatech.library.service.CheckoutService;
+import com.sun.org.apache.xerces.internal.util.HTTPInputSource;
+import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -15,7 +16,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import javax.naming.AuthenticationException;
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -26,94 +32,114 @@ public class LibraryAPI {
     private final CheckoutService checkoutService;
     private final BookService bookService;
 
-    @PutMapping("/checkout/{bookId}")
-    public ResponseEntity doCheckout(@PathVariable Long bookId) {
+    @PutMapping(path = "/checkout/{bookId}", produces = "application/json" )
+    @ApiOperation(value = "Do a checkout of a book"
+            , notes = "date, datetime, email are optional parameters, example calls : " +
+            "<ul> " +
+            "     <li>/api/v1/checkout/1 checks in book 1 at the current time and for the current user</li>" +
+            "     <li>/api/v1/checkout/1?email=luna.tlabech@lunatech.com checks out book 1 for luna.tlabech@lunatech.com</li>" +
+            "     <li>/api/v1/checkout/1?date=12-12-2019 checks out book 1 at the given date at noon</li>" +
+            "     <li>/api/v1/checkout/1?datetime=12-12-2019T10:30:00Z checks out book 1 at the given date and time</li>" +
+            "</ul>"
+            , response = Checkout.class)
+    public ResponseEntity doCheckout(@PathVariable Long bookId, @RequestParam Map<String, String> varsMap) {
+        // is there a book with book Id?
+        Book book = bookService.findById(bookId);
+
+        String optNotRecognized =
+                varsMap
+                        .entrySet()
+                        .stream()
+                        .filter(map -> " date datetime email ".indexOf((" " + map.getKey() + " ").toLowerCase()) == -1)
+                        .map(map -> map.getKey())
+                        .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+                        .toString();
+        if (! optNotRecognized.isEmpty()) {
+            throw new APIException(HttpStatus.BAD_REQUEST, "Parameter(s) not recognized " + optNotRecognized);
+        }
+
+        Optional<ZonedDateTime> optDateTime;
         try {
-            // is there a book with book Id?
-            Book book = bookService.findById(bookId);
+            optDateTime =
+                    varsMap
+                            .entrySet()
+                            .stream()
+                            .filter(map -> map.getKey().equalsIgnoreCase("date"))
+                            .map(map -> map.getValue())
+                            .map(map -> map.concat("T12:00:00Z"))
+                            .map(map -> ZonedDateTime.parse(map, DateTimeFormatter.ISO_ZONED_DATE_TIME))
+                            .findFirst();
+            if (!optDateTime.isPresent()) {
+                optDateTime =
+                        varsMap
+                                .entrySet()
+                                .stream()
+                                .filter(map -> map.getKey().equalsIgnoreCase("datetime"))
+                                .map(map -> map.getValue())
+                                .map(map -> ZonedDateTime.parse(map, DateTimeFormatter.ISO_ZONED_DATE_TIME))
+                                .findFirst();
+            }
+        }
+        catch (DateTimeParseException dateTimeParseException) {
+            throw new APIException(HttpStatus.BAD_REQUEST, dateTimeParseException.getMessage());
+        }
 
-            Optional<String> optEmail = Optional.empty();
-            Optional<LocalDate> optDate = Optional.empty();
+        Optional<String> optEmail =
+                varsMap
+                        .entrySet()
+                        .stream()
+                        .filter(map -> map.getKey().equalsIgnoreCase("email"))
+                        .map(map -> map.getValue())
+                        .findFirst();
 
-            return ResponseEntity.ok(checkoutService.checkout(bookId, optEmail, optDate));
-        }
-        catch (BookNotFoundException bookNotFoundException) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Book not found with id: " + Long.toString(bookId), bookNotFoundException);
-        }
-        catch (CheckoutException checkoutException) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, checkoutException.getMessage(), checkoutException);
-        }
-        catch (AuthenticationException authenticationException) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, authenticationException.getMessage(), authenticationException);
-        }
+        return ResponseEntity.ok(checkoutService.checkout(bookId, optEmail, optDateTime));
     }
 
-    @PutMapping("/checkoutopt/{bookId}")
-    public ResponseEntity doCheckoutWithOptions(@PathVariable Long bookId, @RequestBody LibraryAPIBodyParams libraryAPIBodyParams) {
-        try {
-            // is there a book with book Id?
-            Book book = bookService.findById(bookId);
+    @PutMapping(path = "/checkin/{bookId}", produces = "application/json" )
+    @ApiOperation(value = "Do a check in of a book"
+            , notes = "date, datetime are optional parameters, example calls : " +
+            "<ul> " +
+            "     <li>/api/v1/checkin/1 checks in book 1 at the current time</li>" +
+            "     <li>/api/v1/checkin/1?date=12-12-2019 checks in book 1 at the given date at noon</li>" +
+            "     <li>/api/v1/checkin/1?datetime=12-12-2019T10:30:00Z checks in book 1 at the given date and time</li>" +
+            "</ul>"
+            , response = Checkout.class)
+    public ResponseEntity doCheckin(@PathVariable Long bookId, @RequestParam Map<String, String> varsMap) {
+        // is there a book with book Id?
+        Book book = bookService.findById(bookId);
 
-            Optional<String> optEmail = Optional.ofNullable(libraryAPIBodyParams.getEmail());
-            Optional<LocalDate> optDate = Optional.ofNullable(libraryAPIBodyParams.getDate());
+        String optNotRecognized =
+                varsMap
+                        .entrySet()
+                        .stream()
+                        .filter(map -> " date datetime ".indexOf((" " + map.getKey() + " ").toLowerCase()) == -1)
+                        .map(map -> map.getKey())
+                        .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
+                        .toString();
+        if (! optNotRecognized.isEmpty()) {
+            throw new APIException(HttpStatus.BAD_REQUEST, "Parameter(s) not recognized: " + optNotRecognized);
+        }
 
-            return ResponseEntity.ok(checkoutService.checkout(bookId, optEmail, optDate));
+        Optional<ZonedDateTime> optDateTime =
+                varsMap
+                        .entrySet()
+                        .stream()
+                        .filter(map -> map.getKey().equalsIgnoreCase("date"))
+                        .map(map -> map.getValue())
+                        .map(map -> map.concat("T12:00:00Z"))
+                        .map(map -> ZonedDateTime.parse(map, DateTimeFormatter.ISO_ZONED_DATE_TIME))
+                        .findFirst();
+        if ( ! optDateTime.isPresent() ) {
+            optDateTime =
+                    varsMap
+                            .entrySet()
+                            .stream()
+                            .filter(map -> map.getKey().equalsIgnoreCase("datetime"))
+                            .map(map -> map.getValue())
+                            .map(map -> ZonedDateTime.parse(map, DateTimeFormatter.ISO_ZONED_DATE_TIME))
+                            .findFirst();
         }
-        catch (BookNotFoundException bookNotFoundException) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Book not found with id: " + Long.toString(bookId), bookNotFoundException);
-        }
-        catch (CheckoutException checkoutException) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, checkoutException.getMessage(), checkoutException);
-        }
-        catch (AuthenticationException authenticationException) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, authenticationException.getMessage(), authenticationException);
-        }
+
+        return ResponseEntity.ok(checkoutService.checkin(bookId, optDateTime));
     }
-
-    @PutMapping("/checkin/{bookId}")
-    public ResponseEntity doCheckin(@PathVariable Long bookId) {
-        try {
-            // is there a book with book Id?
-            Book book = bookService.findById(bookId);
-
-            Optional<LocalDate> optDate = Optional.empty();
-
-            return ResponseEntity.ok(checkoutService.checkin(bookId, optDate));
-        }
-        catch (BookNotFoundException bookNotFoundException) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Book not found with id: " + Long.toString(bookId), bookNotFoundException);
-        }
-        catch (CheckoutException ce) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, ce.getMessage(), ce);
-        }
-    }
-
-    @PutMapping("/checkinopt/{bookId}")
-    public ResponseEntity doCheckinWithOptions(@PathVariable Long bookId, @RequestBody LibraryAPIBodyParams libraryAPIBodyParams) {
-        try {
-            // is there a book with book Id?
-            Book book = bookService.findById(bookId);
-
-            Optional<LocalDate> optDate = Optional.ofNullable(libraryAPIBodyParams.getDate());
-
-            return ResponseEntity.ok(checkoutService.checkin(bookId, optDate));
-        }
-        catch (BookNotFoundException bookNotFoundException) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND, "Book not found with id: " + Long.toString(bookId), bookNotFoundException);
-        }
-        catch (CheckoutException ce) {
-            throw new ResponseStatusException(
-                    HttpStatus.CONFLICT, ce.getMessage(), ce);
-        }
-    }
-
 }

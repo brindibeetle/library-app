@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.ZonedDateTime;
 
 @Data
 @AllArgsConstructor
@@ -13,6 +14,6 @@ class LibraryAPIBodyParams {
 
     private String email;
 
-    private LocalDate date;
+    private ZonedDateTime dateTime;
 
 }

@@ -1,9 +1,10 @@
 package com.lunatech.library.service;
 
 import com.lunatech.library.domain.Book;
-import com.lunatech.library.exception.BookNotFoundException;
+import com.lunatech.library.exception.APIException;
 import com.lunatech.library.repository.BookRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,10 +21,10 @@ public class BookService {
         return repository.findAll();
     }
 
-    public Book findById(Long id) throws BookNotFoundException {
+    public Book findById(Long id) {
         Optional<Book> optionalBook = repository.findById(id);
         if (!optionalBook.isPresent()) {
-            throw new BookNotFoundException("Book not found in repository");
+            throw new APIException(HttpStatus.NOT_FOUND, "Book not found in repository, id: " + id);
         }
         return optionalBook.get();
     }

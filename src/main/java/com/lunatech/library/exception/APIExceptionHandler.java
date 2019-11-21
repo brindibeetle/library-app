@@ -75,7 +75,7 @@ public class APIExceptionHandler extends ResponseEntityExceptionHandler {
         }
 
         APIError apiError =
-                new APIError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), errors);
+                new APIError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), errors.get(0));
         return new ResponseEntity<Object>(
                 apiError, new HttpHeaders(), apiError.getStatus());
     }
@@ -105,13 +105,22 @@ public class APIExceptionHandler extends ResponseEntityExceptionHandler {
         return new ResponseEntity<Object>(apiError, new HttpHeaders(), apiError.getStatus());
     }
 
+    @ExceptionHandler({ APIException.class })
+    public ResponseEntity<Object> getHandleAPIException (APIException ex, WebRequest request) {
+
+        APIError apiError = new APIError(
+                ex.getStatus(), ex.getMessage(), ex.getClass().getName());
+        return new ResponseEntity<Object>(
+                apiError, new HttpHeaders(), apiError.getStatus());
+    }
+
     @ExceptionHandler({ Exception.class })
     /*
         Finally, let's implement a fall-back handler – a catch-all type of logic that deals with all other exceptions that don't have specific handlers:
     */
     public ResponseEntity<Object> handleAll(Exception ex, WebRequest request) {
         APIError apiError = new APIError(
-                HttpStatus.INTERNAL_SERVER_ERROR, ex.getLocalizedMessage(), "error occurred");
+                HttpStatus.INTERNAL_SERVER_ERROR, ex.getLocalizedMessage(), ex.getClass().getName() );
         return new ResponseEntity<Object>(
                 apiError, new HttpHeaders(), apiError.getStatus());
     }

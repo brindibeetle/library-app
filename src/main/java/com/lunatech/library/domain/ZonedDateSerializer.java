@@ -6,19 +6,19 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
 
 import java.io.IOException;
-import java.time.LocalDate;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class LocalDateSerializer extends StdSerializer<LocalDate> {
+public class ZonedDateSerializer extends StdSerializer<ZonedDateTime> {
 
     private static final long serialVersionUID = 1L;
 
-    public LocalDateSerializer(){
-        super(LocalDate.class);
+    public ZonedDateSerializer(){
+        super(ZonedDateTime.class);
     }
 
     @Override
-    public void serialize(LocalDate value, JsonGenerator gen, SerializerProvider sp) throws IOException, JsonProcessingException {
-        gen.writeString(value.format(DateTimeFormatter.ISO_LOCAL_DATE));
+    public void serialize(ZonedDateTime value, JsonGenerator gen, SerializerProvider sp) throws IOException, JsonProcessingException {
+        gen.writeString(value.format(DateTimeFormatter.ISO_DATE_TIME));
     }
 }

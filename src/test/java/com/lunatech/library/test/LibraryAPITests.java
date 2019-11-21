@@ -46,14 +46,9 @@ public class LibraryAPITests extends AbstractTest {
 
     @Test
     public void doCheckoutWithOpt() throws Exception {
-        String uri = "/api/v1/checkoutopt/5";
+        String uri = "/api/v1/checkout/5?email=emile@pipo.nl";
 
-        String inputJson = "{\n" +
-                "\t\"email\": \"emile@pipo.nl\"\n" +
-                "}";
-
-        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.put(uri)
-                .contentType(MediaType.APPLICATION_JSON_VALUE).content(inputJson)).andReturn();
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.put(uri)).andReturn();
 
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
