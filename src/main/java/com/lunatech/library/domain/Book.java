@@ -33,8 +33,8 @@ public class Book {
     private String publishedDate;
 
     @Column(length=400)
-    @ApiModelProperty(notes = "Some details or abstract.", example = "New York City, 1896. " +
-            "he lambda calculus forms a prototype universal programming language" +
+    @ApiModelProperty(notes = "Some details or abstract."
+            , example = "The lambda calculus forms a prototype universal programming language" +
             ", which in its untyped version is related to Lisp, and was treated in the first author's classic The Lambda Calculus (1984)."
         , position = 5)
     private String description;
