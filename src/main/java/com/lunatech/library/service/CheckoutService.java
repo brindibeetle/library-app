@@ -4,24 +4,15 @@ import com.lunatech.library.domain.Checkout;
 import com.lunatech.library.exception.APIException;
 import com.lunatech.library.repository.BookRepository;
 import com.lunatech.library.repository.CheckoutRepository;
+import com.lunatech.library.utils.TimeUtils;
+import com.lunatech.library.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Service;
 
-import javax.naming.AuthenticationException;
-import java.time.*;
-import java.time.temporal.ChronoUnit;
-import java.time.temporal.TemporalAmount;
-import java.time.temporal.TemporalUnit;
-import java.util.LinkedHashMap;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.TimeZone;
 
 @Service
 @RequiredArgsConstructor
@@ -31,39 +22,12 @@ public class CheckoutService {
     private final CheckoutRepository checkoutRepository;
     private final BookRepository bookRepository;
 
-    @Value("${time.zone.id}")
-    private String timeZoneId;
-
-    private ZonedDateTime futureDateTime() {
-        Instant future = Instant.now().plusSeconds(10 * 7 * 24 * 60 * 60); // 10 weeks
-        return ZonedDateTime.ofInstant(future, ZoneId.of(timeZoneId));
-    }
-    private ZonedDateTime currentDateTime() {
-        Instant nowUtc = Instant.now();
-        return ZonedDateTime.ofInstant(nowUtc, ZoneId.of(timeZoneId));
-    }
-    private String username() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication instanceof AnonymousAuthenticationToken) {
-            throw new APIException(HttpStatus.UNAUTHORIZED, "Anonimous user not allowed");
-        }
-        String currentUserName = authentication.getName();
-        return currentUserName;
-    }
-    private String userEmail() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication instanceof AnonymousAuthenticationToken) {
-            throw new APIException(HttpStatus.UNAUTHORIZED, "Anonymous user not allowed");
-        }
-        String currentUserEmail = authentication.getName();
-        return currentUserEmail;
-    }
-    private Long emptyId() {
+     private Long emptyId() {
         return -1L;
     }
 
     private void check4ConflictingCheckout(Long bookId, ZonedDateTime fromDateTime) {
-        ZonedDateTime toDateTime = futureDateTime();
+        ZonedDateTime toDateTime = TimeUtils.infiniteDateTime();
         Optional<List<Checkout>> checkoutOptionals = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, fromDateTime, toDateTime);
 
         if (checkoutOptionals.isPresent()) {
@@ -96,7 +60,8 @@ public class CheckoutService {
     }
 
     private Checkout findCheckout(Long bookId, ZonedDateTime dateTime) {
-        Optional<List<Checkout>> optionalCheckouts = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, dateTime, futureDateTime());
+        ZonedDateTime toDateTime = TimeUtils.infiniteDateTime();
+        Optional<List<Checkout>> optionalCheckouts = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, dateTime, toDateTime);
 
         if ( !optionalCheckouts.isPresent() || optionalCheckouts.get().size() == 0 ) {
             throw new APIException(HttpStatus.CONFLICT
@@ -122,8 +87,9 @@ public class CheckoutService {
     // Checkout
     public Checkout checkout(Long bookId, Optional<String> optUserEmail, Optional<ZonedDateTime> optDateTime) {
 
-        String userEmail = optUserEmail.isPresent() ? optUserEmail.get() : userEmail();
-        ZonedDateTime dateTime = optDateTime.orElse(currentDateTime());
+        // NullPointerException will occur when refactoring this to the orElse-construct during Unittest, because then UserUtils.userEmail is evaluated (superfluously!)
+        String userEmail = optUserEmail.isPresent() ? optUserEmail.get() : UserUtils.userEmail();
+        ZonedDateTime dateTime = optDateTime.orElse(TimeUtils.currentDateTime());
 
         check4ConflictingCheckout(bookId, dateTime);
 
@@ -134,7 +100,7 @@ public class CheckoutService {
     // Checkin
     public Checkout checkin(Long bookId, Optional<ZonedDateTime> optDateTime) {
 
-        ZonedDateTime dateTime = optDateTime.orElse(currentDateTime());
+        ZonedDateTime dateTime = optDateTime.orElse(TimeUtils.currentDateTime());
 
         Checkout checkout = findCheckout(bookId, dateTime);
         checkout.setDateTimeTo(dateTime);
@@ -144,15 +110,15 @@ public class CheckoutService {
 
     public Checkout save(Checkout checkout) {
         ZonedDateTime checkoutDateFrom = checkout.getDateTimeFrom();
-        if ( checkoutDateFrom.isAfter(currentDateTime()) ) {
+        if ( checkoutDateFrom.isAfter(TimeUtils.currentDateTime()) ) {
             throw new APIException(HttpStatus.CONFLICT, "The from date cannot be in the future.");
         }
 
         ZonedDateTime checkoutDateTimeTo = checkout.getDateTimeTo();
         if (checkoutDateTimeTo == null) {
-            checkoutDateTimeTo = futureDateTime();
+            checkoutDateTimeTo = TimeUtils.infiniteDateTime();
         }
-        else if (checkoutDateTimeTo.isAfter(currentDateTime())) {
+        else if (checkoutDateTimeTo.isAfter(TimeUtils.currentDateTime())) {
             throw new APIException(HttpStatus.CONFLICT, "The to date cannot be in the future.");
         }
 

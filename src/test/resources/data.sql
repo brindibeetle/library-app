@@ -14,3 +14,9 @@ insert into checkout (id, book_id, date_time_from, date_time_to, user_email)
  , (3, 2, TO_DATE('2019-02-06', 'YYYY-MM-DD'), null, 'emile@ei.nl')
  ;
 
+insert into comment (id, book_id, date_time, user_email, rating, comment)
+ VALUES
+ (1, 1, TO_DATE('1980-05-11', 'YYYY-MM-DD'), 'emile@ei.nl', 1, 'Not good')
+ , (2, 1, TO_DATE('1980-06-11', 'YYYY-MM-DD'), 'emile@ui.nl', 3, 'Pretty good')
+ , (3, 1, TO_DATE('1980-07-11', 'YYYY-MM-DD'), 'emile@oei.nl', 5, 'Very good')
+ ;

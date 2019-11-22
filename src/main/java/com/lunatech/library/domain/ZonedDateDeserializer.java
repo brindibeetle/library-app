@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
 import java.io.IOException;
-import java.time.LocalDate;
 import java.time.ZonedDateTime;
 
 public class ZonedDateDeserializer extends StdDeserializer<ZonedDateTime> {

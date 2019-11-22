@@ -1,9 +1,7 @@
 package com.lunatech.library.test;
 
 import com.lunatech.library.LibraryApplication;
-import com.lunatech.library.domain.Book;
 import com.lunatech.library.domain.Checkout;
-import com.lunatech.library.test.AbstractTest;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

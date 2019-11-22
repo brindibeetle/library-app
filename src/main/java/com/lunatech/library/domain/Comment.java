@@ -12,9 +12,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.*;
 import java.time.ZonedDateTime;
 
 @Entity
@@ -22,31 +20,35 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class Checkout {
+public class Comment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    @ApiModelProperty(notes = "Unique identifier of the checkout.", example = "1", required = true, position = 1)
+    @ApiModelProperty(notes = "Unique identifier of the comment.", example = "1", required = true, position = 1)
     private Long id;
 
-    @NotNull(message = "Checkout : BookId needs a value")
+    @NotNull(message = "Comment : BookId needs a value")
     @ApiModelProperty(notes = "Identifier of the book.", example = "1", required = true, position = 2)
     private Long bookId;
 
-    @NotNull(message = "Checkout : dateFrom needs a value")
+    @NotNull(message = "Comment : dateTime needs a value")
     @JsonDeserialize(using = ZonedDateDeserializer.class)
     @JsonSerialize(using = ZonedDateSerializer.class)
     @ApiModelProperty(notes = "The date/time that the books has been checked out.", example = "12-12-2019T12:30:00Z", required = true, position = 3)
-    private ZonedDateTime dateTimeFrom;
-
-    @JsonDeserialize(using = ZonedDateDeserializer.class)
-    @JsonSerialize(using = ZonedDateSerializer.class)
-    @ApiModelProperty(notes = "The date/time that the books has been checked in.", example = "12-12-2019T12:30:00Z", required = false, position = 4)
-    private ZonedDateTime dateTimeTo;
+    private ZonedDateTime dateTime;
 
     @Email(message= "An appropriate email address is required")
-    @NotBlank(message = "Checkout : who needs a value")
-    @ApiModelProperty(notes = "An email identifying the person who has checked out.", example = "luna.tlabech@lunatech.com", required = false, position = 5)
+    @NotBlank(message = "Comment : who gives a comment")
+    @ApiModelProperty(notes = "An email identifying the person who has commented.", example = "luna.tlabech@lunatech.com", required = false, position = 4)
     private String userEmail;
+
+    @Min(1)
+    @Max(5)
+    @ApiModelProperty(notes = "The rating for the book.", example = "12-12-2019T12:30:00Z", required = true, position = 5)
+    private int rating;
+
+    @NotBlank(message = "Comment : give a comment")
+    @ApiModelProperty(notes = "The rating for the books.", example = "I am happy with this book", required = true, position = 6)
+    private String comment;
 
 }

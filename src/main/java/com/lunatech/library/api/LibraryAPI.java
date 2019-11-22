@@ -5,23 +5,18 @@ import com.lunatech.library.domain.Checkout;
 import com.lunatech.library.exception.APIException;
 import com.lunatech.library.service.BookService;
 import com.lunatech.library.service.CheckoutService;
-import com.sun.org.apache.xerces.internal.util.HTTPInputSource;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
-import javax.naming.AuthenticationException;
-import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1")
