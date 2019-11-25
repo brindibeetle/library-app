@@ -17,16 +17,21 @@ swagger-ui:		`<base-url>/swagger-ui.html`
 **Environment variables**
 
 •	`GOOGLE_OAUTH2_CLIENT_ID`
+
 The client-id provided by Google. The string I am looking at is 72 characters long and ends with “apps.googleusercontent.com”.
 
 •	`GOOGLE_OAUTH2_CLIENT_SECRET`
+
 The secret provided by Google. This string is 24 characters long.
 
 •	`POSTGRES_DATASOURCE_URL`
+
 The url to get access to the postgress database. 
 
 •	`POSTGRES_DATASOURCE_USERNAME`
+
 •	`POSTGRES_DATASOURCE_PASSWORD`
+
 
 **Authentication**
 
