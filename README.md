@@ -13,6 +13,8 @@ Github:				`https://github.com/lunatech-labs/lunatech-library-app`
 
 swagger-ui:		`<base-url>/swagger-ui.html`
 
+clever cloud: `http://app-b79f46a1-65e2-436a-8f9b-505ab7224372.cleverapps.io/`
+
 
 **Environment variables**
 
