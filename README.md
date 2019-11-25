@@ -37,7 +37,7 @@ The url to get access to the postgress database.
 
 **Authentication**
 
-The authentication takes place via google Oauth.
+The authentication takes place via google Oauth. Note that only emails from lunatech-domains (fr,be,nl) are allowed.
 
 **Technical**
 
