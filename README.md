@@ -1,6 +1,5 @@
 **Library-app**
 *****Lunatech’s Library application*****
-
 *This backend provides a service for the administration of books and their lend-outs.*
 **Resources**
 Heroku:				`https://library-app-lunatech.herokuapp.com`
