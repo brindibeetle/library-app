@@ -8,7 +8,9 @@
 **Resources**
 
 Heroku:				`https://library-app-lunatech.herokuapp.com`
+
 Github:				`https://github.com/lunatech-labs/lunatech-library-app`
+
 swagger-ui:		`<base-url>/swagger-ui.html`
 
 
