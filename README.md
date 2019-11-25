@@ -57,3 +57,4 @@ This backend is made with Java, Spring Boot, JPA, Hibernate, Swagger. The data i
 
 See the swagger-ui for the endpoints and model.
 
+
