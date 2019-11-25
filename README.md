@@ -7,13 +7,11 @@
 
 **Resources**
 
-Heroku:				`https://library-app-lunatech.herokuapp.com`
-
 Github:				`https://github.com/lunatech-labs/lunatech-library-app`
 
-swagger-ui:		`<base-url>/swagger-ui.html`
+clever cloud: `http://library.lunatech.com/`
 
-clever cloud: `http://app-b79f46a1-65e2-436a-8f9b-505ab7224372.cleverapps.io/`
+swagger-ui:		`<base-url>/swagger-ui.html`
 
 
 **Environment variables**
@@ -37,7 +35,7 @@ The url to get access to the postgress database.
 
 **Authentication**
 
-The authentication takes place via google Oauth.
+The authentication takes place via google Oauth. Note that only emails from lunatech-domains (fr,be,nl) are allowed.
 
 **Technical**
 
