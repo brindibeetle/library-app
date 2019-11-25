@@ -39,8 +39,11 @@ This backend is made with Java, Spring Boot, JPA, Hibernate, Swagger. The data i
 **Setup**
 
 •	Import the repository in your favorite IDE (IntelliJ, Eclipse, etc).
+
 •	In Google Cloud Console obtain an Api key and activate Oauth 2 to get a Client Id and a secret
+
 •	Install Postgres
+
 •	In your workstation, or better in your IDE administer the environment variables
 
 **Documentation**
