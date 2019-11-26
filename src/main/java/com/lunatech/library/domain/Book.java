@@ -42,7 +42,7 @@ public class Book {
     @ApiModelProperty(notes = "The proprietor.", example = "Femke Halsema", position = 6 )
     private String owner;
 
-    @ApiModelProperty(notes = "The place where you can find the book.", example = "Usually on of the offices of Lunatech. Amsterdam, Rotterdam, Chessy.", position = 7 )
+    @ApiModelProperty(notes = "The place where you can find the book.", example = "Usually one of the offices of Lunatech. Amsterdam, Rotterdam, Chessy.", position = 7 )
     private String location;
 
 }
