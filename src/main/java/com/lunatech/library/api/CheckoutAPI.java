@@ -35,7 +35,7 @@ public class CheckoutAPI {
     public List<CheckoutDTO> findAll() {
         List<Checkout> checkouts = checkoutService.findAll();
         return checkouts.stream()
-                .map(checkout -> convertToDTO(checkout))
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
@@ -53,7 +53,7 @@ public class CheckoutAPI {
     public List<CheckoutDTO> findByBookId(@PathVariable Long bookId) {
         List<Checkout> checkouts = checkoutService.findByBookId(bookId, Optional.empty(), Optional.empty());
         return checkouts.stream()
-                .map(checkout -> convertToDTO(checkout))
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 

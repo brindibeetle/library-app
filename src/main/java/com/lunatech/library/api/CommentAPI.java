@@ -36,7 +36,7 @@ public class CommentAPI {
     public List<CommentDTO> findAll() {
         List<Comment> comments = commentService.findAll();
         return comments.stream()
-                .map(comment -> convertToDTO(comment))
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
@@ -53,7 +53,7 @@ public class CommentAPI {
     public List<CommentDTO> findByBookId(@PathVariable Long bookId) {
         List<Comment> comments = commentService.findByBookId(bookId, Optional.empty(), Optional.empty());
         return comments.stream()
-                .map(comment -> convertToDTO(comment))
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 

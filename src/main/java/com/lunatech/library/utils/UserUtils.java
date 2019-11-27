@@ -8,6 +8,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 public class UserUtils {
 
+    private UserUtils() {
+    }
+
     public static String username() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof AnonymousAuthenticationToken) {

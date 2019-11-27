@@ -12,7 +12,7 @@ public class TimeUtils {
     private static String timeZoneId;
 
     @Value("${time.zone.id}")
-    private void setTIMEZONEID(String timeZoneId){
+    private void setTIMEZONEID(String timeZoneId) {
 
         this.timeZoneId = timeZoneId;
 
@@ -31,7 +31,7 @@ public class TimeUtils {
     }
 
     public static ZonedDateTime currentDateTime() {
-        return  ZonedDateTime.now(ZoneId.of(timeZoneId));
+        return ZonedDateTime.now(ZoneId.of(timeZoneId));
     }
 
 }

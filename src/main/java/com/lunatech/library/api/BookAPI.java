@@ -34,7 +34,7 @@ public class BookAPI {
     public List<BookDTO> findAll() {
         List<Book> books = bookService.findAll();
         return books.stream()
-                .map(book -> convertToDTO(book))
+                .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
 
@@ -44,7 +44,7 @@ public class BookAPI {
     public BookDTO create(@Valid @RequestBody BookDTO bookDTO) {
         Book book = convertToEntity(-1L, bookDTO);
         Book bookCreated = bookService.save(book);
-        return convertToDTO(book);
+        return convertToDTO(bookCreated);
     }
 
     @GetMapping(path = "/{id}", produces = "application/json")
