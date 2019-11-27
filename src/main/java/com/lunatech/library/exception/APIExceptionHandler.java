@@ -32,7 +32,7 @@ public class APIExceptionHandler extends ResponseEntityExceptionHandler {
             HttpHeaders headers,
             HttpStatus status,
             WebRequest request) {
-        List<String> errors = new ArrayList<String>();
+        List<String> errors = new ArrayList<>();
         for (FieldError error : ex.getBindingResult().getFieldErrors()) {
             errors.add(error.getField() + ": " + error.getDefaultMessage());
         }
@@ -58,17 +58,17 @@ public class APIExceptionHandler extends ResponseEntityExceptionHandler {
 
         APIError apiError =
                 new APIError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), error);
-        return new ResponseEntity<Object>(
+        return new ResponseEntity<>(
                 apiError, new HttpHeaders(), apiError.getStatus());
     }
 
-    @ExceptionHandler({ ConstraintViolationException.class })
+    @ExceptionHandler({ConstraintViolationException.class})
     /*
         ConstrainViolationException: This exception reports the result of constraint violations:
     */
     public ResponseEntity<Object> handleConstraintViolation(
             ConstraintViolationException ex, WebRequest request) {
-        List<String> errors = new ArrayList<String>();
+        List<String> errors = new ArrayList<>();
         for (ConstraintViolation<?> violation : ex.getConstraintViolations()) {
             errors.add(violation.getRootBeanClass().getName() + " " +
                     violation.getPropertyPath() + ": " + violation.getMessage());
@@ -76,11 +76,11 @@ public class APIExceptionHandler extends ResponseEntityExceptionHandler {
 
         APIError apiError =
                 new APIError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), errors.get(0));
-        return new ResponseEntity<Object>(
+        return new ResponseEntity<>(
                 apiError, new HttpHeaders(), apiError.getStatus());
     }
 
-    @ExceptionHandler({ MethodArgumentTypeMismatchException.class })
+    @ExceptionHandler({MethodArgumentTypeMismatchException.class})
     /*
         TypeMismatchException: This exception is thrown when try to set bean property with wrong type.
         MethodArgumentTypeMismatchException: This exception is thrown when method argument is not the expected type:
@@ -92,7 +92,7 @@ public class APIExceptionHandler extends ResponseEntityExceptionHandler {
 
         APIError apiError =
                 new APIError(HttpStatus.BAD_REQUEST, ex.getLocalizedMessage(), error);
-        return new ResponseEntity<Object>(
+        return new ResponseEntity<>(
                 apiError, new HttpHeaders(), apiError.getStatus());
     }
 
@@ -102,26 +102,26 @@ public class APIExceptionHandler extends ResponseEntityExceptionHandler {
         String error = "No handler found for " + ex.getHttpMethod() + " " + ex.getRequestURL();
 
         APIError apiError = new APIError(HttpStatus.NOT_FOUND, ex.getLocalizedMessage(), error);
-        return new ResponseEntity<Object>(apiError, new HttpHeaders(), apiError.getStatus());
+        return new ResponseEntity<>(apiError, new HttpHeaders(), apiError.getStatus());
     }
 
-    @ExceptionHandler({ APIException.class })
-    public ResponseEntity<Object> getHandleAPIException (APIException ex, WebRequest request) {
+    @ExceptionHandler({APIException.class})
+    public ResponseEntity<Object> getHandleAPIException(APIException ex, WebRequest request) {
 
         APIError apiError = new APIError(
                 ex.getStatus(), ex.getMessage(), ex.getClass().getName());
-        return new ResponseEntity<Object>(
+        return new ResponseEntity<>(
                 apiError, new HttpHeaders(), apiError.getStatus());
     }
 
-    @ExceptionHandler({ Exception.class })
+    @ExceptionHandler({Exception.class})
     /*
         Finally, let's implement a fall-back handler – a catch-all type of logic that deals with all other exceptions that don't have specific handlers:
     */
     public ResponseEntity<Object> handleAll(Exception ex, WebRequest request) {
         APIError apiError = new APIError(
-                HttpStatus.INTERNAL_SERVER_ERROR, ex.getLocalizedMessage(), ex.getClass().getName() );
-        return new ResponseEntity<Object>(
+                HttpStatus.INTERNAL_SERVER_ERROR, ex.getLocalizedMessage(), ex.getClass().getName());
+        return new ResponseEntity<>(
                 apiError, new HttpHeaders(), apiError.getStatus());
     }
 }

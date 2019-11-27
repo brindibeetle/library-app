@@ -1,5 +1,5 @@
 insert into book (id, title, authors, published_Date)
- VALUES
+ values
  (1, 'Book1', 'Author1', '0001')
  , (2, 'Book2', 'Author2', '0002')
  , (3, 'Book3', 'Author3', '0003')
@@ -8,13 +8,13 @@ insert into book (id, title, authors, published_Date)
  ;
 
 insert into checkout (id, book_id, date_time_from, date_time_to, user_email)
- VALUES
- (1, 1, TO_DATE('1980-05-11', 'YYYY-MM-DD'), TO_DATE('1981-08-31', 'YYYY-MM-DD'), 'emile@ei.nl')
+ values
+ (1, 1, to_date('1980-05-11', 'YYYY-MM-DD'), to_date('1981-08-31', 'YYYY-MM-DD'), 'emile@ei.nl')
  , (2, 1, TO_DATE('1990-12-06', 'YYYY-MM-DD'), null, 'emile@ei.nl')
  , (3, 2, TO_DATE('2019-02-06', 'YYYY-MM-DD'), null, 'emile@ei.nl')
  ;
 
-insert into comment (id, book_id, date_time, user_email, rating, comment)
+insert into comment (id, book_id, date_time, user_email, rating, remarks)
  VALUES
  (1, 1, TO_DATE('1980-05-11', 'YYYY-MM-DD'), 'emile@ei.nl', 1, 'Not good')
  , (2, 1, TO_DATE('1980-06-11', 'YYYY-MM-DD'), 'emile@ui.nl', 3, 'Pretty good')

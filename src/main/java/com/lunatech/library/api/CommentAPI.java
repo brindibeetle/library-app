@@ -2,72 +2,106 @@ package com.lunatech.library.api;
 
 import com.lunatech.library.domain.Book;
 import com.lunatech.library.domain.Comment;
+import com.lunatech.library.dto.CommentDTO;
 import com.lunatech.library.service.CommentService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/comments")
 @Slf4j
 @RequiredArgsConstructor
-@Api(value="Commenting books")
+@Api(value = "Commenting books")
 public class CommentAPI {
 
     private final CommentService commentService;
 
-    @GetMapping( produces = "application/json" )
+    @Autowired
+    private ModelMapper modelMapper;
+
+    @GetMapping(produces = "application/json")
     @ApiOperation(value = "Get all comments from the repository", response = List.class)
-    public ResponseEntity<List<Comment>> findAll() {
-        return ResponseEntity.ok(commentService.findAll());
+    @ResponseBody
+    public List<CommentDTO> findAll() {
+        List<Comment> comments = commentService.findAll();
+        return comments.stream()
+                .map(comment -> convertToDTO(comment))
+                .collect(Collectors.toList());
     }
 
-    @GetMapping( path = "/{id}", produces = "application/json" )
+    @GetMapping(path = "/{id}", produces = "application/json")
     @ApiOperation(value = "Get a comment from the repository", response = Comment.class)
-    public ResponseEntity<Comment> findById(@PathVariable Long id) {
-        Comment comment = commentService.findById(id);
-
-        return ResponseEntity.ok(comment);
+    @ResponseBody
+    public CommentDTO findById(@PathVariable Long id) {
+        return convertToDTO(commentService.findById(id));
     }
 
-    @GetMapping( path = "/book/{bookId}", produces = "application/json" )
+    @GetMapping(path = "/book/{bookId}", produces = "application/json")
     @ApiOperation(value = "Get all comments on the book from the repository", response = List.class)
-    public ResponseEntity<List<Comment>> findByBookId(@PathVariable Long bookId) {
+    @ResponseBody
+    public List<CommentDTO> findByBookId(@PathVariable Long bookId) {
         List<Comment> comments = commentService.findByBookId(bookId, Optional.empty(), Optional.empty());
-
-        return ResponseEntity.ok(comments);
+        return comments.stream()
+                .map(comment -> convertToDTO(comment))
+                .collect(Collectors.toList());
     }
 
     @PostMapping(consumes = "application/json", produces = "application/json")
     @ApiOperation(value = "Add a comment to the repository", response = Comment.class)
-    public ResponseEntity<Comment> create(@RequestBody Comment comment) {
-        return ResponseEntity.ok(commentService.save(comment));
+    @ResponseBody
+    public CommentDTO create(@RequestBody CommentDTO commentDTO) {
+        Comment comment = convertToEntity(-1L, commentDTO);
+        Comment commentCreated = commentService.save(comment);
+
+        return convertToDTO(commentCreated);
     }
 
-    @PutMapping(path = "/{id}", consumes = "application/json", produces = "application/json" )
+    @PutMapping(path = "/{id}", consumes = "application/json", produces = "application/json")
     @ApiOperation(value = "Change a comment in the repository", response = Book.class)
-    public ResponseEntity<Comment> update(@PathVariable Long id, @Valid @RequestBody Comment comment) {
+    @ResponseStatus(HttpStatus.OK)
+    public void update(@PathVariable Long id, @Valid @RequestBody CommentDTO commentDTO) {
         // to evoke Exception if comment not exists
-        Comment comment1 = commentService.findById(id);
+        Long bookId = commentDTO.getBookId();
+        commentService.findById(bookId);
 
-        comment.setId(id);
-        return ResponseEntity.ok(commentService.save(comment));
+        commentService.save(convertToEntity(id, commentDTO));
     }
 
     @DeleteMapping("/{id}")
     @ApiOperation(value = "Delete a comment from the repository")
-    public ResponseEntity delete(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.OK)
+    public void delete(@PathVariable Long id) {
         // to evoke Exception if comment not exists
-        Comment comment = commentService.findById(id);
+        commentService.findById(id);
 
         commentService.deleteById(id);
-        return ResponseEntity.ok().build();
     }
+
+    private CommentDTO convertToDTO(Comment comment) {
+        CommentDTO commentDTO = modelMapper.map(comment, CommentDTO.class);
+        return commentDTO;
+    }
+
+    private Comment convertToEntity(Long id, CommentDTO commentDTO) {
+        Comment comment = null;
+        if (id == null || id == -1L) {
+            comment = new Comment();
+        } else {
+            comment = commentService.findById(id);
+        }
+        modelMapper.map(commentDTO, comment);
+        return comment;
+    }
+
 }

@@ -22,56 +22,60 @@ public class CheckoutService {
     private final CheckoutRepository checkoutRepository;
     private final BookRepository bookRepository;
 
-     private Long emptyId() {
-        return -1L;
-    }
-
     private void check4ConflictingCheckout(Long bookId, ZonedDateTime fromDateTime) {
         ZonedDateTime toDateTime = TimeUtils.infiniteDateTime();
-        Optional<List<Checkout>> checkoutOptionals = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, fromDateTime, toDateTime);
+        List<Checkout> checkouts = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, fromDateTime, toDateTime);
 
-        if (checkoutOptionals.isPresent()) {
-            Checkout checkout1 = checkoutOptionals.get().get(0);
+        if (!checkouts.isEmpty()) {
+            Checkout checkout1 = checkouts.get(0);
             throw new APIException(
                     HttpStatus.CONFLICT
                     , "Book has already been checked out "
-                            + "id: " + checkout1.getId()
-                            + " from: " + checkout1.getDateTimeFrom()
-                            + (checkout1.getDateTimeTo() != null ? " to: " + checkout1.getDateTimeTo() : "")
-                            + " by: " + checkout1.getUserEmail()
+                    + "id: " + checkout1.getId()
+                    + " from: " + checkout1.getDateTimeFrom()
+                    + (checkout1.getDateTimeTo() != null ? " to: " + checkout1.getDateTimeTo() : "")
+                    + " by: " + checkout1.getUserEmail()
             );
         }
     }
 
     private void check4ConflictingCheckout(Long id, Long bookId, ZonedDateTime fromDateTime, ZonedDateTime toDateTime) {
-        Optional<List<Checkout>> checkoutOptionals = checkoutRepository.findOtherCheckoutOfBookBetweenDates(id, bookId, fromDateTime, toDateTime);
+        List<Checkout> checkouts = checkoutRepository.findOtherCheckoutOfBookBetweenDates(id, bookId, fromDateTime, toDateTime);
 
-        if (checkoutOptionals.isPresent()) {
-            Checkout checkout1 = checkoutOptionals.get().get(0);
+        if (!checkouts.isEmpty()) {
+            Checkout checkout1 = checkouts.get(0);
             throw new APIException(
                     HttpStatus.CONFLICT
                     , "Book has already been checked out "
-                            + "id: " + checkout1.getId()
-                            + " from: " + checkout1.getDateTimeFrom()
-                            + (checkout1.getDateTimeTo() != null ? " to: " + checkout1.getDateTimeTo() : "")
-                            + " by: " + checkout1.getUserEmail()
+                    + "id: " + checkout1.getId()
+                    + " from: " + checkout1.getDateTimeFrom()
+                    + (checkout1.getDateTimeTo() != null ? " to: " + checkout1.getDateTimeTo() : "")
+                    + " by: " + checkout1.getUserEmail()
             );
         }
     }
 
     private Checkout findCheckout(Long bookId, ZonedDateTime dateTime) {
         ZonedDateTime toDateTime = TimeUtils.infiniteDateTime();
-        Optional<List<Checkout>> optionalCheckouts = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, dateTime, toDateTime);
+        List<Checkout> checkouts = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, dateTime, toDateTime);
 
-        if ( !optionalCheckouts.isPresent() || optionalCheckouts.get().size() == 0 ) {
+        if (checkouts.isEmpty()) {
             throw new APIException(HttpStatus.CONFLICT
                     , "Book has not been checked out "
                     + "book id: " + bookId
                     + " at: " + dateTime);
         }
 
-        return optionalCheckouts.get().get(0);
+        return checkouts.get(0);
     }
+
+    public List<Checkout> findByBookId(Long bookId, Optional<ZonedDateTime> optFrom, Optional<ZonedDateTime> optTo) {
+        ZonedDateTime from = optFrom.orElse(TimeUtils.zeroDateTime());
+        ZonedDateTime to = optTo.orElse(TimeUtils.infiniteDateTime());
+
+        return checkoutRepository.findByBookId(bookId, from, to);
+    }
+
     public List<Checkout> findAll() {
         return checkoutRepository.findAll();
     }
@@ -110,15 +114,14 @@ public class CheckoutService {
 
     public Checkout save(Checkout checkout) {
         ZonedDateTime checkoutDateFrom = checkout.getDateTimeFrom();
-        if ( checkoutDateFrom.isAfter(TimeUtils.currentDateTime()) ) {
+        if (checkoutDateFrom.isAfter(TimeUtils.currentDateTime())) {
             throw new APIException(HttpStatus.CONFLICT, "The from date cannot be in the future.");
         }
 
         ZonedDateTime checkoutDateTimeTo = checkout.getDateTimeTo();
         if (checkoutDateTimeTo == null) {
             checkoutDateTimeTo = TimeUtils.infiniteDateTime();
-        }
-        else if (checkoutDateTimeTo.isAfter(TimeUtils.currentDateTime())) {
+        } else if (checkoutDateTimeTo.isAfter(TimeUtils.currentDateTime())) {
             throw new APIException(HttpStatus.CONFLICT, "The to date cannot be in the future.");
         }
 

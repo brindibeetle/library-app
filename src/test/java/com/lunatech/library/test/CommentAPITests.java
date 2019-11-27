@@ -2,6 +2,7 @@ package com.lunatech.library.test;
 
 import com.lunatech.library.LibraryApplication;
 import com.lunatech.library.domain.Comment;
+import com.lunatech.library.dto.CommentDTO;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,8 +36,8 @@ public class CommentAPITests extends AbstractTest {
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
-        Comment[] comments = super.mapFromJson(content, Comment[].class);
-        assertTrue(comments.length > 0);
+        CommentDTO[] commentDTOs = super.mapFromJson(content, CommentDTO[].class);
+        assertTrue(commentDTOs.length > 0);
     }
 
     @Test
@@ -48,8 +49,8 @@ public class CommentAPITests extends AbstractTest {
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
-        Comment comment = super.mapFromJson(content, Comment.class);
-        assertEquals("emile@ei.nl", comment.getUserEmail());
+        CommentDTO commentDTO = super.mapFromJson(content, CommentDTO.class);
+        assertEquals("emile@ei.nl", commentDTO.getUserEmail());
     }
 
     @Test
@@ -61,8 +62,8 @@ public class CommentAPITests extends AbstractTest {
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
-        Comment[] comments = super.mapFromJson(content, Comment[].class);
-        assertTrue(comments.length > 0);
+        CommentDTO[] commentDTOs = super.mapFromJson(content, CommentDTO[].class);
+        assertTrue(commentDTOs.length > 0);
     }
 
     @Test
@@ -74,12 +75,12 @@ public class CommentAPITests extends AbstractTest {
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
-        Comment[] comments = super.mapFromJson(content, Comment[].class);
-        assertTrue(comments.length == 0);
+        CommentDTO[] commentDTOs = super.mapFromJson(content, CommentDTO[].class);
+        assertTrue(commentDTOs.length == 0);
     }
 
     @Test
-    @WithMockUser(username="emile@pipo.nl")
+    @WithMockUser(username = "emile@pipo.nl")
     public void postAComment() throws Exception {
         String uri = "/api/v1/comments/";
         Comment comment = new Comment(0L, 1L, null, null, 1, "Commentaar");
@@ -91,7 +92,7 @@ public class CommentAPITests extends AbstractTest {
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
-        Comment comment1 = super.mapFromJson(content, Comment.class);
-        assertEquals("emile@pipo.nl", comment1.getUserEmail());
+        CommentDTO commentDTO1 = super.mapFromJson(content, CommentDTO.class);
+        assertEquals("emile@pipo.nl", commentDTO1.getUserEmail());
     }
 }

@@ -1,11 +1,11 @@
-**Library-app**
+#Library-app
 
 *****Lunatech’s Library application*****
 
 *This backend provides a service for the administration of books and their lend-outs.*
 
 
-**Resources**
+###Resources
 
 Github:				`https://github.com/lunatech-labs/lunatech-library-app`
 
@@ -14,7 +14,7 @@ clever cloud: `http://library.lunatech.com/`
 swagger-ui:		`<base-url>/swagger-ui.html`
 
 
-**Environment variables**
+###Environment variables
 
 •	`GOOGLE_OAUTH2_CLIENT_ID`
 
@@ -33,15 +33,19 @@ The url to get access to the postgress database.
 •	`POSTGRES_DATASOURCE_PASSWORD`
 
 
-**Authentication**
+###Owner
+
+Emile Verschuren is the creator of this application. Any remarks, questions at emile.verschuren@lunatech.nl.
+
+###Authentication
 
 The authentication takes place via google Oauth. Note that only emails from lunatech-domains (fr,be,nl) are allowed.
 
-**Technical**
+###Technical
 
 This backend is made with Java, Spring Boot, JPA, Hibernate, Swagger. The data is persisted in a Post-gres database, unit tests take place in a volatile H2 database.
 
-**Setup**
+###Setup
 
 •	Import the repository in your favorite IDE (IntelliJ, Eclipse, etc).
 
@@ -51,7 +55,7 @@ This backend is made with Java, Spring Boot, JPA, Hibernate, Swagger. The data i
 
 •	In your workstation, or better in your IDE administer the environment variables
 
-**Documentation**
+###Documentation
 
 See the swagger-ui for the endpoints and model.
 

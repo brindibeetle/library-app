@@ -44,9 +44,8 @@ public class CommentService {
     public List<Comment> findByBookId(Long bookId, Optional<ZonedDateTime> optFrom, Optional<ZonedDateTime> optTo) {
         ZonedDateTime from = optFrom.orElse(TimeUtils.zeroDateTime());
         ZonedDateTime to = optTo.orElse(TimeUtils.infiniteDateTime());
-        List<Comment> comments = repository.findByBookId(bookId, from, to);
 
-        return comments;
+        return repository.findByBookId(bookId, from, to);
     }
 
     public Comment save(Comment comment) {

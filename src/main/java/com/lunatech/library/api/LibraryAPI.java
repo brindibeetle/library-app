@@ -1,6 +1,5 @@
 package com.lunatech.library.api;
 
-import com.lunatech.library.domain.Book;
 import com.lunatech.library.domain.Checkout;
 import com.lunatech.library.exception.APIException;
 import com.lunatech.library.service.BookService;
@@ -8,8 +7,9 @@ import com.lunatech.library.service.CheckoutService;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.ZonedDateTime;
@@ -27,7 +27,10 @@ public class LibraryAPI {
     private final CheckoutService checkoutService;
     private final BookService bookService;
 
-    @PutMapping(path = "/checkout/{bookId}", produces = "application/json" )
+    @Autowired
+    private ModelMapper modelMapper;
+
+    @PutMapping(path = "/checkout/{bookId}", produces = "application/json")
     @ApiOperation(value = "Do a checkout of a book"
             , notes = "date, datetime, email are optional parameters, example calls : " +
             "<ul> " +
@@ -37,19 +40,21 @@ public class LibraryAPI {
             "     <li>/api/v1/checkout/1?datetime=12-12-2019T10:30:00Z checks out book 1 at the given date and time</li>" +
             "</ul>"
             , response = Checkout.class)
-    public ResponseEntity doCheckout(@PathVariable Long bookId, @RequestParam Map<String, String> varsMap) {
+    @ResponseStatus(HttpStatus.OK)
+    public void doCheckout(@PathVariable Long bookId, @RequestParam Map<String, String> varsMap) {
         // is there a book with book Id?
-        Book book = bookService.findById(bookId);
+        bookService.findById(bookId);
 
         String optNotRecognized =
                 varsMap
                         .entrySet()
                         .stream()
                         .filter(map -> " date datetime email ".indexOf((" " + map.getKey() + " ").toLowerCase()) == -1)
-                        .map(map -> map.getKey())
+                        .map(Map.Entry::getKey)
+//                        .map(map -> map.getKey())
                         .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                         .toString();
-        if (! optNotRecognized.isEmpty()) {
+        if (!optNotRecognized.isEmpty()) {
             throw new APIException(HttpStatus.BAD_REQUEST, "Parameter(s) not recognized " + optNotRecognized);
         }
 
@@ -60,7 +65,7 @@ public class LibraryAPI {
                             .entrySet()
                             .stream()
                             .filter(map -> map.getKey().equalsIgnoreCase("date"))
-                            .map(map -> map.getValue())
+                            .map(Map.Entry::getValue)
                             .map(map -> map.concat("T12:00:00Z"))
                             .map(map -> ZonedDateTime.parse(map, DateTimeFormatter.ISO_ZONED_DATE_TIME))
                             .findFirst();
@@ -70,12 +75,11 @@ public class LibraryAPI {
                                 .entrySet()
                                 .stream()
                                 .filter(map -> map.getKey().equalsIgnoreCase("datetime"))
-                                .map(map -> map.getValue())
+                                .map(Map.Entry::getValue)
                                 .map(map -> ZonedDateTime.parse(map, DateTimeFormatter.ISO_ZONED_DATE_TIME))
                                 .findFirst();
             }
-        }
-        catch (DateTimeParseException dateTimeParseException) {
+        } catch (DateTimeParseException dateTimeParseException) {
             throw new APIException(HttpStatus.BAD_REQUEST, dateTimeParseException.getMessage());
         }
 
@@ -84,13 +88,13 @@ public class LibraryAPI {
                         .entrySet()
                         .stream()
                         .filter(map -> map.getKey().equalsIgnoreCase("email"))
-                        .map(map -> map.getValue())
+                        .map(Map.Entry::getValue)
                         .findFirst();
 
-        return ResponseEntity.ok(checkoutService.checkout(bookId, optEmail, optDateTime));
+        checkoutService.checkout(bookId, optEmail, optDateTime);
     }
 
-    @PutMapping(path = "/checkin/{bookId}", produces = "application/json" )
+    @PutMapping(path = "/checkin/{bookId}", produces = "application/json")
     @ApiOperation(value = "Do a check in of a book"
             , notes = "date, datetime are optional parameters, example calls : " +
             "<ul> " +
@@ -99,19 +103,20 @@ public class LibraryAPI {
             "     <li>/api/v1/checkin/1?datetime=12-12-2019T10:30:00Z checks in book 1 at the given date and time</li>" +
             "</ul>"
             , response = Checkout.class)
-    public ResponseEntity doCheckin(@PathVariable Long bookId, @RequestParam Map<String, String> varsMap) {
+    @ResponseStatus(HttpStatus.OK)
+    public void doCheckin(@PathVariable Long bookId, @RequestParam Map<String, String> varsMap) {
         // is there a book with book Id?
-        Book book = bookService.findById(bookId);
+        bookService.findById(bookId);
 
         String optNotRecognized =
                 varsMap
                         .entrySet()
                         .stream()
                         .filter(map -> " date datetime ".indexOf((" " + map.getKey() + " ").toLowerCase()) == -1)
-                        .map(map -> map.getKey())
+                        .map(Map.Entry::getKey)
                         .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                         .toString();
-        if (! optNotRecognized.isEmpty()) {
+        if (!optNotRecognized.isEmpty()) {
             throw new APIException(HttpStatus.BAD_REQUEST, "Parameter(s) not recognized: " + optNotRecognized);
         }
 
@@ -120,21 +125,22 @@ public class LibraryAPI {
                         .entrySet()
                         .stream()
                         .filter(map -> map.getKey().equalsIgnoreCase("date"))
-                        .map(map -> map.getValue())
+                        .map(Map.Entry::getValue)
                         .map(map -> map.concat("T12:00:00Z"))
                         .map(map -> ZonedDateTime.parse(map, DateTimeFormatter.ISO_ZONED_DATE_TIME))
                         .findFirst();
-        if ( ! optDateTime.isPresent() ) {
+        if (!optDateTime.isPresent()) {
             optDateTime =
                     varsMap
                             .entrySet()
                             .stream()
                             .filter(map -> map.getKey().equalsIgnoreCase("datetime"))
-                            .map(map -> map.getValue())
+                            .map(Map.Entry::getValue)
                             .map(map -> ZonedDateTime.parse(map, DateTimeFormatter.ISO_ZONED_DATE_TIME))
                             .findFirst();
         }
 
-        return ResponseEntity.ok(checkoutService.checkin(bookId, optDateTime));
+        checkoutService.checkin(bookId, optDateTime);
     }
+
 }

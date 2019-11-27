@@ -1,31 +1,23 @@
-package com.lunatech.library.domain;
+package com.lunatech.library.dto;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.lunatech.library.domain.ZonedDateDeserializer;
+import com.lunatech.library.domain.ZonedDateSerializer;
 import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
 import javax.validation.constraints.*;
 import java.time.ZonedDateTime;
 
-@Entity
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
 @ToString
-public class Comment {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    @ApiModelProperty(notes = "Unique identifier of the comment.", example = "1", required = true, position = 1)
-    private Long id;
+public class CommentDTO {
 
     @NotNull(message = "Comment : BookId needs a value")
     @ApiModelProperty(notes = "Identifier of the book.", example = "1", required = true, position = 2)

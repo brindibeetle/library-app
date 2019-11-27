@@ -1,7 +1,7 @@
 package com.lunatech.library.test;
 
 import com.lunatech.library.LibraryApplication;
-import com.lunatech.library.domain.Book;
+import com.lunatech.library.dto.BookDTO;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,8 +34,8 @@ public class BookAPITests extends AbstractTest {
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
-        Book[] books = super.mapFromJson(content, Book[].class);
-        assertTrue(books.length > 0);
+        BookDTO[] bookDTOs = super.mapFromJson(content, BookDTO[].class);
+        assertTrue(bookDTOs.length > 0);
     }
 
     @Test
@@ -47,36 +47,28 @@ public class BookAPITests extends AbstractTest {
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
-        Book book = super.mapFromJson(content, Book.class);
-        assertEquals("Book1", book.getTitle());
+        BookDTO bookDTO = super.mapFromJson(content, BookDTO.class);
+        assertEquals("Book1", bookDTO.getTitle());
     }
 
     @Test
     public void putABook() throws Exception {
         String uri = "/api/v1/books/2";
-        Book book = new Book(null, "Boek", "Auteur", "1920", "", "", "");
-        String inputJson = super.mapToJson(book);
+        BookDTO bookDTO = new BookDTO(null, "Boek", "Auteur", "1920", "", "", "");
+        String inputJson = super.mapToJson(bookDTO);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.put(uri)
                 .contentType(MediaType.APPLICATION_JSON_VALUE).content(inputJson)).andReturn();
 
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
-
-        uri = "/api/v1/books/2";
-        mvcResult = mvc.perform(MockMvcRequestBuilders.get(uri)
-                .accept(MediaType.APPLICATION_JSON_VALUE)).andReturn();
-
-        String content = mvcResult.getResponse().getContentAsString();
-        Book book2 = super.mapFromJson(content, Book.class);
-        assertEquals(book.getTitle(), book2.getTitle());
     }
 
     @Test
     public void postBook() throws Exception {
         String uri = "/api/v1/books";
-        Book book = new Book(0L, "Boek", "Auteur", "1920", "", "", "");
+        BookDTO bookDTO = new BookDTO(0L, "Boek", "Auteur", "1920", "", "", "");
 
-        String inputJson = super.mapToJson(book);
+        String inputJson = super.mapToJson(bookDTO);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post(uri)
                 .contentType(MediaType.APPLICATION_JSON_VALUE).content(inputJson)).andReturn();
 

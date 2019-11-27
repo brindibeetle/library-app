@@ -1,16 +1,21 @@
 package com.lunatech.library.api;
 
 import com.lunatech.library.domain.Checkout;
+import com.lunatech.library.dto.CheckoutDTO;
 import com.lunatech.library.service.BookService;
 import com.lunatech.library.service.CheckoutService;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/checkouts")
@@ -21,41 +26,72 @@ public class CheckoutAPI {
     private final CheckoutService checkoutService;
     private final BookService bookService;
 
-    @GetMapping( produces = "application/json" )
+    @Autowired
+    private ModelMapper modelMapper;
+
+    @GetMapping(produces = "application/json")
     @ApiOperation(value = "Get all checkouts from the repository", response = List.class)
-    public ResponseEntity<List<Checkout>> findAll() {
-        return ResponseEntity.ok(checkoutService.findAll());
+    @ResponseBody
+    public List<CheckoutDTO> findAll() {
+        List<Checkout> checkouts = checkoutService.findAll();
+        return checkouts.stream()
+                .map(checkout -> convertToDTO(checkout))
+                .collect(Collectors.toList());
     }
 
-    @GetMapping(path = "/{id}", produces = "application/json" )
+    @GetMapping(path = "/{id}", produces = "application/json")
     @ApiOperation(value = "Get a checkout from the repository", response = Checkout.class)
-    public ResponseEntity<Checkout> findById(@PathVariable Long id) {
+    @ResponseBody
+    public CheckoutDTO findById(@PathVariable Long id) {
         Checkout checkout = checkoutService.findById(id);
-        return ResponseEntity.ok(checkout);
+        return convertToDTO(checkout);
     }
 
-    @PutMapping(path = "/{id}", consumes = "application/json", produces = "application/json" )
+    @GetMapping(path = "/book/{bookId}", produces = "application/json")
+    @ApiOperation(value = "Get all checkouts on the book from the repository", response = List.class)
+    @ResponseBody
+    public List<CheckoutDTO> findByBookId(@PathVariable Long bookId) {
+        List<Checkout> checkouts = checkoutService.findByBookId(bookId, Optional.empty(), Optional.empty());
+        return checkouts.stream()
+                .map(checkout -> convertToDTO(checkout))
+                .collect(Collectors.toList());
+    }
+
+    @PutMapping(path = "/{id}", consumes = "application/json", produces = "application/json")
     @ApiOperation(value = "Change a checkout in the repository", response = Checkout.class)
-    public ResponseEntity<Checkout> update(@PathVariable Long id, @Valid @RequestBody Checkout checkout) {
-        Long bookId = checkout.getBookId();
-
-        // exists Checkout?
-        checkoutService.findById(id);
-        checkout.setId(id);
-
-        // is there a book with book Id?
+    @ResponseStatus(HttpStatus.OK)
+    public void update(@PathVariable Long id, @Valid @RequestBody CheckoutDTO checkoutDTO) {
+        // exists the book?
+        Long bookId = checkoutDTO.getBookId();
         bookService.findById(bookId);
 
-        return ResponseEntity.ok(checkoutService.save(checkout));
+        checkoutService.save(convertToEntity(id, checkoutDTO));
     }
 
     @DeleteMapping("/{id}")
     @ApiOperation(value = "Delete a checkout from the repository")
-    public ResponseEntity delete(@PathVariable Long id) {
+    @ResponseStatus(HttpStatus.OK)
+    public void delete(@PathVariable Long id) {
         // exists Checkout?
         checkoutService.findById(id);
 
         checkoutService.deleteById(id);
-        return ResponseEntity.ok().build();
     }
+
+    private CheckoutDTO convertToDTO(Checkout checkout) {
+        CheckoutDTO checkoutDTO = modelMapper.map(checkout, CheckoutDTO.class);
+        return checkoutDTO;
+    }
+
+    private Checkout convertToEntity(Long id, CheckoutDTO checkoutDTO) {
+        Checkout checkout = null;
+        if (id == null || id == -1L) {
+            checkout = new Checkout();
+        } else {
+            checkout = checkoutService.findById(id);
+        }
+        modelMapper.map(checkoutDTO, checkout);
+        return checkout;
+    }
+
 }

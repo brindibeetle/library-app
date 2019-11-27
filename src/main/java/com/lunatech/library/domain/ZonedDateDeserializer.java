@@ -1,7 +1,6 @@
 package com.lunatech.library.domain;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 
@@ -18,7 +17,7 @@ public class ZonedDateDeserializer extends StdDeserializer<ZonedDateTime> {
 
     @Override
     public ZonedDateTime deserialize(JsonParser jp, DeserializationContext ctxt)
-            throws IOException, JsonProcessingException {
+            throws IOException {
         return ZonedDateTime.parse(jp.readValueAs(String.class));
     }
 }

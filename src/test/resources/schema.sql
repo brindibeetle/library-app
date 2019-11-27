@@ -2,4 +2,4 @@ create table book (id INTEGER PRIMARY KEY auto_increment, title VARCHAR(31), aut
 
 create table checkout (id INTEGER PRIMARY KEY auto_increment, book_id INTEGER , date_time_from TIMESTAMP WITH TIME ZONE , date_time_to TIMESTAMP WITH TIME ZONE , user_email VARCHAR(31));
 
-create table comment (id INTEGER PRIMARY KEY auto_increment, book_id INTEGER , date_time TIMESTAMP WITH TIME ZONE , user_email VARCHAR(31), rating INTEGER, comment VARCHAR(400));
+create table comment (id INTEGER PRIMARY KEY auto_increment, book_id INTEGER , date_time TIMESTAMP WITH TIME ZONE , user_email VARCHAR(31), rating INTEGER, remarks VARCHAR(400));

@@ -2,7 +2,6 @@ package com.lunatech.library.config;
 
 import org.springframework.boot.autoconfigure.security.oauth2.resource.PrincipalExtractor;
 
-import javax.naming.AuthenticationException;
 import java.util.Map;
 
 public class CustumPrincipalExtractor implements PrincipalExtractor {

@@ -1,7 +1,7 @@
 package com.lunatech.library.test;
 
 import com.lunatech.library.LibraryApplication;
-import com.lunatech.library.domain.Checkout;
+import com.lunatech.library.dto.CheckoutDTO;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,8 +34,8 @@ public class CheckoutAPITests extends AbstractTest {
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
-        Checkout[] checkouts = super.mapFromJson(content, Checkout[].class);
-        assertTrue(checkouts.length > 0);
+        CheckoutDTO[] checkoutDTOs = super.mapFromJson(content, CheckoutDTO[].class);
+        assertTrue(checkoutDTOs.length > 0);
     }
 
     @Test
@@ -47,7 +47,7 @@ public class CheckoutAPITests extends AbstractTest {
         int status = mvcResult.getResponse().getStatus();
         assertEquals(200, status);
         String content = mvcResult.getResponse().getContentAsString();
-        Checkout checkout = super.mapFromJson(content, Checkout.class);
-        assertEquals("emile@ei.nl", checkout.getUserEmail());
+        CheckoutDTO checkoutDTO = super.mapFromJson(content, CheckoutDTO.class);
+        assertEquals("emile@ei.nl", checkoutDTO.getUserEmail());
     }
 }

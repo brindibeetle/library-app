@@ -9,11 +9,11 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 @Configuration
 @EnableWebSecurity
@@ -31,17 +31,18 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     public AuthoritiesExtractor authoritiesExtractor(
             @Value("#{'${security.allowed.domains}'.split(',')}") final List<String> allowedDomains) {
 
-         return new AuthoritiesExtractor() {
-            @Override
-            public List<GrantedAuthority> extractAuthorities(final Map<String, Object> map) {
-                String email = (String)map.get("email");
-                String[] emailparts = email.split("@");
-                String emaildomain = emailparts[emailparts.length -1];
-                if (!allowedDomains.contains(emaildomain)) {
-                    throw new BadCredentialsException("Not an allowed domain");
-                }
-                return AuthorityUtils.commaSeparatedStringToAuthorityList("ROLE_USER");
+        return (Map<String, Object> map) -> {
+            String[] emailparts =
+                    ((String) map.get("email"))
+                            .split("@");
+
+            String emaildomain = Stream.of(emailparts)
+                    .reduce((first, second) -> second).orElse("***__***");
+
+            if (!allowedDomains.contains(emaildomain)) {
+                throw new BadCredentialsException("Not an allowed domain");
             }
+            return AuthorityUtils.commaSeparatedStringToAuthorityList("ROLE_USER");
         };
     }
 }
