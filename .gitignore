@@ -31,4 +31,4 @@ hs_err_pid*
 # ELM
 frontend/elm-stuff/
 frontend/index.html
-
+.DS_Store

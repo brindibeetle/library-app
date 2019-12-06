@@ -4,10 +4,16 @@ import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav
 import Url exposing (Url)
 import Html exposing (..)
+import Debug as Debug exposing (log)
+import OAuth
+import OAuth.Implicit
 
 import BookSelector exposing (..)
+import Login exposing (..)
 
 import Route exposing (Route)
+import Menu exposing (..)
+import Bootstrap.CDN as CDN
 
 
 main : Program () Model Msg
@@ -23,60 +29,91 @@ main =
 
 
 type alias Model =
-    { route : Route
-    , page : Page
-    , navKey : Nav.Key
+    { page : Page
+    , token : Maybe OAuth.Token
+    , error : Maybe String
+    , menuModel : Menu.Model
+    , bookSelectorModel : BookSelector.Model
+    , loginModel : Login.Model
     }
 
+initialState : Maybe OAuth.Token -> (Model, Cmd Msg)
+initialState maybeToken =
+    let
+        ( menuModel, menuCmd ) =
+            Menu.initialState maybeToken
+    in
+    (
+        { page = NotFoundPage
+        , token = Nothing
+        , error = Nothing
+        , menuModel = menuModel
+        , bookSelectorModel = BookSelector.initialModel maybeToken
+        , loginModel = Login.initialModel maybeToken
+        }
+        , Cmd.map MenuMsg menuCmd
+    )
 
 type Page
     = NotFoundPage
     | BookSelectorPage BookSelector.Model
+    | LoginPage Login.Model
 
 
 type Msg
     = BookSelectorMsg BookSelector.Msg
+    | LoginMsg Login.Msg
+    | MenuMsg Menu.Msg
     | LinkClicked UrlRequest
     | UrlChanged Url
 
 
+-- refresh page : 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url navKey =
-    let
-        model =
-            { route = Route.parseUrl url
-            , page = NotFoundPage
-            , navKey = navKey
-            }
-    in
-    initCurrentPage ( model, Cmd.none )
+    case OAuth.Implicit.parseToken (queryAsFragment url) of
+        OAuth.Implicit.Empty ->
+            initialState Nothing
 
+        OAuth.Implicit.Success { token, state } ->
+            let
+                token1 = Debug.log "Main.init Success" token
+                ( model1, cmd1 ) =
+                    initialState (Just token)
+            in
+            ( 
+                { model1 
+                | token = Just token
+                }
+                ,
+                cmd1
+            )
 
-initCurrentPage : ( Model, Cmd Msg ) -> ( Model, Cmd Msg )
-initCurrentPage ( model, existingCmds ) =
-    let
-        ( currentPage, mappedPageCmds ) =
-            case model.route of
-                Route.NotFound ->
-                    ( NotFoundPage, Cmd.none )
-
-                Route.BookSelector ->
-                    let
-                        ( pageModel, pageCmds ) =
-                            BookSelector.init
-                    in
-                    ( BookSelectorPage pageModel, Cmd.map BookSelectorMsg pageCmds )
-                
-    in
-    ( { model | page = currentPage }
-    , Cmd.batch [ existingCmds, mappedPageCmds ]
-    )
+        OAuth.Implicit.Error { error, errorDescription } ->
+            initialState Nothing
 
 
 view : Model -> Document Msg
 view model =
     { title = "Lunatech Library"
-    , body = [ currentView model ]
+    , body = 
+        [ CDN.stylesheet
+        , Menu.view model.menuModel 
+            |> Html.map MenuMsg
+        , case model.menuModel.active of
+            Just Login ->
+                Login.view model.loginModel |> Html.map LoginMsg
+        
+            Just BookSelector ->
+                BookSelector.view model.bookSelectorModel |> Html.map BookSelectorMsg
+        
+            Just _ ->
+                text "Nothing"
+
+            Nothing -> 
+                text "Nothing"
+                
+        ]
     }
 
 
@@ -90,6 +127,10 @@ currentView model =
             BookSelector.view pageModel
                 |> Html.map BookSelectorMsg
 
+        LoginPage pageModel ->
+            Login.view pageModel
+                |> Html.map LoginMsg
+
 
 notFoundView : Html msg
 notFoundView =
@@ -98,37 +139,118 @@ notFoundView =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case ( msg, model.page ) of
-        ( BookSelectorMsg subMsg, BookSelectorPage pageModel ) ->
+    let
+            waarzijnwe = Debug.log "Main" "Update"
+    in
+    case msg of
+        BookSelectorMsg subMsg ->
             let
-                ( updatedPageModel, updatedCmd ) =
-                    BookSelector.update subMsg pageModel
+                ( bookSelectorModel, bookSelectorCmd ) =
+                    BookSelector.update subMsg model.bookSelectorModel
             in
-            ( { model | page = BookSelectorPage updatedPageModel }
-            , Cmd.map BookSelectorMsg updatedCmd
-            )
+                ( 
+                    { model
+                    | bookSelectorModel = bookSelectorModel
+                    }
+                    , Cmd.map BookSelectorMsg bookSelectorCmd
+                )
 
-        ( LinkClicked urlRequest, _ ) ->
-            case urlRequest of
-                Browser.Internal url ->
-                    ( model
-                    , Nav.pushUrl model.navKey (Url.toString url)
-                    )
-
-                Browser.External url ->
-                    ( model
-                    , Nav.load url
-                    )
-
-        ( UrlChanged url, _ ) ->
+        LoginMsg subMsg ->
             let
-                newRoute =
-                    Route.parseUrl url
+                ( loginModel, loginCmd ) =
+                    Login.update subMsg model.loginModel
             in
-            ( { model | route = newRoute }, Cmd.none )
-                |> initCurrentPage
+                ( 
+                    { model
+                    | loginModel = loginModel
+                    }
+                    , Cmd.map LoginMsg loginCmd
+                )
 
-        ( _, _ ) ->
+        MenuMsg subMsg ->
+            let
+                ( menuModel, menuCmd ) =
+                    Menu.update subMsg model.menuModel
+            in
+                ( 
+                    { model
+                    | menuModel = menuModel
+                    }
+                    , Cmd.map MenuMsg menuCmd
+                )
+        
+        LinkClicked _ ->
             ( model, Cmd.none )
+
+        UrlChanged _ ->
+            ( model, Cmd.none )
+
+
+
+queryAsFragment : Url -> Url
+queryAsFragment url =
+    case url.fragment of
+        Just "_=_" ->
+            { url | fragment = url.query, query = Nothing }
+
+        Nothing ->
+            { url | fragment = url.query, query = Nothing }
+
+        _ ->
+            url
+
+
+oauthProviderFromState : String -> Maybe OAuthProvider
+oauthProviderFromState str =
+        -- str
+        --     |> stringLeftUntil (\c -> c == ".")
+        --     |> oauthProviderFromString
+    Just Google
+
+type OAuthProvider
+    = Google
+    | Spotify
+    | LinkedIn
+
+oauthProviderFromString : String -> Maybe OAuthProvider
+oauthProviderFromString str =
+    case str of
+        "google" ->
+            Just Google
+
+        "spotify" ->
+            Just Spotify
+
+        "linkedin" ->
+            Just LinkedIn
+
+        _ ->
+            Nothing
+
+stringLeftUntil : (String -> Bool) -> String -> String
+stringLeftUntil predicate str =
+    let
+        ( h, q ) =
+            ( String.left 1 str, String.dropLeft 1 str )
+    in
+    if h == "" || predicate h then
+        ""
+
+    else
+        h ++ stringLeftUntil predicate q
+
+
+errorResponseToString : { error : OAuth.ErrorCode, errorDescription : Maybe String } -> String
+errorResponseToString { error, errorDescription } =
+    let
+        code =
+            OAuth.errorCodeToString error
+
+        desc =
+            errorDescription
+                |> Maybe.withDefault ""
+                |> String.replace "+" " "
+    in
+    code ++ ": " ++ desc
 
 

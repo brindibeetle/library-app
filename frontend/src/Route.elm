@@ -7,6 +7,8 @@ import Browser.Navigation as Nav
 type Route
     = NotFound
     | BookSelector
+    | Login
+    | Landing
 
 parseUrl : Url -> Route
 parseUrl url =
@@ -23,6 +25,7 @@ matchRoute =
     oneOf
         [ 
           Parser.map BookSelector (s "bookselector")
+          , Parser.map Login (s "login")
         ]
 
 
@@ -40,3 +43,9 @@ routeToString route =
 
         BookSelector ->
             "/bookselector"
+
+        Login ->
+            "/login"
+            
+        Landing ->
+            "/"

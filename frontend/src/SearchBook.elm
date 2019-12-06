@@ -1,4 +1,4 @@
-module SearchBooks exposing (..)
+module SearchBook exposing (..)
 
 import Http
 import Array exposing (Array)

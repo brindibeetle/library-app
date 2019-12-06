@@ -5,6 +5,7 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Http as Http
+import OAuth
 
 import RemoteData exposing (RemoteData, WebData, succeed)
 
@@ -24,55 +25,39 @@ import Bootstrap.Card as Card
 import Bootstrap.Text as Text
 import Bootstrap.Card.Block as Block
 
-import SearchBooks as SearchBooks
-
+import SearchBook exposing (..)
+import LibraryBook exposing (..)
+import BookSelectorDetail exposing (..)
+import BookSelectorTiles exposing (..)
 
 type alias Model = 
     {
-        searchbooks : WebData (SearchBooks.SearchBooks)
+        searchbooks : WebData SearchBooks
         , searchbookauthor : String 
         , searchbooktitle : String 
+        , bookSelectorTilesModel : BookSelectorTiles.Model
+        , bookSelectorDetailModel : Maybe BookSelectorDetail.Model
     }
 
+type BookSelectorViewLevel =
+    Tiles
+    | Detail
 
-initialModel : Model
-initialModel =
+initialModel : Maybe OAuth.Token -> Model
+initialModel maybeToken =
     { searchbookauthor = ""
     , searchbooktitle = ""
     , searchbooks = RemoteData.NotAsked
+    , bookSelectorTilesModel = BookSelectorTiles.initialModel RemoteData.NotAsked
+    , bookSelectorDetailModel = Nothing
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    ( initialModel
-    , Cmd.none
-    )
-
-
-view : Model -> Html Msg
-view model =
-    div []
-        [
-            CDN.stylesheet
-            , Form.form []
-            [ 
-              Form.group []
-                [ Form.label [ ] [ text "Book title"]
-                , Input.text [ Input.id "searchbooktitle", Input.onInput UpdateSearchtitle ]
-                , Form.help [] [ text "What is (part of) the title of the book." ]
-                ]
-              , Form.group []
-                [ Form.label [ ] [ text "Author(s)"]
-                , Input.text [ Input.id "searchbookauthor", Input.onInput UpdateSearchauthor ]
-                , Form.help [] [ text "What is (part of) the authors of the book." ]
-                ]
-              , Button.button
-                [ Button.primary, Button.attrs [ class "float-right" ], Button.onClick DoSearch ]
-                [ text "Search" ]
-            , viewBooks model.searchbooks
-            ]
-        ]
+-- init : ( Model, Cmd Msg )
+-- init =
+--     ( initialModel
+--     , Cmd.none
+--     )
 
 
 type Msg
@@ -80,7 +65,10 @@ type Msg
         UpdateSearchauthor String
         | UpdateSearchtitle String
         | DoSearch
-        | DoSearchReceived (WebData SearchBooks.SearchBooks)
+        | DoSearchReceived (WebData SearchBooks)
+        -- | DoBookDetail SearchBook
+        | BookSelectorTilesMsg BookSelectorTiles.Msg
+        | BookSelectorDetailMsg BookSelectorDetail.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -99,8 +87,56 @@ update msg model =
            , getBooks model.searchbooktitle model.searchbookauthor )
 
         DoSearchReceived response ->
-           ( { model | searchbooks = response }
-           , Cmd.none )
+            let
+                bookSelectorTilesModel = BookSelectorTiles.initialModel response
+            in
+            ( 
+                { model 
+                | searchbooks = response 
+                , bookSelectorTilesModel = bookSelectorTilesModel
+                }
+            , Cmd.none )
+
+        BookSelectorTilesMsg subMsg ->
+            let
+                ( bookSelectorTilesModelUpdated, cmd) = BookSelectorTiles.update subMsg model.bookSelectorTilesModel
+                bookSelectDetailModel = model.bookSelectorDetailModel
+            in
+                case ( bookSelectorTilesModelUpdated.active ,bookSelectorTilesModelUpdated.searchbook ) of 
+                    (False, Just searchbook ) ->        -- False = deactivated, now Details becomes active
+                        ( { model
+                            | bookSelectorTilesModel = bookSelectorTilesModelUpdated
+                            , bookSelectorDetailModel = Just (BookSelectorDetail.initialModel bookSelectorTilesModelUpdated.searchbooks searchbook)
+                            }
+                        , Cmd.none )
+                
+                    _ ->
+                        ( model , Cmd.none)
+                    
+        BookSelectorDetailMsg subMsg ->
+            case model.bookSelectorDetailModel of
+                Just bookSelectorDetailModel ->
+                    let
+                        ( bookSelectorDetailModelUpdated, cmd) = BookSelectorDetail.update subMsg bookSelectorDetailModel
+                        bookSelectTilesModel = model.bookSelectorTilesModel
+                    in
+                        case bookSelectorDetailModelUpdated.active of
+                            False ->                    -- False = deactivated, now Tiles becomes active
+                                ( { model
+                                  | bookSelectorDetailModel = Nothing
+                                  , bookSelectorTilesModel = BookSelectorTiles.initialModel bookSelectorDetailModelUpdated.searchbooks
+                                  }
+                                , Cmd.none )
+                        
+                            _ ->
+                                ( { model
+                                  | bookSelectorDetailModel = Just bookSelectorDetailModelUpdated
+                                  }
+                                , Cmd.none )
+            
+                _ ->
+                    ( model , Cmd.none)
+                    
 
 
 baseUrl : String
@@ -113,46 +149,49 @@ getBooks title author =
     Http.get
         { url = baseUrl ++ "?q=" ++ title ++ "+inauthor:" ++ author
         , expect =
-            SearchBooks.searchbooksDecoder
+            searchbooksDecoder
             |> Http.expectJson (RemoteData.fromResult >> DoSearchReceived)
         }
 
 -- VIEW
-
-viewBooks : WebData SearchBooks.SearchBooks -> Html Msg
-viewBooks searchbooks =
-    case searchbooks of
-        RemoteData.NotAsked ->
-            h3 [] [ text "Not asked..." ]
-
-        RemoteData.Loading ->
-            h3 [] [ text "Loading..." ]
-
-        RemoteData.Success actualSearchBooks ->
+view : Model -> Html Msg
+view model =
+    case model.bookSelectorDetailModel of
+        Just bookSelectorDetailModel ->
             div []
-                -- [  text ("Number of books selected " ++ String.fromInt actualSearchBooks.totalItems)
-                -- ++
-                (viewBooksInCards actualSearchBooks.searchBookList)
-                -- , Table.table 
-                -- { options = [ Table.hover, Table.bordered, Table.small ]
-                -- , thead = Table.thead []
-                --     [ Table.tr [ ]
-                --         [ Table.th [] [ text "title" ]
-                --         , Table.th [] [ text "authors" ]
-                --         , Table.th [] [ text "description" ]
-                --         , Table.th [] [ text "published" ]
-                --         , Table.th [] [ text "language" ]
-                --         , Table.th [] [ text "image" ]
-                --         ]
-                --     ]
-                -- , tbody = Table.tbody []
-                --     (viewBooksInTable actualSearchBooks.searchBookList)
-                -- }
-            -- ]
+                [ viewBookSearcher True model
+                , BookSelectorDetail.view bookSelectorDetailModel |> Html.map BookSelectorDetailMsg
+                ]
+    
+        Nothing ->
+            div []
+                [ viewBookSearcher False model
+                , BookSelectorTiles.view model.bookSelectorTilesModel |> Html.map BookSelectorTilesMsg
+                ]
 
-        RemoteData.Failure httpError ->
-            viewFetchError (buildErrorMessage httpError)
 
+viewBookSearcher : Bool -> Model -> Html Msg
+viewBookSearcher disabled model =
+    
+    div [ class "container" ]
+        [
+            Form.form []
+            [ 
+              Form.group []
+                [ Form.label [ ] [ text "Book title"]
+                , Input.text [ Input.id "searchbooktitle", Input.onInput UpdateSearchtitle, Input.disabled disabled  ]
+                , Form.help [] [ text "What is (part of) the title of the book." ]
+                ]
+              , Form.group []
+                [ Form.label [ ] [ text "Author(s)"]
+                , Input.text [ Input.id "searchbookauthor", Input.onInput UpdateSearchauthor, Input.disabled disabled   ]
+                , Form.help [] [ text "What is (part of) the authors of the book." ]
+                ]
+              , Button.button
+                [ Button.primary, Button.attrs [ class "float-right" ], Button.onClick DoSearch, Button.disabled disabled   ]
+                [ text "Search" ]
+            ]
+        ]
 
 viewFetchError : String -> Html Msg
 viewFetchError errorMessage =
@@ -165,44 +204,4 @@ viewFetchError errorMessage =
         , text ("Error: " ++ errorMessage)
         ]
 
-viewBooksInCards : List (SearchBooks.SearchBook) -> List ( Html Msg )
-viewBooksInCards actualSearchBookList =
 
-    List.map viewBookinCard <| actualSearchBookList
-
-
-viewBookinCard : SearchBooks.SearchBook -> Html Msg
-viewBookinCard searchbook =
-    Card.config [ Card.align Text.alignXsLeft, Card.attrs [ class "mt-4" ] ]
-        -- |> Card.imgTop [ src searchbook.smallThumbnail ] [  ]
-        |> Card.block [] (viewBookinCardDetails searchbook)
-        |> Card.view
-
-
-viewBookinCardDetails : SearchBooks.SearchBook -> List (Block.Item msg)
-viewBookinCardDetails searchbook =
-    [ Block.titleH3 [ ] [ text searchbook.title ]
-    , Block.text [] [ text searchbook.description ]
-    , Block.titleH6 [] [ text searchbook.authors ]
-    , Block.text [] [ text ("Published " ++ searchbook.publishedDate) ]
-    , Block.text [] [ text ("Language " ++ searchbook.language) ]
-    , Block.custom <| img [ src searchbook.smallThumbnail ] []
-    ]
-
-viewBooksInTable : List (SearchBooks.SearchBook) -> List ( Table.Row Msg )
-viewBooksInTable actualSearchBookList =
-
-    List.map viewBook <| actualSearchBookList
-
-
-viewBook : SearchBooks.SearchBook -> Table.Row Msg
-viewBook searchbook =
-
-    Table.tr [  ]
-        [ Table.td [] [ text searchbook.title ]
-        , Table.td [] [ text searchbook.authors ]
-        , Table.td [] [ text searchbook.description ]
-        , Table.td [] [ text searchbook.publishedDate ]
-        , Table.td [] [ text searchbook.language ]
-        , Table.td [] [ img [ src searchbook.smallThumbnail ] [] ]
-        ]
