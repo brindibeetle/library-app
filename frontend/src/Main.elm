@@ -8,8 +8,11 @@ import Debug as Debug exposing (log)
 import OAuth
 import OAuth.Implicit
 
+import Page exposing (..)
+import Session exposing (..)
 import BookSelector exposing (..)
-import Login exposing (..)
+import BookSelectorDetail exposing (..)
+import Login
 
 import Route exposing (Route)
 import Menu exposing (..)
@@ -28,44 +31,25 @@ main =
         }
 
 
-type alias Model =
-    { page : Page
-    , token : Maybe OAuth.Token
-    , error : Maybe String
-    , menuModel : Menu.Model
-    , bookSelectorModel : BookSelector.Model
-    , loginModel : Login.Model
-    }
+type Model =
+    BookSelector BookSelector.Model Session
+    | BookSelectorDetail BookSelectorDetail.Model Session
+    | Login Session
+    | Landing Session
 
-initialState : Maybe OAuth.Token -> (Model, Cmd Msg)
+
+initialState : Maybe OAuth.Token -> (Model, Cmd Msg )
 initialState maybeToken =
     let
-        ( menuModel, menuCmd ) =
+        ( navbarState, menuCmd ) =
             Menu.initialState maybeToken
+        session = initialSession maybeToken navbarState
     in
     (
-        { page = NotFoundPage
-        , token = Nothing
-        , error = Nothing
-        , menuModel = menuModel
-        , bookSelectorModel = BookSelector.initialModel maybeToken
-        , loginModel = Login.initialModel maybeToken
-        }
+        Landing session
         , Cmd.map MenuMsg menuCmd
     )
 
-type Page
-    = NotFoundPage
-    | BookSelectorPage BookSelector.Model
-    | LoginPage Login.Model
-
-
-type Msg
-    = BookSelectorMsg BookSelector.Msg
-    | LoginMsg Login.Msg
-    | MenuMsg Menu.Msg
-    | LinkClicked UrlRequest
-    | UrlChanged Url
 
 
 -- refresh page : 
@@ -76,18 +60,7 @@ init flags url navKey =
             initialState Nothing
 
         OAuth.Implicit.Success { token, state } ->
-            let
-                token1 = Debug.log "Main.init Success" token
-                ( model1, cmd1 ) =
-                    initialState (Just token)
-            in
-            ( 
-                { model1 
-                | token = Just token
-                }
-                ,
-                cmd1
-            )
+            initialState (Just token)
 
         OAuth.Implicit.Error { error, errorDescription } ->
             initialState Nothing
@@ -95,41 +68,73 @@ init flags url navKey =
 
 view : Model -> Document Msg
 view model =
-    { title = "Lunatech Library"
-    , body = 
-        [ CDN.stylesheet
-        , Menu.view model.menuModel 
-            |> Html.map MenuMsg
-        , case model.menuModel.active of
-            Just Login ->
-                Login.view model.loginModel |> Html.map LoginMsg
+    let
+        sessionModel = toSession model
+    in
+        { title = "Lunatech Library"
+        , body = 
+            [ CDN.stylesheet
+            , Menu.view (toSession model)
+                |> Html.map MenuMsg
+            , case model of
+                Login session ->
+                    Login.view |> Html.map LoginMsg
+            
+                BookSelector bookSelectorModel session ->
+                    BookSelector.view bookSelectorModel |> Html.map BookSelectorMsg
         
-            Just BookSelector ->
-                BookSelector.view model.bookSelectorModel |> Html.map BookSelectorMsg
-        
-            Just _ ->
-                text "Nothing"
-
-            Nothing -> 
-                text "Nothing"
-                
-        ]
-    }
+                BookSelectorDetail bookSelectorDetailModel session  ->
+                    BookSelectorDetail.view bookSelectorDetailModel |> Html.map BookSelectorDetailMsg
+                    
+                Landing _ ->
+                    text "Nothing"
+    
+            ]
+        }
 
 
-currentView : Model -> Html Msg
-currentView model =
-    case model.page of
-        NotFoundPage ->
-            notFoundView
+toSession : Model -> Session
+toSession model =
+    case model of
+        BookSelector _ session ->
+            session
+        BookSelectorDetail _ session ->
+            session
+        Login session ->
+            session
+        Landing session ->
+            session
 
-        BookSelectorPage pageModel ->
-            BookSelector.view pageModel
-                |> Html.map BookSelectorMsg
 
-        LoginPage pageModel ->
-            Login.view pageModel
-                |> Html.map LoginMsg
+toModel : Session -> Model -> Model
+toModel session model =
+    case ( session.page, model ) of
+        ( LandingPage, _ ) ->
+            Landing session
+
+        ( BookSelectorPage, BookSelector bookSelectorModel session1 ) ->
+            BookSelector bookSelectorModel session
+
+        ( BookSelectorDetailPage, BookSelectorDetail bookSelectorDetailModel session1 ) ->
+            BookSelectorDetail bookSelectorDetailModel session
+
+        ( BookSelectorDetailPage, BookSelector bookSelectorModel session1 ) ->
+            case bookSelectorModel.bookSelectorDetailModel of
+                Just bookSelectorDetailModel ->
+                    BookSelectorDetail bookSelectorDetailModel session
+                Nothing ->
+                    model
+
+        -- not directly, only via BookSelector
+        ( BookSelectorDetailPage, model1 ) ->
+            model1
+
+        ( LoginPage, model1 ) ->
+            Login (toSession model1)
+
+        ( BookSelectorPage, model1 ) ->
+            BookSelector (BookSelector.initialModel session) session
+
 
 
 notFoundView : Html msg
@@ -137,52 +142,96 @@ notFoundView =
     h3 [] [ text "Oops! The page you requested was not found!" ]
 
 
+-- #####
+-- ##### UPDATE
+-- #####
+
+
+type Msg
+    = BookSelectorMsg BookSelector.Msg
+    | BookSelectorDetailMsg BookSelectorDetail.Msg
+    | LoginMsg Login.Msg
+    | MenuMsg Menu.Msg
+    | LinkClicked UrlRequest
+    | UrlChanged Url
+
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
-            waarzijnwe = Debug.log "Main" "Update"
+        waarzijnwe = Debug.log "Main" "Update"
+        session1 = Debug.log "model.session = " (toSession model)
     in
-    case msg of
-        BookSelectorMsg subMsg ->
+    case (msg, model) of
+        ( LoginMsg subMsg, Login session ) ->
             let
-                ( bookSelectorModel, bookSelectorCmd ) =
-                    BookSelector.update subMsg model.bookSelectorModel
+                ( sessionUpdated, loginCmd ) =
+                    Login.update subMsg session 
             in
-                ( 
-                    { model
-                    | bookSelectorModel = bookSelectorModel
-                    }
-                    , Cmd.map BookSelectorMsg bookSelectorCmd
-                )
+                ( Landing sessionUpdated, loginCmd  |> Cmd.map LoginMsg )    
 
-        LoginMsg subMsg ->
-            let
-                ( loginModel, loginCmd ) =
-                    Login.update subMsg model.loginModel
+        ( MenuMsg subMsg, model1 ) ->
+           let
+                waarzijnwe1 = Debug.log "Main" "MenuMsg"
+                ( sessionUpdated, menuCmd ) =
+                    Menu.update subMsg (toSession model1)
+                session12 = Debug.log "menuModel.session = " sessionUpdated
             in
-                ( 
-                    { model
-                    | loginModel = loginModel
-                    }
-                    , Cmd.map LoginMsg loginCmd
-                )
+                ( toModel sessionUpdated model1, menuCmd |> Cmd.map MenuMsg )
+                --     { model
+                --     | menuModel = menuModel
+                --     , session = session
+                --     }
+                --     , Cmd.map MenuMsg menuCmd
+                -- )
 
-        MenuMsg subMsg ->
+        -- BookSelectorMsg (ClickedBookDetail searchBook) ->
+        --     let
+        --         session = Debug.log "BookSelectorMsg ClickedBookDetail" model.session
+        --         searchbooks = model.bookSelectorModel.searchbooks
+        --     in
+        --         ( { model 
+        --             | session = changedPageSession BookSelectorDetailPage session
+        --             , bookSelectorDetailModel = Just (BookSelectorDetail.initialModel session session.token searchbooks searchBook)
+        --             } , Cmd.none )
+
+        ( BookSelectorMsg subMsg, BookSelector bookSelectorModel session ) ->
             let
-                ( menuModel, menuCmd ) =
-                    Menu.update subMsg model.menuModel
+                waarzijnwe1 = Debug.log "Main" "BookSelectorMsg"
+                session2 = Debug.log "model.session = " session
+                -- { bookSelectorModelUpdated, sessionUpdated, bookSelectorCmd } =
+                bookSelectorUpdated =
+                    BookSelector.update subMsg bookSelectorModel
+                session12 = Debug.log "bookSelectorModel.session = " session
             in
-                ( 
-                    { model
-                    | menuModel = menuModel
-                    }
-                    , Cmd.map MenuMsg menuCmd
-                )
+                ( BookSelector bookSelectorUpdated.model bookSelectorUpdated.session, bookSelectorUpdated.cmd |> Cmd.map BookSelectorMsg)
+
+        ( BookSelectorDetailMsg subMsg, BookSelectorDetail bookSelectorDetailModel session ) ->
+            let
+                ( bookSelectorDetailModelUpdated, bookSelectorDetailCmd ) =
+                    BookSelectorDetail.update subMsg bookSelectorDetailModel
+            in
+                ( BookSelectorDetail bookSelectorDetailModelUpdated session, Cmd.map BookSelectorDetailMsg bookSelectorDetailCmd )
+
+        -- MenuMsg subMsg ->
+        --     let
+        --         ( menuModel, menuCmd ) =
+        --             Menu.update subMsg model.menuModel
+        --     in
+        --         ( 
+        --             { model
+        --             | menuModel = menuModel
+        --             }
+        --             , Cmd.map MenuMsg menuCmd
+        --         )
         
-        LinkClicked _ ->
+        ( LinkClicked _, _ ) ->
             ( model, Cmd.none )
 
-        UrlChanged _ ->
+        ( UrlChanged _, _ ) ->
+            ( model, Cmd.none )
+
+        ( _, _ ) ->
             ( model, Cmd.none )
 
 

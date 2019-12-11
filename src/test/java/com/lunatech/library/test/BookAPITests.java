@@ -54,7 +54,7 @@ public class BookAPITests extends AbstractTest {
     @Test
     public void putABook() throws Exception {
         String uri = "/api/v1/books/2";
-        BookDTO bookDTO = new BookDTO(null, "Boek", "Auteur", "1920", "", "", "");
+        BookDTO bookDTO = new BookDTO(null, "Boek", "Auteur", "1920", "", "", "", "", "");
         String inputJson = super.mapToJson(bookDTO);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.put(uri)
                 .contentType(MediaType.APPLICATION_JSON_VALUE).content(inputJson)).andReturn();
@@ -66,7 +66,7 @@ public class BookAPITests extends AbstractTest {
     @Test
     public void postBook() throws Exception {
         String uri = "/api/v1/books";
-        BookDTO bookDTO = new BookDTO(0L, "Boek", "Auteur", "1920", "", "", "");
+        BookDTO bookDTO = new BookDTO(0L, "Boek", "Auteur", "1920", "", "", "", "", "");
 
         String inputJson = super.mapToJson(bookDTO);
         MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post(uri)

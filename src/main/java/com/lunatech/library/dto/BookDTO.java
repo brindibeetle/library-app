@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 
-import javax.persistence.Column;
 import javax.validation.constraints.NotBlank;
 
 @Data
@@ -29,7 +28,6 @@ public class BookDTO {
     @ApiModelProperty(notes = "The date of publication.", example = "june 2013", position = 4)
     private String publishedDate;
 
-    @Column(length = 400)
     @ApiModelProperty(notes = "Some details or abstract."
             , example = "The lambda calculus forms a prototype universal programming language" +
             ", which in its untyped version is related to Lisp, and was treated in the first author's classic The Lambda Calculus (1984)."
@@ -42,4 +40,9 @@ public class BookDTO {
     @ApiModelProperty(notes = "The place where you can find the book.", example = "Usually one of the offices of Lunatech. Amsterdam, Rotterdam, Chessy.", position = 7)
     private String location;
 
+    @ApiModelProperty(notes = "A url to the thumbnail of the book.", example = "http://books.google.com/books/content?id=6Lb3CQAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api", position = 8)
+    private String thumbnail;
+
+    @ApiModelProperty(notes = "A url to a small thumbnail of the book.", example = "http://books.google.com/books/content?id=6Lb3CQAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api", position = 9)
+    private String smallThumbnail;
 }

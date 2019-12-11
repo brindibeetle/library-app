@@ -24,18 +24,22 @@ import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Text as Text
 import Bootstrap.Card.Block as Block
+import Bootstrap.Utilities.Display as Display
 
 import SearchBook exposing (..)
 import LibraryBook exposing (..)
 import BookSelectorDetail exposing (..)
-import BookSelectorTiles exposing (..)
+import Page exposing (..)
+-- import BookSelectorTiles exposing (..)
+import Session exposing (..)
 
 type alias Model = 
     {
-        searchbooks : WebData SearchBooks
+        session : Session
+        , searchbooks : WebData SearchBooks
         , searchbookauthor : String 
         , searchbooktitle : String 
-        , bookSelectorTilesModel : BookSelectorTiles.Model
+        -- , bookSelectorTilesModel : BookSelectorTiles.Model
         , bookSelectorDetailModel : Maybe BookSelectorDetail.Model
     }
 
@@ -43,12 +47,14 @@ type BookSelectorViewLevel =
     Tiles
     | Detail
 
-initialModel : Maybe OAuth.Token -> Model
-initialModel maybeToken =
-    { searchbookauthor = ""
+
+initialModel : Session -> Model
+initialModel session =
+    { session = session
+    , searchbookauthor = ""
     , searchbooktitle = ""
     , searchbooks = RemoteData.NotAsked
-    , bookSelectorTilesModel = BookSelectorTiles.initialModel RemoteData.NotAsked
+    -- , bookSelectorTilesModel = BookSelectorTiles.initialModel RemoteData.NotAsked
     , bookSelectorDetailModel = Nothing
     }
 
@@ -66,77 +72,61 @@ type Msg
         | UpdateSearchtitle String
         | DoSearch
         | DoSearchReceived (WebData SearchBooks)
-        -- | DoBookDetail SearchBook
-        | BookSelectorTilesMsg BookSelectorTiles.Msg
-        | BookSelectorDetailMsg BookSelectorDetail.Msg
+        | ClickedBookDetail SearchBook
+        -- | BookSelectorTilesMsg BookSelectorTiles.Msg
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> { model : Model, session : Session, cmd : Cmd Msg } 
 update msg model =
     case msg of
         UpdateSearchtitle title ->
-           ( { model | searchbooktitle = title}
-           , Cmd.none )
+           { model = { model | searchbooktitle = title }
+           , session = model.session
+           , cmd = Cmd.none }
 
         UpdateSearchauthor author ->
-           ( { model | searchbookauthor = author}
-           , Cmd.none )
+           { model = { model | searchbookauthor = author }
+           , session = model.session
+           , cmd = Cmd.none }
 
         DoSearch ->
-           ( { model | searchbooks = RemoteData.Loading }
-           , getBooks model.searchbooktitle model.searchbookauthor )
+           { model =  { model | searchbooks = RemoteData.Loading }
+           , session = model.session
+           , cmd = getBooks model.searchbooktitle model.searchbookauthor }
 
         DoSearchReceived response ->
-            let
-                bookSelectorTilesModel = BookSelectorTiles.initialModel response
-            in
-            ( 
-                { model 
-                | searchbooks = response 
-                , bookSelectorTilesModel = bookSelectorTilesModel
-                }
-            , Cmd.none )
+            { model =  { model | searchbooks = response }
+            , session = model.session
+            , cmd = Cmd.none }
 
-        BookSelectorTilesMsg subMsg ->
-            let
-                ( bookSelectorTilesModelUpdated, cmd) = BookSelectorTiles.update subMsg model.bookSelectorTilesModel
-                bookSelectDetailModel = model.bookSelectorDetailModel
-            in
-                case ( bookSelectorTilesModelUpdated.active ,bookSelectorTilesModelUpdated.searchbook ) of 
-                    (False, Just searchbook ) ->        -- False = deactivated, now Details becomes active
-                        ( { model
-                            | bookSelectorTilesModel = bookSelectorTilesModelUpdated
-                            , bookSelectorDetailModel = Just (BookSelectorDetail.initialModel bookSelectorTilesModelUpdated.searchbooks searchbook)
-                            }
-                        , Cmd.none )
+        -- BookSelectorTilesMsg subMsg ->
+        --     let
+        --         ( bookSelectorTilesModelUpdated, cmd) = BookSelectorTiles.update subMsg model.bookSelectorTilesModel
+        --         bookSelectDetailModel = model.bookSelectorDetailModel
+        --     in
+        --         case ( bookSelectorTilesModelUpdated.active ,bookSelectorTilesModelUpdated.searchbook ) of 
+        --             (False, Just searchbook ) ->        -- False = deactivated, now Details becomes active
+        --                 ( { model
+        --                     | bookSelectorTilesModel = bookSelectorTilesModelUpdated
+        --                     , bookSelectorDetailModel = Just (BookSelectorDetail.initialModel bookSelectorTilesModelUpdated.searchbooks searchbook)
+        --                     }
+        --                 , Cmd.none )
                 
-                    _ ->
-                        ( model , Cmd.none)
+        --             _ ->
+        --                 ( model , Cmd.none)
                     
-        BookSelectorDetailMsg subMsg ->
-            case model.bookSelectorDetailModel of
-                Just bookSelectorDetailModel ->
-                    let
-                        ( bookSelectorDetailModelUpdated, cmd) = BookSelectorDetail.update subMsg bookSelectorDetailModel
-                        bookSelectTilesModel = model.bookSelectorTilesModel
-                    in
-                        case bookSelectorDetailModelUpdated.active of
-                            False ->                    -- False = deactivated, now Tiles becomes active
-                                ( { model
-                                  | bookSelectorDetailModel = Nothing
-                                  , bookSelectorTilesModel = BookSelectorTiles.initialModel bookSelectorDetailModelUpdated.searchbooks
-                                  }
-                                , Cmd.none )
-                        
-                            _ ->
-                                ( { model
-                                  | bookSelectorDetailModel = Just bookSelectorDetailModelUpdated
-                                  }
-                                , Cmd.none )
-            
-                _ ->
-                    ( model , Cmd.none)
-                    
+ 
+        ClickedBookDetail searchbook ->
+            let
+                session = model.session
+            in
+                { model = 
+                    { model 
+                    | session = changedPageSession BookSelectorDetailPage session
+                    , bookSelectorDetailModel = Just (BookSelectorDetail.initialModel session model.searchbooks searchbook)
+                    }
+                , session = model.session
+                , cmd = Cmd.none }
 
 
 baseUrl : String
@@ -156,23 +146,14 @@ getBooks title author =
 -- VIEW
 view : Model -> Html Msg
 view model =
-    case model.bookSelectorDetailModel of
-        Just bookSelectorDetailModel ->
-            div []
-                [ viewBookSearcher True model
-                , BookSelectorDetail.view bookSelectorDetailModel |> Html.map BookSelectorDetailMsg
-                ]
-    
-        Nothing ->
-            div []
-                [ viewBookSearcher False model
-                , BookSelectorTiles.view model.bookSelectorTilesModel |> Html.map BookSelectorTilesMsg
-                ]
+    div []
+        [ viewBookSearcher False model
+        , viewBooks model.searchbooks
+        ]
 
 
 viewBookSearcher : Bool -> Model -> Html Msg
 viewBookSearcher disabled model =
-    
     div [ class "container" ]
         [
             Form.form []
@@ -187,11 +168,18 @@ viewBookSearcher disabled model =
                 , Input.text [ Input.id "searchbookauthor", Input.onInput UpdateSearchauthor, Input.disabled disabled   ]
                 , Form.help [] [ text "What is (part of) the authors of the book." ]
                 ]
-              , Button.button
-                [ Button.primary, Button.attrs [ class "float-right" ], Button.onClick DoSearch, Button.disabled disabled   ]
-                [ text "Search" ]
             ]
+            , case disabled of
+                False ->
+                    Button.button
+                        [ Button.primary, Button.attrs [ class "float-right" ], Button.onClick DoSearch ]
+                        [ text "Search" ]
+                                        
+                True ->
+                    div [] []
+                                        
         ]
+
 
 viewFetchError : String -> Html Msg
 viewFetchError errorMessage =
@@ -204,4 +192,44 @@ viewFetchError errorMessage =
         , text ("Error: " ++ errorMessage)
         ]
 
+
+
+viewBooks : WebData SearchBooks -> Html Msg
+viewBooks searchbooks =
+   -- viewBooks model.searchbooks
+    case searchbooks of
+        RemoteData.NotAsked ->
+            h3 [] [ text "Not asked..." ]
+
+        RemoteData.Loading ->
+            h3 [] [ text "Loading..." ]
+
+        RemoteData.Success actualSearchBooks ->
+            viewBookTiles actualSearchBooks
+                
+        RemoteData.Failure httpError ->
+            viewFetchError (buildErrorMessage httpError)
+
+
+viewBookTiles : SearchBooks -> Html Msg
+viewBookTiles searchbooks =
+    div [ class "row" ]
+        ( List.map viewBookTilesCard searchbooks.searchBookList )
+                
+
+viewBookTilesCard : SearchBook -> Html Msg
+viewBookTilesCard searchbook =
+    div [ class "col-sm-6 col-lg-4", onClick (ClickedBookDetail searchbook) ]
+    [
+    Card.config [ Card.attrs [ style "width" "20rem", style "height" "35rem"  ]  ]
+        |> Card.block [] 
+            [ Block.titleH6 [ ] [ text searchbook.title ]
+            , Block.custom <| img [ src searchbook.smallThumbnail, Display.inlineBlock, style "width" "12rem" ] []
+            , Block.text [ class "text-muted small" ] [ text searchbook.description ]
+            , Block.titleH6 [] [ text searchbook.authors ]
+            , Block.text [] [ text ("Published " ++ searchbook.publishedDate) ]
+            , Block.text [] [ text ("Language " ++ searchbook.language) ]
+            ]
+        |> Card.view
+    ]
 

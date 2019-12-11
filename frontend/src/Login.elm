@@ -32,18 +32,7 @@ import Bootstrap.Card.Block as Block
 
 import Debug as Debug
 
-type alias Model =
-    { error : Maybe String
-    , token : Maybe OAuth.Token
-    , state : String
-    }
-
-initialModel : Maybe OAuth.Token -> Model
-initialModel maybeToken =
-    { error = Nothing
-    , token = maybeToken
-    , state = ""
-    }
+import Session exposing (..)
 
 
 type
@@ -74,22 +63,23 @@ type alias Profile =
     }
 
 
-init : ( Model, Cmd Msg )
-init =
-    let
-        model1 = Debug.log "model" "pio"
-    in
-    ( { error = Nothing, token = Nothing, state = "" }
-    , Cmd.none
-    )
+-- Never used???
+-- init : ( Model, Cmd Msg )
+-- init =
+--     let
+--         model1 = Debug.log "model" "pio"
+--     in
+--     ( { error = Nothing, token = Nothing, state = "" }
+--     , Cmd.none
+--     )
 
-view : Model -> Html Msg
-view model = div
-                [ ]
-                [ CDN.stylesheet
-                , text "Elm OAuth2 Example - Implicit Flow"
-                , viewSignInButton
-                ]
+view : Html Msg
+view = div
+    [ ]
+    [ CDN.stylesheet
+    , text "Elm OAuth2 Example - Implicit Flow"
+    , viewSignInButton
+    ]
 
 
 viewSignInButton : Html Msg
@@ -112,7 +102,7 @@ configurationFor =
             , fragment = Nothing
             }
     in
-        { clientId = "937704847273-8s3m4r39v6nvf6n8nhtb72luump8l8pv.apps.googleusercontent.com" -- libary-api-frontend
+        { clientId = "937704847273-2ctk7g4e2qshu89gqch4at5qskqdus8n.apps.googleusercontent.com" -- libary-api-frontend / Webclient 2
         , secret = "<secret>"
         , authorizationEndpoint = { defaultHttpsUrl | host = "accounts.google.com", path = "/o/oauth2/v2/auth" }
         , tokenEndpoint = { defaultHttpsUrl | host = "www.googleapis.com", path = "/oauth2/v4/token" }
@@ -136,14 +126,14 @@ redirectUri =
     }
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
+update : Msg -> Session -> ( Session, Cmd Msg )
+update msg session =
     case msg of
         NoOp ->
           let
-                res1 = Debug.log "NoOp" model
+                res1 = Debug.log "NoOp" session
             in
-             ( model, Cmd.none )
+             ( session, Cmd.none )
 
         SignInRequested  ->
             let
@@ -159,12 +149,12 @@ update msg model =
                     }
             in
             Debug.log "lets see"
-            ( model
+            ( session
             , auth |> OAuth.Implicit.makeAuthorizationUrl |> Url.toString |> Navigation.load
             )
 
         SignOutRequested ->
-            ( model
+            ( session
             , Navigation.load (Url.toString redirectUri)
             )
 
@@ -175,12 +165,12 @@ update msg model =
             
             case res of
                 Err err ->
-                    ( { model | error = Just "Unable to fetch user profile ¯\\_(ツ)_/¯" }
+                    ( { session | error = Just "Unable to fetch user profile ¯\\_(ツ)_/¯" }
                     , Cmd.none
                     )
 
                 Ok profile ->
-                    (model, Cmd.none
+                    (session, Cmd.none
                     )
 
 

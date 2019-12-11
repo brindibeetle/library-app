@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
 @Component
@@ -19,16 +20,19 @@ public class CustomFilter implements Filter {
     }
 
     @Override
-    public void doFilter(
-            ServletRequest request,
-            ServletResponse response,
-            FilterChain chain) throws IOException, ServletException {
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain) throws IOException, ServletException {
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
+        HttpServletResponse response = (HttpServletResponse) servletResponse;
 
-        HttpServletRequest req = (HttpServletRequest) request;
-        String xForwardedProto = req.getHeader("X-Forwarded-Proto");
-        if (xForwardedProto != null  && ! xForwardedProto.equals("https")) {
+        String xForwardedProto = request.getHeader("X-Forwarded-Proto");
+        if (xForwardedProto != null && !xForwardedProto.equals("https")) {
             throw new APIAuthorizationException(HttpStatus.HTTP_VERSION_NOT_SUPPORTED, "Only secured https requests are allowed");
         }
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET,POST,DELETE,PUT,PATCH,OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "*");
+        response.setHeader("Access-Control-Allow-Credentials", String.valueOf(true));
+        response.setHeader("Access-Control-Max-Age", String.valueOf(1800));
 
         chain.doFilter(request, response);
     }
