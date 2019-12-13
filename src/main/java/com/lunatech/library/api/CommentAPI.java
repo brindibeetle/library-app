@@ -1,7 +1,7 @@
 package com.lunatech.library.api;
 
-import com.lunatech.library.domain.Book;
 import com.lunatech.library.domain.Comment;
+import com.lunatech.library.dto.BookDTO;
 import com.lunatech.library.dto.CommentDTO;
 import com.lunatech.library.service.CommentService;
 import io.swagger.annotations.Api;
@@ -9,7 +9,6 @@ import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,9 +25,7 @@ import java.util.stream.Collectors;
 public class CommentAPI {
 
     private final CommentService commentService;
-
-    @Autowired
-    private ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
 
     @GetMapping(produces = "application/json")
     @ApiOperation(value = "Get all comments from the repository", response = List.class)
@@ -41,7 +38,7 @@ public class CommentAPI {
     }
 
     @GetMapping(path = "/{id}", produces = "application/json")
-    @ApiOperation(value = "Get a comment from the repository", response = Comment.class)
+    @ApiOperation(value = "Get a comment from the repository", response = CommentDTO.class)
     @ResponseBody
     public CommentDTO findById(@PathVariable Long id) {
         return convertToDTO(commentService.findById(id));
@@ -58,7 +55,7 @@ public class CommentAPI {
     }
 
     @PostMapping(consumes = "application/json", produces = "application/json")
-    @ApiOperation(value = "Add a comment to the repository", response = Comment.class)
+    @ApiOperation(value = "Add a comment to the repository", response = CommentDTO.class)
     @ResponseBody
     public CommentDTO create(@RequestBody CommentDTO commentDTO) {
         Comment comment = convertToEntity(-1L, commentDTO);
@@ -68,7 +65,7 @@ public class CommentAPI {
     }
 
     @PutMapping(path = "/{id}", consumes = "application/json", produces = "application/json")
-    @ApiOperation(value = "Change a comment in the repository", response = Book.class)
+    @ApiOperation(value = "Change a comment in the repository", response = BookDTO.class)
     @ResponseStatus(HttpStatus.OK)
     public void update(@PathVariable Long id, @Valid @RequestBody CommentDTO commentDTO) {
         // to evoke Exception if comment not exists

@@ -9,11 +9,17 @@ import Url.Parser exposing (Parser, custom)
 import Http exposing (..)
 
 import LibraryBook exposing (..)
-
+import Constants exposing (..)
 
 libraryApiBooksUrl : String
--- baseUrl = "https://library.lunatech.com/api/v1/books/"
-libraryApiBooksUrl = "http://localhost:8080/api/v1/books"
+libraryApiBooksUrl = libraryApiBaseUrl ++ "/books"
+
+libraryBooksDecoder : Decoder LibraryBooks
+libraryBooksDecoder =
+    Decode.succeed LibraryBooks
+        |> required "items" (array libraryBookDecoder)
+        |> required "totalItems" int
+
 
 libraryBookDecoder : Decoder LibraryBook
 libraryBookDecoder =
@@ -22,12 +28,12 @@ libraryBookDecoder =
         |> required "title" string
         |> required "authors" string
         |> required "description" string
-        -- |> optional "publishedDate" string ""
-        -- |> optional "language" string ""
-        -- |> optional "smallThumbnail" string ""
-        -- |> optional "thumbnail" string ""
-        -- |> optional "owner" string ""
-        -- |> optional "location" string ""
+        |> optional "publishedDate" string ""
+        |> optional "language" string ""
+        |> optional "smallThumbnail" string ""
+        |> optional "thumbnail" string ""
+        |> optional "owner" string ""
+        |> optional "location" string ""
 
 
 libraryBookEncoder : LibraryBook -> Encode.Value
@@ -37,12 +43,12 @@ libraryBookEncoder libraryBook =
         , ( "title", Encode.string libraryBook.title )
         , ( "authors", Encode.string libraryBook.authors )
         , ( "description", Encode.string libraryBook.description )
-        -- , ( "publishedDate", Encode.string libraryBook.publishedDate )
-        -- , ( "language", Encode.string libraryBook.language )
-        -- , ( "smallThumbnail", Encode.string libraryBook.smallThumbnail )
-        -- , ( "thumbnail", Encode.string libraryBook.thumbnail )
-        -- , ( "owner", Encode.string libraryBook.owner )
-        -- , ( "location", Encode.string libraryBook.location )
+        , ( "publishedDate", Encode.string libraryBook.publishedDate )
+        , ( "language", Encode.string libraryBook.language )
+        , ( "smallThumbnail", Encode.string libraryBook.smallThumbnail )
+        , ( "thumbnail", Encode.string libraryBook.thumbnail )
+        , ( "owner", Encode.string libraryBook.owner )
+        , ( "location", Encode.string libraryBook.location )
         ]
 
 
@@ -54,10 +60,10 @@ newLibraryBookEncoder libraryBook =
         [ ( "title", Encode.string libraryBook.title )
         , ( "authors", Encode.string libraryBook.authors )
         , ( "description", Encode.string libraryBook.description )
-        -- , ( "publishedDate", Encode.string libraryBook.publishedDate )
-        -- , ( "language", Encode.string libraryBook.language )
-        -- , ( "smallThumbnail", Encode.string libraryBook.smallThumbnail )
-        -- , ( "thumbnail", Encode.string libraryBook.thumbnail )
-        -- , ( "owner", Encode.string libraryBook.owner )
-        -- , ( "location", Encode.string libraryBook.location )
+        , ( "publishedDate", Encode.string libraryBook.publishedDate )
+        , ( "language", Encode.string libraryBook.language )
+        , ( "smallThumbnail", Encode.string libraryBook.smallThumbnail )
+        , ( "thumbnail", Encode.string libraryBook.thumbnail )
+        , ( "owner", Encode.string libraryBook.owner )
+        , ( "location", Encode.string libraryBook.location )
         ]

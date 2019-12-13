@@ -8,7 +8,6 @@ import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,9 +23,7 @@ import java.util.stream.Collectors;
 public class BookAPI {
 
     private final BookService bookService;
-
-    @Autowired
-    private ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
 
     @GetMapping(produces = "application/json")
     @ApiOperation(value = "Get all books from the repository", response = List.class)
@@ -39,7 +36,7 @@ public class BookAPI {
     }
 
     @PostMapping(consumes = "application/json", produces = "application/json")
-    @ApiOperation(value = "Add a book to the repository", response = Book.class)
+    @ApiOperation(value = "Add a book to the repository", response = BookDTO.class)
     @ResponseBody
     public BookDTO create(@Valid @RequestBody BookDTO bookDTO) {
         Book book = convertToEntity(-1L, bookDTO);
@@ -48,7 +45,7 @@ public class BookAPI {
     }
 
     @GetMapping(path = "/{id}", produces = "application/json")
-    @ApiOperation(value = "Get a book from the repository", response = Book.class)
+    @ApiOperation(value = "Get a book from the repository", response = BookDTO.class)
     @ResponseBody
     public BookDTO findById(@PathVariable Long id) {
         Book book = bookService.findById(id);
@@ -56,7 +53,7 @@ public class BookAPI {
     }
 
     @PutMapping(path = "/{id}", consumes = "application/json")
-    @ApiOperation(value = "Change a book in the repository", response = Book.class)
+    @ApiOperation(value = "Change a book in the repository", response = BookDTO.class)
     @ResponseStatus(HttpStatus.OK)
     public void update(@PathVariable Long id, @Valid @RequestBody BookDTO bookDTO) {
         bookService.save(convertToEntity(id, bookDTO));

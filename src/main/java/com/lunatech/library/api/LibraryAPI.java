@@ -8,7 +8,6 @@ import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -26,9 +25,7 @@ public class LibraryAPI {
 
     private final CheckoutService checkoutService;
     private final BookService bookService;
-
-    @Autowired
-    private ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
 
     @PutMapping(path = "/checkout/{bookId}", produces = "application/json")
     @ApiOperation(value = "Do a checkout of a book"

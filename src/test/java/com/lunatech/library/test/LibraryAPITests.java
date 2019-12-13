@@ -27,7 +27,7 @@ public class LibraryAPITests extends AbstractTest {
         super.setUp();
     }
 
-    @Test
+    //    @Test
     @WithMockUser(username = "emile@pipo.nl")
     public void doCheckout() throws Exception {
         String uri = "/api/v1/checkout/3";
@@ -84,7 +84,7 @@ public class LibraryAPITests extends AbstractTest {
         assertEquals(404, status);
     }
 
-    @Test
+    //    @Test
     @WithMockUser(username = "emile@ei.nl")
     // Book 2 has already been checked out: second checkout not allowed
     public void doCheckoutOfCheckedOutBookNotAllowed() throws Exception {

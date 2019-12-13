@@ -3,8 +3,6 @@ package com.lunatech.library.service;
 import com.lunatech.library.domain.Comment;
 import com.lunatech.library.exception.APIException;
 import com.lunatech.library.repository.CommentRepository;
-import com.lunatech.library.utils.TimeUtils;
-import com.lunatech.library.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -19,13 +17,14 @@ public class CommentService {
 
     // instantiated by Lombok (RequiredArgsConstructor)
     private final CommentRepository repository;
+    private final UtilityService utilityService;
 
     private void defaultsValues(Comment comment) {
         if (comment.getDateTime() == null) {
-            comment.setDateTime(TimeUtils.currentDateTime());
+            comment.setDateTime(utilityService.currentDateTime());
         }
         if (comment.getUserEmail() == null) {
-            comment.setUserEmail(UserUtils.userEmail());
+            comment.setUserEmail(utilityService.userEmail());
         }
     }
 
@@ -42,8 +41,8 @@ public class CommentService {
     }
 
     public List<Comment> findByBookId(Long bookId, Optional<ZonedDateTime> optFrom, Optional<ZonedDateTime> optTo) {
-        ZonedDateTime from = optFrom.orElse(TimeUtils.zeroDateTime());
-        ZonedDateTime to = optTo.orElse(TimeUtils.infiniteDateTime());
+        ZonedDateTime from = optFrom.orElse(utilityService.zeroDateTime());
+        ZonedDateTime to = optTo.orElse(utilityService.infiniteDateTime());
 
         return repository.findByBookId(bookId, from, to);
     }

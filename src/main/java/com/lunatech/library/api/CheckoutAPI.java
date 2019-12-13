@@ -8,7 +8,6 @@ import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,9 +24,7 @@ public class CheckoutAPI {
 
     private final CheckoutService checkoutService;
     private final BookService bookService;
-
-    @Autowired
-    private ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
 
     @GetMapping(produces = "application/json")
     @ApiOperation(value = "Get all checkouts from the repository", response = List.class)
@@ -40,7 +37,7 @@ public class CheckoutAPI {
     }
 
     @GetMapping(path = "/{id}", produces = "application/json")
-    @ApiOperation(value = "Get a checkout from the repository", response = Checkout.class)
+    @ApiOperation(value = "Get a checkout from the repository", response = CheckoutDTO.class)
     @ResponseBody
     public CheckoutDTO findById(@PathVariable Long id) {
         Checkout checkout = checkoutService.findById(id);
@@ -58,7 +55,7 @@ public class CheckoutAPI {
     }
 
     @PutMapping(path = "/{id}", consumes = "application/json", produces = "application/json")
-    @ApiOperation(value = "Change a checkout in the repository", response = Checkout.class)
+    @ApiOperation(value = "Change a checkout in the repository", response = CheckoutDTO.class)
     @ResponseStatus(HttpStatus.OK)
     public void update(@PathVariable Long id, @Valid @RequestBody CheckoutDTO checkoutDTO) {
         // exists the book?

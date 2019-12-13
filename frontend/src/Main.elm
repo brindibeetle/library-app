@@ -8,11 +8,12 @@ import Debug as Debug exposing (log)
 import OAuth
 import OAuth.Implicit
 
-import Page exposing (..)
 import Session exposing (..)
 import BookSelector exposing (..)
 import BookSelectorDetail exposing (..)
+import Library exposing (..)
 import Login
+import LibraryAppCDN as LibraryAppCDN
 
 import Route exposing (Route)
 import Menu exposing (..)
@@ -34,6 +35,7 @@ main =
 type Model =
     BookSelector BookSelector.Model Session
     | BookSelectorDetail BookSelectorDetail.Model Session
+    | Library Library.Model Session
     | Login Session
     | Landing Session
 
@@ -51,7 +53,6 @@ initialState maybeToken =
     )
 
 
-
 -- refresh page : 
 init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url navKey =
@@ -66,6 +67,11 @@ init flags url navKey =
             initialState Nothing
 
 
+-- #####
+-- #####   VIEW
+-- #####
+
+
 view : Model -> Document Msg
 view model =
     let
@@ -74,6 +80,7 @@ view model =
         { title = "Lunatech Library"
         , body = 
             [ CDN.stylesheet
+            , LibraryAppCDN.stylesheet
             , Menu.view (toSession model)
                 |> Html.map MenuMsg
             , case model of
@@ -86,6 +93,9 @@ view model =
                 BookSelectorDetail bookSelectorDetailModel session  ->
                     BookSelectorDetail.view bookSelectorDetailModel |> Html.map BookSelectorDetailMsg
                     
+                Library libraryModel session  ->
+                    Library.view libraryModel |> Html.map LibraryMsg
+
                 Landing _ ->
                     text "Nothing"
     
@@ -100,14 +110,16 @@ toSession model =
             session
         BookSelectorDetail _ session ->
             session
+        Library _ session ->
+            session
         Login session ->
             session
         Landing session ->
             session
 
 
-toModel : Session -> Model -> Model
-toModel session model =
+toModel :  Model -> Session -> Model
+toModel model session =
     case ( session.page, model ) of
         ( LandingPage, _ ) ->
             Landing session
@@ -125,7 +137,7 @@ toModel session model =
                 Nothing ->
                     model
 
-        -- not directly, only via BookSelector
+        -- never direct, only thru BookSelector
         ( BookSelectorDetailPage, model1 ) ->
             model1
 
@@ -133,8 +145,10 @@ toModel session model =
             Login (toSession model1)
 
         ( BookSelectorPage, model1 ) ->
-            BookSelector (BookSelector.initialModel session) session
+            BookSelector BookSelector.initialModel session
 
+        ( LibraryPage, model1 ) ->
+            Library Library.initialModel session
 
 
 notFoundView : Html msg
@@ -143,7 +157,7 @@ notFoundView =
 
 
 -- #####
--- ##### UPDATE
+-- #####   UPDATE
 -- #####
 
 
@@ -154,6 +168,7 @@ type Msg
     | MenuMsg Menu.Msg
     | LinkClicked UrlRequest
     | UrlChanged Url
+    | LibraryMsg Library.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -177,54 +192,38 @@ update msg model =
                     Menu.update subMsg (toSession model1)
                 session12 = Debug.log "menuModel.session = " sessionUpdated
             in
-                ( toModel sessionUpdated model1, menuCmd |> Cmd.map MenuMsg )
-                --     { model
-                --     | menuModel = menuModel
-                --     , session = session
-                --     }
-                --     , Cmd.map MenuMsg menuCmd
-                -- )
-
-        -- BookSelectorMsg (ClickedBookDetail searchBook) ->
-        --     let
-        --         session = Debug.log "BookSelectorMsg ClickedBookDetail" model.session
-        --         searchbooks = model.bookSelectorModel.searchbooks
-        --     in
-        --         ( { model 
-        --             | session = changedPageSession BookSelectorDetailPage session
-        --             , bookSelectorDetailModel = Just (BookSelectorDetail.initialModel session session.token searchbooks searchBook)
-        --             } , Cmd.none )
+                ( toModel model1 sessionUpdated, menuCmd |> Cmd.map MenuMsg )
 
         ( BookSelectorMsg subMsg, BookSelector bookSelectorModel session ) ->
             let
                 waarzijnwe1 = Debug.log "Main" "BookSelectorMsg"
                 session2 = Debug.log "model.session = " session
-                -- { bookSelectorModelUpdated, sessionUpdated, bookSelectorCmd } =
                 bookSelectorUpdated =
-                    BookSelector.update subMsg bookSelectorModel
+                    BookSelector.update subMsg bookSelectorModel session
                 session12 = Debug.log "bookSelectorModel.session = " session
             in
-                ( BookSelector bookSelectorUpdated.model bookSelectorUpdated.session, bookSelectorUpdated.cmd |> Cmd.map BookSelectorMsg)
+                ( toModel (BookSelector bookSelectorUpdated.model bookSelectorUpdated.session) bookSelectorUpdated.session
+                    , bookSelectorUpdated.cmd |> Cmd.map BookSelectorMsg)
 
         ( BookSelectorDetailMsg subMsg, BookSelectorDetail bookSelectorDetailModel session ) ->
             let
-                ( bookSelectorDetailModelUpdated, bookSelectorDetailCmd ) =
-                    BookSelectorDetail.update subMsg bookSelectorDetailModel
+                bookSelectorDetailUpdated =
+                    BookSelectorDetail.update subMsg bookSelectorDetailModel session
             in
-                ( BookSelectorDetail bookSelectorDetailModelUpdated session, Cmd.map BookSelectorDetailMsg bookSelectorDetailCmd )
+                ( toModel (BookSelectorDetail bookSelectorDetailUpdated.model bookSelectorDetailUpdated.session)  bookSelectorDetailUpdated.session
+                    , Cmd.map BookSelectorDetailMsg bookSelectorDetailUpdated.cmd )
 
-        -- MenuMsg subMsg ->
-        --     let
-        --         ( menuModel, menuCmd ) =
-        --             Menu.update subMsg model.menuModel
-        --     in
-        --         ( 
-        --             { model
-        --             | menuModel = menuModel
-        --             }
-        --             , Cmd.map MenuMsg menuCmd
-        --         )
-        
+        ( LibraryMsg subMsg, Library libraryModel session ) ->
+            let
+                waarzijnwe1 = Debug.log "Main" "LibraryMsg"
+                session2 = Debug.log "model.session = " session
+                libraryUpdated =
+                    Library.update subMsg libraryModel session
+                session12 = Debug.log "libraryModel.session = " session
+            in
+                ( toModel (Library libraryUpdated.model libraryUpdated.session) libraryUpdated.session
+                    , libraryUpdated.cmd |> Cmd.map LibraryMsg)
+
         ( LinkClicked _, _ ) ->
             ( model, Cmd.none )
 

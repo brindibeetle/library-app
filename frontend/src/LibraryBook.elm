@@ -15,18 +15,18 @@ type alias LibraryBook =
         , title : String
         , authors : String
         , description : String
-        -- , publishedDate : String
-        -- , language : String
-        -- , smallThumbnail : String
-        -- , thumbnail : String
-        -- , owner : String
-        -- , location : String
+        , publishedDate : String
+        , language : String
+        , smallThumbnail : String
+        , thumbnail : String
+        , owner : String
+        , location : String
     }
 
 
 type alias LibraryBooks = 
     {
-        libraryBookList : List LibraryBook
+        libraryBookList : Array LibraryBook
         , totalItems : Int
     }
 
@@ -39,12 +39,12 @@ searchbook2librarybook searchbook =
         , title = searchbook.title
         , authors = searchbook.authors
         , description = searchbook.description
-        -- , publishedDate = searchbook.publishedDate
-        -- , language = searchbook.language
-        -- , smallThumbnail = searchbook.smallThumbnail
-        -- , thumbnail = searchbook.thumbnail
-        -- , owner = ""
-        -- , location = ""
+        , publishedDate = searchbook.publishedDate
+        , language = searchbook.language
+        , smallThumbnail = searchbook.smallThumbnail
+        , thumbnail = searchbook.thumbnail
+        , owner = ""
+        , location = ""
     }
 
 
@@ -54,9 +54,59 @@ librarybook2String libraryBook =
     ++ ", title = " ++ libraryBook.title
     ++ ", authors = " ++ libraryBook.authors
     ++ ", description = " ++ libraryBook.description
-    -- ++ ", publishedDate = " ++ librarybook.publishedDate
-    -- ++ ", language = " ++ librarybook.language
-    -- ++ ", smallThumbnail = " ++ librarybook.smallThumbnail
-    -- ++ ", thumbnail = " ++ librarybook.thumbnail
-    -- ++ ", owner = " ++ librarybook.owner
-    -- ++ ", location = " ++ librarybook.location
+    ++ ", publishedDate = " ++ libraryBook.publishedDate
+    ++ ", language = " ++ libraryBook.language
+    ++ ", smallThumbnail = " ++ libraryBook.smallThumbnail
+    ++ ", thumbnail = " ++ libraryBook.thumbnail
+    ++ ", owner = " ++ libraryBook.owner
+    ++ ", location = " ++ libraryBook.location
+
+-- Opaque
+emptyLibrarybook : LibraryBook
+emptyLibrarybook =
+    {
+        id = 0
+        , title = ""
+        , authors = ""
+        , description = ""
+        , publishedDate = ""
+        , language = ""
+        , smallThumbnail = ""
+        , thumbnail = ""
+        , owner = ""
+        , location = ""
+    }
+
+
+
+hasNext : LibraryBooks -> Int -> Bool
+hasNext librarybooks index =
+    Array.length librarybooks.libraryBookList > index + 1
+
+
+hasPrevious : LibraryBooks -> Int -> Bool
+hasPrevious librarybooks index =
+    index > 0
+
+
+get : Int -> LibraryBooks -> LibraryBook
+get index librarybooks = 
+    let
+        maybeLibraryBook = Array.get index librarybooks.libraryBookList
+    in
+    case maybeLibraryBook of
+        Just librarybook ->
+            librarybook
+    
+        Nothing ->
+            emptyLibrarybook
+
+
+length : LibraryBooks -> Int
+length librarybooks =
+    Array.length librarybooks.libraryBookList
+
+
+toList : LibraryBooks -> List LibraryBook
+toList librarybooks =
+    Array.toList librarybooks.libraryBookList 

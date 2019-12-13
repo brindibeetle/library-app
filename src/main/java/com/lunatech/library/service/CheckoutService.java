@@ -4,8 +4,6 @@ import com.lunatech.library.domain.Checkout;
 import com.lunatech.library.exception.APIException;
 import com.lunatech.library.repository.BookRepository;
 import com.lunatech.library.repository.CheckoutRepository;
-import com.lunatech.library.utils.TimeUtils;
-import com.lunatech.library.utils.UserUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -21,9 +19,10 @@ public class CheckoutService {
     // instantiated by Lombok (RequiredArgsConstructor)
     private final CheckoutRepository checkoutRepository;
     private final BookRepository bookRepository;
+    private final UtilityService utilityService;
 
     private void check4ConflictingCheckout(Long bookId, ZonedDateTime fromDateTime) {
-        ZonedDateTime toDateTime = TimeUtils.infiniteDateTime();
+        ZonedDateTime toDateTime = utilityService.infiniteDateTime();
         List<Checkout> checkouts = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, fromDateTime, toDateTime);
 
         if (!checkouts.isEmpty()) {
@@ -56,7 +55,7 @@ public class CheckoutService {
 //    }
 //
     private Checkout findCheckout(Long bookId, ZonedDateTime dateTime) {
-        ZonedDateTime toDateTime = TimeUtils.infiniteDateTime();
+        ZonedDateTime toDateTime = utilityService.infiniteDateTime();
         List<Checkout> checkouts = checkoutRepository.findCheckoutOfBookBetweenDates(bookId, dateTime, toDateTime);
 
         if (checkouts.isEmpty()) {
@@ -70,8 +69,8 @@ public class CheckoutService {
     }
 
     public List<Checkout> findByBookId(Long bookId, Optional<ZonedDateTime> optFrom, Optional<ZonedDateTime> optTo) {
-        ZonedDateTime from = optFrom.orElse(TimeUtils.zeroDateTime());
-        ZonedDateTime to = optTo.orElse(TimeUtils.infiniteDateTime());
+        ZonedDateTime from = optFrom.orElse(utilityService.zeroDateTime());
+        ZonedDateTime to = optTo.orElse(utilityService.infiniteDateTime());
 
         return checkoutRepository.findByBookId(bookId, from, to);
     }
@@ -92,8 +91,8 @@ public class CheckoutService {
     public Checkout checkout(Long bookId, Optional<String> optUserEmail, Optional<ZonedDateTime> optDateTime) {
 
         // NullPointerException will occur when refactoring this to the orElse-construct during Unittest, because then UserUtils.userEmail is evaluated (superfluously!)
-        String userEmail = optUserEmail.isPresent() ? optUserEmail.get() : UserUtils.userEmail();
-        ZonedDateTime dateTime = optDateTime.orElse(TimeUtils.currentDateTime());
+        String userEmail = optUserEmail.isPresent() ? optUserEmail.get() : utilityService.userEmail();
+        ZonedDateTime dateTime = optDateTime.orElse(utilityService.currentDateTime());
 
         check4ConflictingCheckout(bookId, dateTime);
 
@@ -104,7 +103,7 @@ public class CheckoutService {
     // Checkin
     public Checkout checkin(Long bookId, Optional<ZonedDateTime> optDateTime) {
 
-        ZonedDateTime dateTime = optDateTime.orElse(TimeUtils.currentDateTime());
+        ZonedDateTime dateTime = optDateTime.orElse(utilityService.currentDateTime());
 
         Checkout checkout = findCheckout(bookId, dateTime);
         checkout.setDateTimeTo(dateTime);
@@ -114,14 +113,14 @@ public class CheckoutService {
 
     public Checkout save(Checkout checkout) {
         ZonedDateTime checkoutDateFrom = checkout.getDateTimeFrom();
-        if (checkoutDateFrom.isAfter(TimeUtils.currentDateTime())) {
+        if (checkoutDateFrom.isAfter(utilityService.currentDateTime())) {
             throw new APIException(HttpStatus.CONFLICT, "The from date cannot be in the future.");
         }
 
         ZonedDateTime checkoutDateTimeTo = checkout.getDateTimeTo();
         if (checkoutDateTimeTo == null) {
-            checkoutDateTimeTo = TimeUtils.infiniteDateTime();
-        } else if (checkoutDateTimeTo.isAfter(TimeUtils.currentDateTime())) {
+            checkoutDateTimeTo = utilityService.infiniteDateTime();
+        } else if (checkoutDateTimeTo.isAfter(utilityService.currentDateTime())) {
             throw new APIException(HttpStatus.CONFLICT, "The to date cannot be in the future.");
         }
 

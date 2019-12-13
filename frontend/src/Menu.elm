@@ -29,7 +29,6 @@ import Bootstrap.Card.Block as Block
 import Bootstrap.Navbar as Navbar
 
 import SearchBook as SearchBook
-import Page exposing (..)
 import Session exposing (..)
 
 
@@ -72,6 +71,12 @@ menuActionsWithAccessToken =
             , description = "Add (new) books to the library"
             , imageLink = ""
             , page = BookSelectorPage
+        }
+        , {
+            title = "Library"
+            , description = "Checkout books from the library"
+            , imageLink = ""
+            , page = LibraryPage
         }
     ]
 

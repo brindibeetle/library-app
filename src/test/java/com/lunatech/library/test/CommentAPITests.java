@@ -79,7 +79,7 @@ public class CommentAPITests extends AbstractTest {
         assertTrue(commentDTOs.length == 0);
     }
 
-    @Test
+    //    @Test
     @WithMockUser(username = "emile@pipo.nl")
     public void postAComment() throws Exception {
         String uri = "/api/v1/comments/";

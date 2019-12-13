@@ -1,6 +1,5 @@
 module Session exposing (..)
 
-import Page exposing (..)
 import OAuth
 import SearchBook exposing (..)
 import Bootstrap.Navbar as Navbar
@@ -11,16 +10,22 @@ type alias Session =
     { token : Maybe OAuth.Token
     , page : Page
     , navbarState : Navbar.State 
-    , error : Maybe String
+    , message : Message
     }
 
+type Message =
+    Empty
+    | Succeeded String
+    | Warning String
+    | Error String
+    
 
 initialSession : Maybe OAuth.Token -> Navbar.State -> Session
 initialSession token navbarState =
     { token = token
     , page = LandingPage
     , navbarState = navbarState
-    , error = Nothing
+    , message = Empty
     }
 
 
@@ -40,10 +45,29 @@ tokenToString maybeToken =
             ".. nothing .."
             
 
-toString : Session -> String
-toString session =
-    """{
-         token = """ ++ tokenToString session.token ++ """
-         page = """ ++ Page.toString session.page ++ """
-         error = """ ++ (Maybe.withDefault ".. nothing .." session.error)
-                 
+type Page
+    = LandingPage
+    | BookSelectorPage 
+    | LoginPage
+    | BookSelectorDetailPage
+    | LibraryPage
+
+
+toString : Page -> String
+toString page =
+    case page of
+        LandingPage ->
+            "NotFoundPage"
+
+        BookSelectorPage ->
+            "BookSelectorPage"
+
+        LoginPage ->
+            "LoginPage"
+
+        BookSelectorDetailPage ->
+            "BookSelectorDetailPage"
+
+        LibraryPage ->
+            "LibraryPage"
+    

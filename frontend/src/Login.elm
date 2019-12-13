@@ -115,7 +115,6 @@ configurationFor =
         }
 
 redirectUri : Url
--- redirectUri = Url.fromString "http://localhost:3000"
 redirectUri = 
     { protocol = Http
     , host = "localhost"
@@ -165,7 +164,7 @@ update msg session =
             
             case res of
                 Err err ->
-                    ( { session | error = Just "Unable to fetch user profile ¯\\_(ツ)_/¯" }
+                    ( { session | message = Error "Unable to fetch user profile ¯\\_(ツ)_/¯" }
                     , Cmd.none
                     )
 
