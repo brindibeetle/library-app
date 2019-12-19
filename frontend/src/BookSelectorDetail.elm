@@ -1,39 +1,26 @@
 module BookSelectorDetail exposing (..)
 
-import Browser
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Http as Http
 -- import OAuth
 
-import RemoteData exposing (RemoteData, WebData, succeed)
-
-import MyError exposing (buildErrorMessage)
-
-import Bootstrap.CDN as CDN
 import Bootstrap.Table as Table
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
 import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Form.Select as Select
-import Bootstrap.Form.Checkbox as Checkbox
-import Bootstrap.Form.Radio as Radio
-import Bootstrap.Form.Textarea as Textarea
-import Bootstrap.Form.Fieldset as Fieldset
-import Bootstrap.Table as Table
 import Bootstrap.Button as Button
-import Bootstrap.Dropdown as Dropdown
-import Bootstrap.Card as Card
-import Bootstrap.Text as Text
-import Bootstrap.Card.Block as Block
 import OAuth
 
-import SearchBook exposing (..)
-import LibraryBook exposing (..)
+import Domain.SearchBook exposing (..)
+import Domain.LibraryBook exposing (..)
 import LibraryAppApi exposing (..)
+import Domain.LibraryBook exposing (..)
 import Session exposing (..)
-import Constants exposing (..)
+import Utils exposing (..)
+import Regex
 
 type alias Model = 
     {
@@ -48,15 +35,6 @@ type alias Model =
         , location : String
         , smallThumbnail : String
         , thumbnail : String
-
-        , titleError : String
-        , authorsError : String
-        , descriptionError : String
-        , publishedDateError : String
-        , languageError : String
-        , ownerError : String
-        , locationError : String
-
         , status : Status
     }
 
@@ -64,10 +42,10 @@ type Status =
     Details
     | AddToLibrary
 
-initialModel : SearchBooks -> Int -> Model
-initialModel searchbooks index =
+initialModel : String -> SearchBooks -> Int -> Model
+initialModel user searchbooks index =
     let
-        searchbook = SearchBook.get index searchbooks 
+        searchbook = Domain.SearchBook.get index searchbooks 
     in
         { searchbooks = searchbooks
         , index = index
@@ -76,18 +54,10 @@ initialModel searchbooks index =
         , description = searchbook.description
         , publishedDate = searchbook.publishedDate
         , language = searchbook.language
-        , owner = ""
+        , owner = user
         , location = ""
         , smallThumbnail = searchbook.smallThumbnail
         , thumbnail = searchbook.thumbnail
-
-        , titleError = ""
-        , authorsError = ""
-        , descriptionError = ""
-        , publishedDateError = ""
-        , languageError = ""
-        , ownerError = ""
-        , locationError = ""
         , status = Details
         }
 
@@ -145,15 +115,6 @@ viewBookDetail model =
                     ( List.map (selectitem model.language) languages )
                 ]
             , Form.group []
-                [ Form.label [ ] [ text "Owner of the book"]
-                , Input.text [ Input.id "owner", Input.onInput UpdateOwner, Input.value model.owner, Input.disabled True ]
-                ]
-            , Form.group []
-                [ Form.label [ ] [ text "Location of the book"]
-                , Select.select [ Select.id "location", Select.onChange UpdateLocation, Select.disabled True ]
-                    ( List.map (selectitem model.location) locations )
-                ]
-            , Form.group []
                 [ Form.label [ ] [ text "Image of the book"] 
                 , Table.simpleTable
                     ( Table.thead [] []
@@ -171,7 +132,7 @@ viewBookDetail model =
                         [ Table.tr []
                             [ Table.td [] 
                                 [ Button.button
-                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick DoPrevious, not(SearchBook.hasPrevious model.searchbooks model.index) |> Button.disabled ]
+                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick DoPrevious, not(Domain.SearchBook.hasPrevious model.searchbooks model.index) |> Button.disabled ]
                                     [ text "<" ]
                                 ]
                             , Table.td [] 
@@ -186,7 +147,7 @@ viewBookDetail model =
                                 ]
                             , Table.td [] 
                                 [ Button.button
-                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick DoNext, not(SearchBook.hasNext model.searchbooks model.index) |> Button.disabled ]
+                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick DoNext, not(Domain.SearchBook.hasNext model.searchbooks model.index) |> Button.disabled ]
                                     [ text ">" ]
                                 ]
                             ]
@@ -203,9 +164,9 @@ viewBookAddLibrary model =
         authorsInputFeedback = checkAuthors "author(s)" model.authors
         descriptionInputFeedback = checkDescription "description" model.description
         publishedDateInputFeedback = checkPublishedDate "publishedDate" model.publishedDate
-        languageInputFeedback = checkPublishedDate "language" model.language
-        ownerInputFeedback = checkPublishedDate "owner" model.owner
-        locationInputFeedback = checkPublishedDate "location" model.location
+        languageInputFeedback = checkLanguage "language" model.language
+        ownerInputFeedback = checkOwner "owner" model.owner
+        locationInputFeedback = checkLocation "location" model.location
         allOk = titleInputFeedback == "" && authorsInputFeedback == "" && descriptionInputFeedback == ""
             && publishedDateInputFeedback == "" && languageInputFeedback == "" && ownerInputFeedback == ""
             && locationInputFeedback == ""
@@ -246,7 +207,7 @@ viewBookAddLibrary model =
                 ]
             , Form.group []
                 [ Form.label [ ] [ text "Owner of the book"]
-                , Input.text [ Input.id "owner", Input.onInput UpdateOwner, Input.value model.owner
+                , Input.email [ Input.id "owner", Input.onInput UpdateOwner, Input.value model.owner
                     , if ownerInputFeedback == "" then Input.success else Input.danger ]
                 , Form.invalidFeedback [] [ text ownerInputFeedback ]
                 ]
@@ -275,7 +236,7 @@ viewBookAddLibrary model =
                         [ Table.tr []
                             [ Table.td [] 
                                 [ Button.button
-                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick DoPrevious, not(SearchBook.hasPrevious model.searchbooks model.index) |> Button.disabled ]
+                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick DoPrevious, not(Domain.SearchBook.hasPrevious model.searchbooks model.index) |> Button.disabled ]
                                     [ text "<" ]
                                 ]
                             , Table.td [] 
@@ -290,7 +251,7 @@ viewBookAddLibrary model =
                                 ]
                             , Table.td [] 
                                 [ Button.button
-                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick DoNext, not(SearchBook.hasNext model.searchbooks model.index) |> Button.disabled ]
+                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick DoNext, not(Domain.SearchBook.hasNext model.searchbooks model.index) |> Button.disabled ]
                                     [ text ">" ]
                                 ]
                             ]
@@ -321,7 +282,7 @@ insertBook token libraryBook =
     let
         -- librarybook1 = Debug.log "BookSelector.insertBook " libraryBook
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" LibraryAppApi.libraryApiBooksUrl ++ "?access_token=" ++ puretoken
+        requestUrl = Debug.log "requestUrl" libraryApiBooksUrl ++ "?access_token=" ++ puretoken
         -- requestUrl = Debug.log "requestUrl" LibraryAppApi.libraryApiBooksUrl
         jsonBody = Debug.log "jsonBody" (newLibraryBookEncoder libraryBook)
         printheaders = Debug.log "token" (OAuth.tokenToString token)
@@ -371,13 +332,31 @@ checkPublishedDate label value =
     isObligatory label value
 
 checkLanguage : String -> String -> String
-checkLanguage label value = ""
+checkLanguage label value = 
+    isObligatory label value
 
 checkOwner : String -> String -> String
-checkOwner label value = ""
+checkOwner label value = 
+    case Regex.fromString emailRegex of
+        Just regex ->
+            if Regex.contains regex value then
+                ""
+            else
+                "Please enter a valid email address."
+    
+        Nothing ->
+            ""
+
+emailRegex : String
+emailRegex = "(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|\""
+    ++ "(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*"
+    ++ "\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
+    ++ "\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])"
+
 
 checkLocation : String -> String -> String
-checkLocation label value =  ""
+checkLocation label value = 
+    isObligatory label value
 
 
 isObligatory : String -> String -> String
@@ -483,25 +462,25 @@ update msg model session =
             , cmd = Cmd.none}
 
         DoPrevious ->
-            { model = initialModel model.searchbooks (model.index - 1)
+            { model = initialModel (getUser session) model.searchbooks (model.index - 1)
             , session = session
             , cmd = Cmd.none}
 
         DoNext ->
-            { model = initialModel model.searchbooks (model.index + 1)
+            { model = initialModel (getUser session) model.searchbooks (model.index + 1)
             , session = session
             , cmd = Cmd.none}
 
         DoCancelAddToLibrary ->
             { model = { model
-                | status = AddToLibrary 
+                | status = Details 
                 }
             , session = session
             , cmd = Cmd.none}
 
         DoAddToLibrary ->
             { model = { model
-                | status = Details 
+                | status = AddToLibrary 
                 }
             , session = session
             , cmd = Cmd.none}

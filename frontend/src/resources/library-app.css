@@ -13,6 +13,14 @@ a {
   height: 32rem;
 }
 
+.card-checkout {
+  border: 10px solid red;
+} 
+.text-checkout {
+  background-color: red;
+  text-align: center;
+  color: white;
+} 
 .card:focus,
 .card:hover {
   box-shadow: 0 5px 11px 0 rgba(0, 0, 0, 18), 0 4px 15px 0 rgba(0, 0, 0, 15);
@@ -29,6 +37,13 @@ a {
   width: 100%;
   object-position: 0% 0%;
 }
+.bookselector-img-top {
+  object-fit: cover;
+  height: 30rem;
+  width: 100%;
+  object-position: 0% 0%;
+}
+
 .card:hover .bookselector-img-top {
     height: 10rem;
 }
@@ -99,4 +114,9 @@ a {
   height: 1em;
   margin-top: 0.2em;
   background: white;
+}
+
+
+.linktext:hover {
+  cursor: pointer;
 }

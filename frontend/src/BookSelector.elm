@@ -12,7 +12,7 @@ import OAuth
 
 import RemoteData exposing (RemoteData, WebData, succeed)
 
-import MyError exposing (buildErrorMessage)
+import Utils exposing (buildErrorMessage)
 
 import Bootstrap.CDN as CDN
 import Bootstrap.Table as Table
@@ -26,11 +26,12 @@ import Bootstrap.Form.Fieldset as Fieldset
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Text as Text
+import Bootstrap.Spinner as Spinner
 import Bootstrap.Card.Block as Block
 import Bootstrap.Utilities.Display as Display
 
-import SearchBook exposing (..)
-import LibraryBook exposing (..)
+import Domain.SearchBook exposing (..)
+import Domain.LibraryBook exposing (..)
 import BookSelectorDetail exposing (..)
 import Session exposing (..)
 
@@ -85,13 +86,17 @@ getBooks { searchString, searchAuthors, searchTitle } =
 
     in
         Http.get
-            { url = Debug.log "getBooks" ( baseUrl ++ "?q=" ++ query )
+            { url =  Debug.log "getBooks" (baseUrl ++ "?q=" ++ query )
             , expect =
                 searchbooksDecoder
                 |> Http.expectJson (RemoteData.fromResult >> DoSearchReceived)
             }
 
--- VIEW
+-- #####
+-- #####   VIEW
+-- #####
+
+
 view : Model -> Html Msg
 view model =
     div [ class "center" ]
@@ -104,33 +109,35 @@ viewBookSearcher : Model -> Html Msg
 viewBookSearcher model =
     div [ class "container" ]
         [
-            Form.form []
-            [ 
-              Form.group []
-                [ Form.label [ ] [ text "Title"]
-                , Input.text [ Input.id "searchTitle", Input.onInput UpdateTitle ]
-                , Form.help [] [ text "What is (part of) the title of the book." ]
+            p [] 
+                [ text "Search for books via Google's Books Api."
+                , br [] []
+                , text "Find your book, and add it easily to the library."
                 ]
-              , Form.group []
-                [ Form.label [ ] [ text "Author(s)"]
-                , Input.text [ Input.id "searchAuthors", Input.onInput UpdateAuthors ]
-                , Form.help [] [ text "What is (part of) the authors of the book." ]
-                ]
-              , Form.group []
-                [ Form.label [ ] [ text "Keywords"]
-                , Input.text [ Input.id "searchString", Input.onInput UpdateString ]
-                , Form.help [] [ text "Keywords to find the book." ]
-                ]
+            , Form.form []
+                [ 
+                Form.group []
+                    [ Form.label [ ] [ text "Title"]
+                    , Input.text [ Input.id "searchTitle", Input.onInput UpdateTitle ]
+                    , Form.help [] [ text "What is (part of) the title of the book." ]
+                    ]
+                , Form.group []
+                    [ Form.label [ ] [ text "Author(s)"]
+                    , Input.text [ Input.id "searchAuthors", Input.onInput UpdateAuthors ]
+                    , Form.help [] [ text "What is (part of) the authors of the book." ]
+                    ]
+                , Form.group []
+                    [ Form.label [ ] [ text "Keywords"]
+                    , Input.text [ Input.id "searchString", Input.onInput UpdateString ]
+                    , Form.help [] [ text "Keywords to find the book." ]
+                    ]
             --   , Form.group []
             --     [ Form.label [ ] [ text "Isbn"]
             --     , Input.number [ Input.id "searchIsbn", Input.onInput UpdateIsbn ]
             --     , Form.help [] [ text "Isbn." ]
             --     ]
             ]
-            , Button.button
-                [ Button.primary, Button.attrs [ class "float-right" ], Button.onClick DoSearch ]
-                [ text "Search" ]
-                                        
+                                       
         ]
 
 
@@ -151,26 +158,46 @@ viewBooks searchbooks =
    -- viewBooks model.searchbooks
     case searchbooks of
         RemoteData.NotAsked ->
-            div [ class "container" ]
-                [ text "Not asked..." ]
+            div [ class "container" ] 
+                [ Button.button
+                    [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick DoSearch ]
+                    [ text "Search" ]
+                    , p [] [ br [] [] ]
+                ]
 
         RemoteData.Loading ->
             div [ class "container" ]
-                [ text "Loading..." ]
+                [ Spinner.spinner
+                    [ Spinner.grow
+                    , Spinner.large
+                    , Spinner.color Text.primary
+                    ]
+                    [ Spinner.srMessage "Loading..." ]
+                ]
 
         RemoteData.Success actualSearchBooks ->
             div [ class "container" ]
-                [ viewBookTiles actualSearchBooks ]
+                [ Button.button
+                    [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick DoSearch ]
+                    [ text "Search" ]
+                    , p [] [ br [] [] ]
+                , viewBookTiles actualSearchBooks 
+                ]
                 
         RemoteData.Failure httpError ->
             div [ class "container" ]
-                [ viewFetchError (buildErrorMessage httpError) ]
+                [ Button.button
+                    [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick DoSearch ]
+                    [ text "Search" ]
+                    , p [] [ br [] [] ]
+                , viewFetchError (buildErrorMessage httpError) 
+                ]
 
 
 viewBookTiles : SearchBooks -> Html Msg
 viewBookTiles searchbooks =
-    List.range 0 (SearchBook.length searchbooks - 1)
-        |> List.map2 viewBookTilesCard (SearchBook.toList searchbooks)
+    List.range 0 (Domain.SearchBook.length searchbooks - 1)
+        |> List.map2 viewBookTilesCard (Domain.SearchBook.toList searchbooks)
         |> div [ class "row"  ]
 
 
@@ -178,7 +205,7 @@ viewBookTiles searchbooks =
 -- zoom=1 -> zoom=10 for better resolution
 getthumbnail : SearchBook -> String
 getthumbnail searchbook =
-    String.replace "&zoom=1&" "&zoom=10&" searchbook.thumbnail
+    String.replace "&zoom=1&" "&zoom=3&" searchbook.thumbnail
 
 viewBookTilesCard : SearchBook -> Int -> Html Msg
 viewBookTilesCard searchbook index =
@@ -200,7 +227,7 @@ viewBookTilesCard searchbook index =
 
 
 -- #####
--- ##### UPDATE
+-- #####   UPDATE
 -- #####
 
 
@@ -248,7 +275,7 @@ update msg model session =
                 RemoteData.Success actualSearchBooks ->
                     { model = 
                         { model 
-                        | bookSelectorDetailModel = Just (BookSelectorDetail.initialModel actualSearchBooks index)
+                        | bookSelectorDetailModel = Just (BookSelectorDetail.initialModel (getUser session) actualSearchBooks index)
                         }
                     , session = changedPageSession BookSelectorDetailPage session
                     , cmd = Cmd.none }

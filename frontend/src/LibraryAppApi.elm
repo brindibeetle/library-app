@@ -7,33 +7,13 @@ import Json.Encode as Encode
 import Url.Parser exposing (Parser, custom)
 
 import Http exposing (..)
+import OAuth
 
-import LibraryBook exposing (..)
-import Constants exposing (..)
+import RemoteData exposing (RemoteData, WebData, succeed)
 
-libraryApiBooksUrl : String
-libraryApiBooksUrl = libraryApiBaseUrl ++ "/books"
+import Domain.LibraryBook exposing (..)
+import Utils exposing (..)
 
-libraryBooksDecoder : Decoder LibraryBooks
-libraryBooksDecoder =
-    Decode.succeed LibraryBooks
-        |> required "items" (array libraryBookDecoder)
-        |> required "totalItems" int
-
-
-libraryBookDecoder : Decoder LibraryBook
-libraryBookDecoder =
-    Decode.succeed LibraryBook
-        |> required "id" int
-        |> required "title" string
-        |> required "authors" string
-        |> required "description" string
-        |> optional "publishedDate" string ""
-        |> optional "language" string ""
-        |> optional "smallThumbnail" string ""
-        |> optional "thumbnail" string ""
-        |> optional "owner" string ""
-        |> optional "location" string ""
 
 
 libraryBookEncoder : LibraryBook -> Encode.Value
@@ -67,3 +47,7 @@ newLibraryBookEncoder libraryBook =
         , ( "owner", Encode.string libraryBook.owner )
         , ( "location", Encode.string libraryBook.location )
         ]
+
+
+
+-- (WebData (Array LibraryBook))

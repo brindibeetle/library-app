@@ -9,10 +9,12 @@ import OAuth
 import OAuth.Implicit
 
 import Session exposing (..)
+import Login
+import Logout
+import Welcome
 import BookSelector exposing (..)
 import BookSelectorDetail exposing (..)
 import Library exposing (..)
-import Login
 import LibraryAppCDN as LibraryAppCDN
 
 import Route exposing (Route)
@@ -37,19 +39,21 @@ type Model =
     | BookSelectorDetail BookSelectorDetail.Model Session
     | Library Library.Model Session
     | Login Session
-    | Landing Session
+    | Logout Session
+    | Welcome Session
 
 
 initialState : Maybe OAuth.Token -> (Model, Cmd Msg )
 initialState maybeToken =
     let
-        ( navbarState, menuCmd ) =
-            Menu.initialState maybeToken
+        ( navbarState, menuCmd ) = Menu.initialState
         session = initialSession maybeToken navbarState
+        ( loginSession, loginCmd ) = Login.initialLogin session
+        
     in
     (
-        Landing session
-        , Cmd.map MenuMsg menuCmd
+        Login loginSession
+        , Cmd.batch [ Cmd.map MenuMsg menuCmd, Cmd.map LoginMsg loginCmd ]
     )
 
 
@@ -84,8 +88,14 @@ view model =
             , Menu.view (toSession model)
                 |> Html.map MenuMsg
             , case model of
+                Welcome _ ->
+                    Welcome.view sessionModel |> Html.map WelcomeMsg
+
                 Login session ->
                     Login.view |> Html.map LoginMsg
+
+                Logout session ->
+                    Logout.view |> Html.map LogoutMsg
             
                 BookSelector bookSelectorModel session ->
                     BookSelector.view bookSelectorModel |> Html.map BookSelectorMsg
@@ -94,11 +104,7 @@ view model =
                     BookSelectorDetail.view bookSelectorDetailModel |> Html.map BookSelectorDetailMsg
                     
                 Library libraryModel session  ->
-                    Library.view libraryModel |> Html.map LibraryMsg
-
-                Landing _ ->
-                    text "Nothing"
-    
+                    Library.view libraryModel |> Html.map LibraryMsg   
             ]
         }
 
@@ -114,15 +120,17 @@ toSession model =
             session
         Login session ->
             session
-        Landing session ->
+        Logout session ->
+            session
+        Welcome session ->
             session
 
 
 toModel :  Model -> Session -> Model
 toModel model session =
     case ( session.page, model ) of
-        ( LandingPage, _ ) ->
-            Landing session
+        ( WelcomePage, _ ) ->
+            Welcome session
 
         ( BookSelectorPage, BookSelector bookSelectorModel session1 ) ->
             BookSelector bookSelectorModel session
@@ -137,12 +145,18 @@ toModel model session =
                 Nothing ->
                     model
 
+        ( LibraryPage, Library libraryModel session1  ) ->
+            Library libraryModel session
+
         -- never direct, only thru BookSelector
         ( BookSelectorDetailPage, model1 ) ->
             model1
 
         ( LoginPage, model1 ) ->
             Login (toSession model1)
+
+        ( LogoutPage, model1 ) ->
+            Logout (toSession model1)
 
         ( BookSelectorPage, model1 ) ->
             BookSelector BookSelector.initialModel session
@@ -162,45 +176,52 @@ notFoundView =
 
 
 type Msg
-    = BookSelectorMsg BookSelector.Msg
-    | BookSelectorDetailMsg BookSelectorDetail.Msg
+    = WelcomeMsg Welcome.Msg
     | LoginMsg Login.Msg
+    | LogoutMsg Logout.Msg
     | MenuMsg Menu.Msg
+    | BookSelectorMsg BookSelector.Msg
+    | BookSelectorDetailMsg BookSelectorDetail.Msg
+    | LibraryMsg Library.Msg
     | LinkClicked UrlRequest
     | UrlChanged Url
-    | LibraryMsg Library.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    let
-        waarzijnwe = Debug.log "Main" "Update"
-        session1 = Debug.log "model.session = " (toSession model)
-    in
     case (msg, model) of
-        ( LoginMsg subMsg, Login session ) ->
+        ( WelcomeMsg subMsg, model1 ) ->
+           let
+                ( sessionUpdated, menuCmd ) =
+                    Welcome.update subMsg (toSession model1)
+            in
+                ( toModel model1 sessionUpdated, menuCmd |> Cmd.map WelcomeMsg )
+
+        ( LoginMsg subMsg, model1 ) ->
             let
                 ( sessionUpdated, loginCmd ) =
-                    Login.update subMsg session 
+                    Login.update subMsg (toSession model1) 
             in
-                ( Landing sessionUpdated, loginCmd  |> Cmd.map LoginMsg )    
+                ( Welcome sessionUpdated, loginCmd  |> Cmd.map LoginMsg )    
+
+        ( LogoutMsg subMsg, Logout session ) ->
+            let
+                ( sessionUpdated, logoutCmd ) =
+                    Logout.update subMsg session 
+            in
+                ( Welcome sessionUpdated, logoutCmd  |> Cmd.map LogoutMsg )    
 
         ( MenuMsg subMsg, model1 ) ->
            let
-                waarzijnwe1 = Debug.log "Main" "MenuMsg"
                 ( sessionUpdated, menuCmd ) =
                     Menu.update subMsg (toSession model1)
-                session12 = Debug.log "menuModel.session = " sessionUpdated
             in
                 ( toModel model1 sessionUpdated, menuCmd |> Cmd.map MenuMsg )
 
         ( BookSelectorMsg subMsg, BookSelector bookSelectorModel session ) ->
             let
-                waarzijnwe1 = Debug.log "Main" "BookSelectorMsg"
-                session2 = Debug.log "model.session = " session
                 bookSelectorUpdated =
                     BookSelector.update subMsg bookSelectorModel session
-                session12 = Debug.log "bookSelectorModel.session = " session
             in
                 ( toModel (BookSelector bookSelectorUpdated.model bookSelectorUpdated.session) bookSelectorUpdated.session
                     , bookSelectorUpdated.cmd |> Cmd.map BookSelectorMsg)
@@ -215,11 +236,8 @@ update msg model =
 
         ( LibraryMsg subMsg, Library libraryModel session ) ->
             let
-                waarzijnwe1 = Debug.log "Main" "LibraryMsg"
-                session2 = Debug.log "model.session = " session
                 libraryUpdated =
                     Library.update subMsg libraryModel session
-                session12 = Debug.log "libraryModel.session = " session
             in
                 ( toModel (Library libraryUpdated.model libraryUpdated.session) libraryUpdated.session
                     , libraryUpdated.cmd |> Cmd.map LibraryMsg)
@@ -246,46 +264,6 @@ queryAsFragment url =
 
         _ ->
             url
-
-
-oauthProviderFromState : String -> Maybe OAuthProvider
-oauthProviderFromState str =
-        -- str
-        --     |> stringLeftUntil (\c -> c == ".")
-        --     |> oauthProviderFromString
-    Just Google
-
-type OAuthProvider
-    = Google
-    | Spotify
-    | LinkedIn
-
-oauthProviderFromString : String -> Maybe OAuthProvider
-oauthProviderFromString str =
-    case str of
-        "google" ->
-            Just Google
-
-        "spotify" ->
-            Just Spotify
-
-        "linkedin" ->
-            Just LinkedIn
-
-        _ ->
-            Nothing
-
-stringLeftUntil : (String -> Bool) -> String -> String
-stringLeftUntil predicate str =
-    let
-        ( h, q ) =
-            ( String.left 1 str, String.dropLeft 1 str )
-    in
-    if h == "" || predicate h then
-        ""
-
-    else
-        h ++ stringLeftUntil predicate q
 
 
 errorResponseToString : { error : OAuth.ErrorCode, errorDescription : Maybe String } -> String

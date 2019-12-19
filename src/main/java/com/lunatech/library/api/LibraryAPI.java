@@ -1,6 +1,6 @@
 package com.lunatech.library.api;
 
-import com.lunatech.library.domain.Checkout;
+import com.lunatech.library.dto.CheckoutDTO;
 import com.lunatech.library.exception.APIException;
 import com.lunatech.library.service.BookService;
 import com.lunatech.library.service.CheckoutService;
@@ -36,7 +36,7 @@ public class LibraryAPI {
             "     <li>/api/v1/checkout/1?date=12-12-2019 checks out book 1 at the given date at noon</li>" +
             "     <li>/api/v1/checkout/1?datetime=12-12-2019T10:30:00Z checks out book 1 at the given date and time</li>" +
             "</ul>"
-            , response = Checkout.class)
+            , response = CheckoutDTO.class)
     @ResponseStatus(HttpStatus.OK)
     public void doCheckout(@PathVariable Long bookId, @RequestParam Map<String, String> varsMap) {
         // is there a book with book Id?
@@ -99,7 +99,7 @@ public class LibraryAPI {
             "     <li>/api/v1/checkin/1?date=12-12-2019 checks in book 1 at the given date at noon</li>" +
             "     <li>/api/v1/checkin/1?datetime=12-12-2019T10:30:00Z checks in book 1 at the given date and time</li>" +
             "</ul>"
-            , response = Checkout.class)
+            , response = CheckoutDTO.class)
     @ResponseStatus(HttpStatus.OK)
     public void doCheckin(@PathVariable Long bookId, @RequestParam Map<String, String> varsMap) {
         // is there a book with book Id?

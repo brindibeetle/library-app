@@ -79,6 +79,11 @@ public class CheckoutService {
         return checkoutRepository.findAll();
     }
 
+    public List<Checkout> findCurrent() {
+        ZonedDateTime currentDate = utilityService.currentDateTime();
+        return checkoutRepository.findAtDates(currentDate, currentDate);
+    }
+
     public Checkout findById(Long id) {
         Optional<Checkout> optionalCheckout = checkoutRepository.findById(id);
         if (!optionalCheckout.isPresent()) {

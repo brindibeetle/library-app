@@ -9,10 +9,9 @@ import Browser.Navigation as Navigation
 
 import Route exposing (..)
 
-import OAuth
 import RemoteData exposing (RemoteData, WebData, succeed)
 
-import MyError exposing (buildErrorMessage)
+import Utils exposing (buildErrorMessage)
 
 import Bootstrap.Table as Table
 import Bootstrap.Form as Form
@@ -28,12 +27,12 @@ import Bootstrap.Text as Text
 import Bootstrap.Card.Block as Block
 import Bootstrap.Navbar as Navbar
 
-import SearchBook as SearchBook
+import Domain.SearchBook as SearchBook
 import Session exposing (..)
 
 
-initialState : Maybe OAuth.Token -> (Navbar.State, Cmd Msg)
-initialState maybeToken =
+initialState : (Navbar.State, Cmd Msg)
+initialState =
     Navbar.initialState NavbarMsg
 
 
@@ -67,8 +66,8 @@ menuActionsWithAccessToken : List MenuAction
 menuActionsWithAccessToken =
     [
         {
-            title = "Book selector"
-            , description = "Add (new) books to the library"
+            title = "Add books"
+            , description = "Add books to the library"
             , imageLink = ""
             , page = BookSelectorPage
         }
@@ -77,6 +76,12 @@ menuActionsWithAccessToken =
             , description = "Checkout books from the library"
             , imageLink = ""
             , page = LibraryPage
+        }
+        , {
+            title = "Logout"
+            , description = "Say goodbye"
+            , imageLink = ""
+            , page = LogoutPage
         }
     ]
 
@@ -89,7 +94,7 @@ view session =
         Navbar.config NavbarMsg
             |> Navbar.withAnimation
             |> Navbar.collapseMedium
-            |> Navbar.brand [] [ img [ src "src/resources/lunatech_logo.png", class "d-inline-block align-top", style  "width" "200px"  ] [ text "Lunatech" ] ]
+            |> Navbar.brand [ onClick (ChangedPage Session.WelcomePage) ] [ img [ src "src/resources/readingOwl_small.png", class "d-inline-block align-top", style  "width" "64px"  ] [ text "Lunatech" ] ]
             |> Navbar.items
                 ( case session.token of
                     Nothing ->

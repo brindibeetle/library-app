@@ -14,8 +14,6 @@ import Json.Decode as Json
 
 import RemoteData exposing (RemoteData, WebData, succeed)
 
-import MyError exposing (buildErrorMessage)
-
 import Bootstrap.CDN as CDN
 import Bootstrap.Table as Table
 import Bootstrap.Form as Form
@@ -33,18 +31,27 @@ import Bootstrap.Card.Block as Block
 import Debug as Debug
 
 import Session exposing (..)
+import Utils exposing (..)
+import Domain.User exposing (..)
 
 
-type
-    Msg
-    -- No Operation, terminal case
-    = NoOp
-      -- The 'sign-in' button has been hit
-    | SignInRequested
-      -- The 'sign-out' button has been hit
-    | SignOutRequested
-      -- Got a response from the googleapis user info
-    | GotUserInfo (Result Http.Error Profile)
+-- #####
+-- #####   INIT
+-- #####
+
+
+initialLogin : Session -> ( Session, Cmd Msg )
+initialLogin session =
+    case session.token of
+        Just token ->
+            ( {session
+              | user = RemoteData.Loading
+              }
+            , getUser token )
+
+        Nothing ->
+            ( session, Cmd.none )
+    
 
 
 type alias OAuthConfiguration =
@@ -63,31 +70,22 @@ type alias Profile =
     }
 
 
--- Never used???
--- init : ( Model, Cmd Msg )
--- init =
---     let
---         model1 = Debug.log "model" "pio"
---     in
---     ( { error = Nothing, token = Nothing, state = "" }
---     , Cmd.none
---     )
+-- #####
+-- #####   VIEW
+-- #####
+
 
 view : Html Msg
-view = div
-    [ ]
-    [ CDN.stylesheet
-    , text "Elm OAuth2 Example - Implicit Flow"
-    , viewSignInButton
+view = div [ class "container" ]
+    [ h1 [] [ text "Login" ]
+        , p [] [ text "The login will take place via Google's OAuth authentication."
+            , br [] [], text "Please take into account that only Lunatech's email addresses (lunatech.be, lunatech.fr, lunatech.nl) are allowed."
+               ]
+        , p [] [ Button.button
+                [ Button.primary, Button.onClick SignInRequested ]
+                [ text "Login via Google" ]
+            ]
     ]
-
-
-viewSignInButton : Html Msg
-viewSignInButton =
-    Button.button
-        [ Button.primary, Button.onClick SignInRequested
-        ]
-        [ text "Sign in" ]
 
 
 configurationFor : OAuthConfiguration
@@ -114,25 +112,26 @@ configurationFor =
                 (Json.field "picture" Json.string)
         }
 
+
 redirectUri : Url
 redirectUri = 
-    { protocol = Http
-    , host = "localhost"
-    , path = "/login"
-    , port_ = Just 8000
-    , query = Nothing
-    , fragment = Nothing
+    { myBaseUri 
+    | path = "/login"
     }
+
+
+-- #####
+-- #####   UPDATE
+-- #####
+
+type Msg =
+    SignInRequested
+    | DoUserReceived (WebData User)
 
 
 update : Msg -> Session -> ( Session, Cmd Msg )
 update msg session =
     case msg of
-        NoOp ->
-          let
-                res1 = Debug.log "NoOp" session
-            in
-             ( session, Cmd.none )
 
         SignInRequested  ->
             let
@@ -147,34 +146,30 @@ update msg session =
                     , url = config.authorizationEndpoint
                     }
             in
-            Debug.log "lets see"
             ( session
             , auth |> OAuth.Implicit.makeAuthorizationUrl |> Url.toString |> Navigation.load
             )
 
-        SignOutRequested ->
-            ( session
-            , Navigation.load (Url.toString redirectUri)
-            )
-
-        GotUserInfo res ->
+        DoUserReceived response ->
             let
-                res1 = Debug.log "res" res
+                respons1 = Debug.log "Login.update DoUserReceived" response
             in
             
-            case res of
-                Err err ->
-                    ( { session | message = Error "Unable to fetch user profile ¯\\_(ツ)_/¯" }
-                    , Cmd.none
-                    )
-
-                Ok profile ->
-                    (session, Cmd.none
-                    )
+            ( { session | user = response }
+            , Cmd.none )
 
 
+getUser : OAuth.Token -> Cmd Msg
+getUser token =
+    let
+        a = Debug.log "getUser token" token
+        puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
+        requestUrl = Debug.log "requestUrl" libraryApiBaseUrl ++ "/user" ++ "?access_token=" ++ puretoken
 
-baseUrl : String
-baseUrl =
-    "https://www.googleapis.com/books/v1/volumes"
-
+    in
+        Http.get
+            { url = Debug.log "getUser" requestUrl
+            , expect =
+                userDecoder
+                |> Http.expectJson (RemoteData.fromResult >> DoUserReceived)
+            }

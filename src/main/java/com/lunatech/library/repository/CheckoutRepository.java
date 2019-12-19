@@ -27,6 +27,12 @@ public interface CheckoutRepository extends JpaRepository<Checkout, Long> {
 
     @Query(
             "SELECT c FROM Checkout c " +
+                    "WHERE c.dateTimeFrom <= :to and (c.dateTimeTo > :from or c.dateTimeTo = null)"
+    )
+    List<Checkout> findAtDates(@Param("from") ZonedDateTime from, @Param("to") ZonedDateTime to);
+
+    @Query(
+            "SELECT c FROM Checkout c " +
                     "WHERE c.bookId = :bookId " +
                     "and c.dateTimeFrom <= :to and (c.dateTimeTo > :from or c.dateTimeTo = null)"
     )
