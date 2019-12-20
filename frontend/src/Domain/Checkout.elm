@@ -72,27 +72,23 @@ getCheckoutsCurrent token msg =
     in
         Http.get
             { url = requestUrl
-            , expect = 
+            , expect =  
                 checkoutsDecoder
                 |> Http.expectJson (RemoteData.fromResult >> msg)
             }
 
-doCheckout : OAuth.Token -> (WebData (Array Checkout) -> msg) -> Int -> Cmd msg
+doCheckout : OAuth.Token -> (Result Http.Error () -> msg) -> Int -> Cmd msg
 doCheckout token msg bookId =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutUrl bookId)
-        -- requestUrl = Debug.log "requestUrl" (libraryApiCheckoutUrl bookId) ++ "?access_token=" ++ puretoken
+        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutUrl bookId) ++ "?access_token=" ++ puretoken
     in
         Http.request
             { method = "PUT"
-            -- , headers = OAuth.useToken token []
-            , headers = [ header "Authentication" (OAuth.tokenToString token)]
+            , headers = []
             , url = requestUrl
             , body = emptyBody
-            , expect = 
-                checkoutsDecoder
-                |> Http.expectJson (RemoteData.fromResult >> msg)
+            , expect = Http.expectWhatever msg
             , timeout = Nothing
             , tracker = Nothing
             }

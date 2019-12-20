@@ -1,4 +1,4 @@
-module View.BookDetails exposing (..)
+module View.LibraryDetails exposing (..)
 
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -21,7 +21,6 @@ import Domain.Book exposing (..)
 import Domain.Checkout exposing (..)
 import Domain.SearchBook exposing (..)
 import Domain.LibraryBook exposing (..)
-import LibraryAppApi exposing (..)
 import Session exposing (..)
 import Utils exposing (..)
 import Regex
@@ -41,6 +40,7 @@ type alias Config msg a =
     , doNext : msg
     , doCancel : msg
     , maybeBook : Maybe (Book a)
+    , maybeCheckout : Maybe Checkout
     , hasPrevious : Bool
     , hasNext : Bool
     , actionHtml : List (Html msg)

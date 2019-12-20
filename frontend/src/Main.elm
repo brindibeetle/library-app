@@ -13,7 +13,6 @@ import Login
 import Logout
 import Welcome
 import BookSelector exposing (..)
-import BookSelectorDetail exposing (..)
 import Library exposing (..)
 import LibraryAppCDN as LibraryAppCDN
 
@@ -36,7 +35,6 @@ main =
 
 type Model =
     BookSelector BookSelector.Model Session
-    | BookSelectorDetail BookSelectorDetail.Model Session
     | Library Library.Model Session
     | Login Session
     | Logout Session
@@ -100,9 +98,6 @@ view model =
                 BookSelector bookSelectorModel session ->
                     BookSelector.view bookSelectorModel |> Html.map BookSelectorMsg
         
-                BookSelectorDetail bookSelectorDetailModel session  ->
-                    BookSelectorDetail.view bookSelectorDetailModel |> Html.map BookSelectorDetailMsg
-                    
                 Library libraryModel session  ->
                     Library.view libraryModel |> Html.map LibraryMsg   
             ]
@@ -113,8 +108,6 @@ toSession : Model -> Session
 toSession model =
     case model of
         BookSelector _ session ->
-            session
-        BookSelectorDetail _ session ->
             session
         Library _ session ->
             session
@@ -135,22 +128,8 @@ toModel model session =
         ( BookSelectorPage, BookSelector bookSelectorModel session1 ) ->
             BookSelector bookSelectorModel session
 
-        ( BookSelectorDetailPage, BookSelectorDetail bookSelectorDetailModel session1 ) ->
-            BookSelectorDetail bookSelectorDetailModel session
-
-        ( BookSelectorDetailPage, BookSelector bookSelectorModel session1 ) ->
-            case bookSelectorModel.bookSelectorDetailModel of
-                Just bookSelectorDetailModel ->
-                    BookSelectorDetail bookSelectorDetailModel session
-                Nothing ->
-                    model
-
         ( LibraryPage, Library libraryModel session1  ) ->
             Library libraryModel session
-
-        -- never direct, only thru BookSelector
-        ( BookSelectorDetailPage, model1 ) ->
-            model1
 
         ( LoginPage, model1 ) ->
             Login (toSession model1)
@@ -181,7 +160,6 @@ type Msg
     | LogoutMsg Logout.Msg
     | MenuMsg Menu.Msg
     | BookSelectorMsg BookSelector.Msg
-    | BookSelectorDetailMsg BookSelectorDetail.Msg
     | LibraryMsg Library.Msg
     | LinkClicked UrlRequest
     | UrlChanged Url
@@ -225,14 +203,6 @@ update msg model =
             in
                 ( toModel (BookSelector bookSelectorUpdated.model bookSelectorUpdated.session) bookSelectorUpdated.session
                     , bookSelectorUpdated.cmd |> Cmd.map BookSelectorMsg)
-
-        ( BookSelectorDetailMsg subMsg, BookSelectorDetail bookSelectorDetailModel session ) ->
-            let
-                bookSelectorDetailUpdated =
-                    BookSelectorDetail.update subMsg bookSelectorDetailModel session
-            in
-                ( toModel (BookSelectorDetail bookSelectorDetailUpdated.model bookSelectorDetailUpdated.session)  bookSelectorDetailUpdated.session
-                    , Cmd.map BookSelectorDetailMsg bookSelectorDetailUpdated.cmd )
 
         ( LibraryMsg subMsg, Library libraryModel session ) ->
             let

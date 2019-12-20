@@ -46,7 +46,7 @@ public class LibraryAPI {
                 varsMap
                         .entrySet()
                         .stream()
-                        .filter(map -> " date datetime email ".indexOf((" " + map.getKey() + " ").toLowerCase()) == -1)
+                        .filter(map -> " date datetime email access_token ".indexOf((" " + map.getKey() + " ").toLowerCase()) == -1)
                         .map(Map.Entry::getKey)
 //                        .map(map -> map.getKey())
                         .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
@@ -109,7 +109,7 @@ public class LibraryAPI {
                 varsMap
                         .entrySet()
                         .stream()
-                        .filter(map -> " date datetime ".indexOf((" " + map.getKey() + " ").toLowerCase()) == -1)
+                        .filter(map -> " date datetime access_token ".indexOf((" " + map.getKey() + " ").toLowerCase()) == -1)
                         .map(Map.Entry::getKey)
                         .collect(StringBuilder::new, StringBuilder::append, StringBuilder::append)
                         .toString();

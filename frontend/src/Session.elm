@@ -85,7 +85,6 @@ type Page
     | LoginPage
     | LogoutPage
     | BookSelectorPage 
-    | BookSelectorDetailPage
     | LibraryPage
 
 
@@ -103,9 +102,6 @@ toString page =
 
         BookSelectorPage ->
             "BookSelectorPage"
-
-        BookSelectorDetailPage ->
-            "BookSelectorDetailPage"
 
         LibraryPage ->
             "LibraryPage"

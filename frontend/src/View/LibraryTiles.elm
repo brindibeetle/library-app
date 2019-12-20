@@ -1,4 +1,4 @@
-module View.BookTiles exposing (..)
+module View.LibraryTiles exposing (..)
 
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -37,6 +37,7 @@ type alias Config msg a =
     , doSearch : msg
     , doAction : Int -> msg
     , books : WebData (Array (Book a)) 
+    , checkouts : WebData (Array (Maybe Checkout)) 
     }
 
 
@@ -90,19 +91,28 @@ viewFetchError errorMessage =
         , text ("Error: " ++ errorMessage)
         ]
 
-
+merge2RemoteDatas :
+    RemoteData.RemoteData e a
+    -> RemoteData.RemoteData e b
+    -> RemoteData.RemoteData e ( a, b)
+merge2RemoteDatas a b = 
+        RemoteData.map (\a1 b1 -> ( a1, b1 )) a
+            |> RemoteData.andMap b
 
 -- viewBooks : msg -> WebData (Array (Book a)) -> WebData (Array (Maybe Checkout)) -> Html msg
 -- viewBooks doSearch books checkoutsCorresponding =
 viewBooks : Config msg a -> Html msg
 viewBooks config =
     let
-        { books, doSearch } = config
+        { books, checkouts, doSearch } = config
 
         waarzijnwe = Debug.log "Library.elm viewBooks libraryBooks " books
         -- waarzijnwe1 = Debug.log "Library.elm viewBooks checkoutsCorresponding " checkouts
+
+        books_checkouts = merge2RemoteDatas books checkouts
+        
     in
-    case books of
+    case books_checkouts of
         RemoteData.NotAsked ->
             div [ class "container" ] 
                 [ Button.button
@@ -120,13 +130,13 @@ viewBooks config =
                     [ Spinner.srMessage "Loading..." ]
                 ]
 
-        RemoteData.Success actualBooks ->
+        RemoteData.Success ( actualBooks, actualCheckouts ) ->
             div [ class "container" ]
                 [ Button.button
                     [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick doSearch ]
                     [ text "Search" ]
                     , p [] [ br [] [] ]
-                , viewBookTiles config actualBooks
+                , viewBookTiles config actualBooks actualCheckouts
                 ]
                 
         RemoteData.Failure httpError ->
@@ -139,10 +149,10 @@ viewBooks config =
                 ]
 
         
-viewBookTiles : Config msg a -> Array (Book a) -> Html msg
-viewBookTiles config books  =
+viewBookTiles : Config msg a -> Array (Book a) -> Array (Maybe Checkout) -> Html msg
+viewBookTiles config books checkouts =
     List.range 0 (Array.length books - 1)
-        |> List.map2 (viewBookTilesCard config) (Array.toList books)
+        |> List.map3 (viewBookTilesCard config) (Array.toList books) (Array.toList checkouts)
         |> div [ class "row"  ]
 
 
@@ -153,9 +163,9 @@ getthumbnail book =
     String.replace "&zoom=1&" "&zoom=7&" book.thumbnail
 
 
-viewBookTilesCard : Config msg a -> (Book a) -> Int -> Html msg
-viewBookTilesCard { doAction } book index =
-    case book.checkout of
+viewBookTilesCard : Config msg a -> (Book a) -> Maybe Checkout -> Int -> Html msg
+viewBookTilesCard { doAction } book maybeCheckout index =
+    case maybeCheckout of
         Just checkout ->
             div [ class "col-lg-4 col-md-6 mb-4", onClick (doAction index) ]
                 [ 

@@ -12,17 +12,15 @@ import RemoteData exposing (WebData)
 
 import Domain.SearchBook exposing (..)
 import Domain.LibraryBook exposing (..)
-import BookSelectorDetail exposing (..)
 import Session exposing (..)
-import LibraryAppApi exposing (..)
 import Domain.Checkout exposing (..)
 import Domain.Book exposing (..)
 import Utils exposing (..)
 
 import Css exposing (..)
 
-import View.BookTiles as BookTiles exposing (..)
-import View.BookDetails as BookDetails exposing (..)
+import View.LibraryTiles as LibraryTiles exposing (..)
+import View.LibraryDetails as BookDetails exposing (..)
 
 type alias Model = 
     {
@@ -34,8 +32,8 @@ type alias Model =
         , searchOwner : String 
         , bookView : BookView
         , checkinPromisedDate : String
-        , booktiles : BookTiles.Config Msg LibraryBookCheckout
-        , bookdetails : BookDetails.Config Msg LibraryBookCheckout
+        , booktiles : LibraryTiles.Config Msg LibraryBook
+        , bookdetails : BookDetails.Config Msg LibraryBook
     }
 
 
@@ -45,20 +43,6 @@ type BookView =
     | Checkout Int
     | CheckoutDone Int
 
-
-type alias LibraryBookCheckout =
-    { id : Int
-    , title : String
-    , authors : String
-    , description : String
-    , publishedDate : String
-    , language : String
-    , smallThumbnail : String
-    , thumbnail : String
-    , owner : String
-    , location : String
-    , checkout : Maybe Checkout
-    }
 
 initialModel : Model
 initialModel =
@@ -77,6 +61,7 @@ initialModel =
         , updateSearchOwner = UpdateSearchOwner
         , doSearch = DoSearch
         , doAction = DoDetail
+        , checkouts = RemoteData.NotAsked
         , books = RemoteData.NotAsked
          }
     , bookdetails = 
@@ -92,19 +77,12 @@ initialModel =
         , doNext = DoNext
         , doCancel = DoCancel
         , maybeBook = Nothing
+        , maybeCheckout = Nothing
         , hasPrevious = False
         , hasNext = False
         , actionHtml = []
         }
     }
-
-
-
-
-
-toBookLibraryBooks : WebData (Array LibraryBook) -> WebData (Array (Book LibraryBookCheckout))
-toBookLibraryBooks librarybooks = 
-        RemoteData.map (\a -> Array.toList a |> List.map toBookLibraryBook |> Array.fromList ) librarybooks
 
 
 -- #####
@@ -116,7 +94,7 @@ view : Model -> Html Msg
 view model =
     case model.bookView of
         Tiles ->
-            BookTiles.view model.booktiles
+            LibraryTiles.view model.booktiles
             
         Details index ->
             BookDetails.view model.bookdetails
@@ -152,7 +130,7 @@ type Msg
         | DoCancel
         | DoCheckout
         | UpdateCheckinPromisedDate String
-        | DoCheckoutDone (WebData (Array Checkout))
+        | DoCheckoutDone (Result Http.Error ())
 
 
 
@@ -191,10 +169,22 @@ update msg model session =
                         booktiles1 = { booktiles | books = RemoteData.Loading }
                     in
                     
-                    { model =  { model | booktiles = booktiles1, checkouts = RemoteData.Loading, librarybooks = RemoteData.Loading }
+                    { model =  
+                        { model 
+                        | booktiles = booktiles1
+                        , checkouts = RemoteData.Loading
+                        , librarybooks = RemoteData.Loading
+                        }
                     , session = session
                     , cmd = Cmd.batch 
-                        [ getBooks { token = token, msg = DoBooksReceived, title = model.searchTitle, author = model.searchAuthor, location = model.searchLocation, owner = model.searchOwner }
+                        [ Domain.LibraryBook.getBooks 
+                            { token = token
+                            , msg = DoBooksReceived
+                            , title = model.searchTitle
+                            , author = model.searchAuthor
+                            , location = model.searchLocation
+                            , owner = model.searchOwner 
+                            }
                         , getCheckoutsCurrent token DoCheckoutsReceived
                         ]
                      }
@@ -206,9 +196,19 @@ update msg model session =
                 booktiles = model.booktiles
                 -- response
                 
-                booktiles1 = { booktiles | books = distributeCheckouts response model.checkouts }
+                booktiles1 = 
+                    { booktiles 
+                    | books = response
+                    , checkouts = distributeCheckouts response model.checkouts 
+                    }
             in
-                { model = { model | booktiles = booktiles1, librarybooks = response }, session = session, cmd = Cmd.none }
+                { model = 
+                    { model 
+                    | booktiles = booktiles1
+                    , librarybooks = response 
+                    }
+                    , session = session
+                    , cmd = Cmd.none }
             -- { model =  distributeCheckouts { model | librarybooks = response }
             -- , session = session
             -- , cmd = Cmd.none }
@@ -216,7 +216,10 @@ update msg model session =
         ( Tiles, DoCheckoutsReceived response ) ->
             let
                 booktiles = model.booktiles
-                booktiles1 = { booktiles | books = distributeCheckouts model.librarybooks response }
+                booktiles1 = 
+                    { booktiles 
+                    | checkouts = distributeCheckouts model.librarybooks response
+                    }
             in
                 { model = { model | booktiles = booktiles1, checkouts = response }, session = session, cmd = Cmd.none }
 
@@ -274,12 +277,12 @@ update msg model session =
             
         ( CheckoutDone index, DoCheckoutDone checkout ) ->
             case ( model.bookdetails.maybeBook, checkout ) of
-                ( Just book, RemoteData.Success _ ) ->
+                ( Just book, Result.Ok result ) ->
                     { model = model
                     , session = Session.succeed session ("The book \"" ++ book.title ++ "\" has been checked out!")
                     , cmd = Cmd.none }
 
-                ( _, RemoteData.Failure error ) ->
+                ( _, Result.Err error  ) ->
                     { model = model
                     , session = Session.fail session ("The book has NOT been checked out : " ++ buildErrorMessage error)
                     , cmd = Cmd.none }
@@ -314,7 +317,7 @@ update msg model session =
 -- After :
 --  checkoutsCorresponding = Book 1, Book 5, Nothing : CheckoutsCorresponding : Array (Maybe Checkout)
 
-distributeCheckouts : WebData (Array LibraryBook) -> WebData (Array Checkout) -> WebData (Array (Book LibraryBookCheckout))
+distributeCheckouts : WebData (Array LibraryBook) -> WebData (Array Checkout) -> WebData (Array (Maybe Checkout))
 distributeCheckouts librarybooks checkouts =
     case ( librarybooks, checkouts ) of
         ( RemoteData.Success actualLibraryBooks, RemoteData.Success actualCheckouts ) ->
@@ -323,8 +326,7 @@ distributeCheckouts librarybooks checkouts =
             in
             
                 Array.toList actualLibraryBooks
-                    |> List.map toBookLibraryBook 
-                    |> List.map (\book -> { book | checkout = distributeCheckoutsLibrarybook actualCheckoutsList book })
+                    |> List.map (distributeCheckoutsLibrarybook actualCheckoutsList )
                     |> Array.fromList
                     |> RemoteData.Success
     
@@ -332,87 +334,61 @@ distributeCheckouts librarybooks checkouts =
             RemoteData.NotAsked
 
 
-distributeCheckoutsLibrarybook : ( List Checkout ) -> LibraryBookCheckout -> Maybe Checkout
+distributeCheckoutsLibrarybook : ( List Checkout ) -> LibraryBook -> Maybe Checkout
 distributeCheckoutsLibrarybook actualCheckouts librarybook =
     List.filter (\checkout -> checkout.bookId == librarybook.id) actualCheckouts
     |> List.head
 
 
-toBookLibraryBook : LibraryBook -> Book LibraryBookCheckout
-toBookLibraryBook librarybook = 
-    { id = librarybook.id
-    , title = librarybook.title
-    , authors = librarybook.authors
-    , description = librarybook.description
-    , publishedDate = librarybook.publishedDate
-    , language = librarybook.language
-    , smallThumbnail = librarybook.smallThumbnail
-    , thumbnail = librarybook.thumbnail
-    , owner = librarybook.owner
-    , location = librarybook.location
-    , checkout = Nothing }
-
-
--- { authors : String
---                 , description : String
---                 , id : Int
---                 , language : String
---                 , location : String
---                 , owner : String
---                 , publishedDate : String
---                 , smallThumbnail : String
---                 , thumbnail : String
---                 , title : String
---                 }
-
 doIndex : Model -> Int -> String -> Model
 doIndex model index user =
-    case model.booktiles.books of
-        RemoteData.Success actualBooks ->
-            let
-                bookdetails = model.bookdetails
-                maybeBook = Array.get index actualBooks
-                maybeCheckout = maybeBook
-                    |> Maybe.andThen .checkout
-                actionHtml = 
-                    case maybeCheckout of
-                        Just checkout ->
-                            actionHtmlCheckout 
-                                { maybeCheckout = Just checkout
-                                , user = user
-                                }
-                        Nothing ->
-                            []
-                doActionDisabled = 
-                    case maybeCheckout of
-                        Just _ ->
-                            True 
-                        Nothing ->
-                            False
-                
-                bookdetails1 = 
-                    { bookdetails 
-                    | maybeBook = maybeBook
-                    , hasPrevious = index > 0
-                    , hasNext = index + 1 < Array.length actualBooks
-                    , actionHtml = actionHtml
-                    , doActionDisabled = doActionDisabled
+    let
+        books_checkouts = merge2RemoteDatas model.booktiles.books model.booktiles.checkouts
+    in
+        case books_checkouts of
+            RemoteData.Success ( actualBooks, actualCheckouts ) ->
+                let
+                    bookdetails = model.bookdetails
+                    maybeBook = Array.get index actualBooks
+                    maybeCheckout = Array.get index actualCheckouts
+                    actionHtml = 
+                        case maybeCheckout of
+                            Just (Just checkout) ->
+                                actionHtmlCheckout 
+                                    { maybeCheckout = Just checkout
+                                    , user = user
+                                    }
+                            _ ->
+                                []
+                    doActionDisabled = 
+                        case maybeCheckout of
+                            Just (Just _) ->
+                                True 
+                            _ ->
+                                False
+                    
+                    bookdetails1 = 
+                        { bookdetails 
+                        | maybeBook = maybeBook
+                        , hasPrevious = index > 0
+                        , hasNext = index + 1 < Array.length actualBooks
+                        , actionHtml = actionHtml
+                        , doActionDisabled = doActionDisabled
+                        }
+                in
+                    { model 
+                    | bookdetails = bookdetails1
+                    , bookView = Details index
                     }
-            in
-                { model 
-                | bookdetails = bookdetails1
-                , bookView = Details index
-                }
-        _ ->
-            model
+            _ ->
+                model
 
 
 doCheckout: Model -> Int -> String -> Model
 doCheckout model index user =
     let
         bookdetails = model.bookdetails
-        maybeCheckout = bookdetails.maybeBook
-            |> Maybe.andThen .checkout
+        maybeCheckout = bookdetails.maybeCheckout
 
         bookdetails1 = 
             { bookdetails 

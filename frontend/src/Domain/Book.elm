@@ -14,5 +14,4 @@ type alias Book a =
     , thumbnail : String
     , owner : String
     , location : String
-    , checkout : Maybe Checkout
     }

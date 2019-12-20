@@ -1,38 +1,19 @@
 module BookSelector exposing (..)
 
-import Browser
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
--- import Html.Styled exposing (..)
-import Html.Styled.Attributes exposing (css)
 
 import Http as Http
-import OAuth
+import RemoteData exposing (WebData)
 
-import RemoteData exposing (RemoteData, WebData, succeed)
-
-import Utils exposing (buildErrorMessage)
-
-import Bootstrap.CDN as CDN
-import Bootstrap.Table as Table
-import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input
-import Bootstrap.Form.Select as Select
-import Bootstrap.Form.Checkbox as Checkbox
-import Bootstrap.Form.Radio as Radio
-import Bootstrap.Form.Textarea as Textarea
-import Bootstrap.Form.Fieldset as Fieldset
-import Bootstrap.Button as Button
-import Bootstrap.Card as Card
-import Bootstrap.Text as Text
-import Bootstrap.Spinner as Spinner
-import Bootstrap.Card.Block as Block
-import Bootstrap.Utilities.Display as Display
-
+import Array exposing (..)
 import Domain.SearchBook exposing (..)
 import Domain.LibraryBook exposing (..)
-import BookSelectorDetail exposing (..)
+import Utils exposing (..)
+import View.SelectorTiles as SelectorTiles exposing (..)
+import View.SelectorDetails as SelectorDetails exposing (..)
+import View.SelectorDetailsEdit as SelectorDetailsEdit exposing (..)
 import Session exposing (..)
 
 type alias Model = 
@@ -42,7 +23,12 @@ type alias Model =
         , searchAuthors : String 
         , searchString : String 
         -- , searchIsbn : Int
-        , bookSelectorDetailModel : Maybe BookSelectorDetail.Model
+
+        , bookView : BookView
+
+        , booktiles : SelectorTiles.Config Msg
+        , bookdetails : SelectorDetails.Config Msg
+        , bookDetailsEdit : Maybe (SelectorDetailsEdit.Config Msg)
     }
 
 initialModel : Model
@@ -52,45 +38,57 @@ initialModel =
     , searchAuthors = ""
     , searchString = ""
     -- , searchIsbn = 0
-    , bookSelectorDetailModel = Nothing
+    , bookView = Tiles
+    , booktiles = 
+        { updateSearchTitle = UpdateSearchTitle
+        , updateSearchAuthor = UpdateSearchAuthor
+        , updateSearchString = UpdateSearchString
+        , doSearch = DoSearch
+        , doAction = DoDetail
+        , books = RemoteData.NotAsked
+         }
+    , bookdetails = 
+        { doAction = DoAddToLibrary
+        , textAction = "Add to library"
+        , doActionDisabled = False
+        , doPrevious = DoPrevious
+        , doNext = DoNext
+        , doCancel = DoCancel
+        , maybeBook = Nothing
+        , hasPrevious = False
+        , hasNext = False
+        , actionHtml = []
+        }
+    , bookDetailsEdit = Nothing
     }
 
-baseUrl : String
-baseUrl =
-    "https://www.googleapis.com/books/v1/volumes"
+initialBookDetailsEdit : (Maybe SearchBook) -> String -> SelectorDetailsEdit.Config Msg
+initialBookDetailsEdit searchBook user =
+    { updateTitle =  UpdateTitle
+    , updateAuthors = UpdateAuthors
+    , updateDescription = UpdateDescription 
+    , updatePublishedDate = UpdatePublishedDate
+    , updateLanguage = UpdateLanguage
+    , updateOwner = UpdateOwner
+    , updateLocation = UpdateLocation
+    , doAction = DoLibraryBookInsert
+    , textAction = "Add to library"
+    , doActionDisabled = True
+    , doCancel = DoCancel
+    , book = case searchBook of
+        Just actualSearchBook ->
+            searchbook2librarybook actualSearchBook |> setOwner user
+            
+        Nothing ->
+            emptyLibrarybook
+    }
 
 
-getBooks : { searchString : String, searchAuthors : String, searchTitle : String } -> Cmd Msg
-getBooks { searchString, searchAuthors, searchTitle } =
-    let
-        a = Debug.log "getBooks searchAuthors" searchAuthors
-        query = searchString
-            ++
-            (
-                if searchTitle == "" then
-                    ""
-                else
-                    "+intitle:" ++ searchTitle
-            )
-            ++
-            (
-                if searchAuthors == "" then
-                    ""
-                else
-                    "+inauthor:" ++ searchAuthors
-            )
-            -- ++ if searchIsbn == 0 then
-            --     ""
-            -- else
-            --     "+isbn:" ++ String.fromInt searchIsbn
+type BookView =
+    Tiles
+    | Details Int
+    | DetailsEdit Int
 
-    in
-        Http.get
-            { url =  Debug.log "getBooks" (baseUrl ++ "?q=" ++ query )
-            , expect =
-                searchbooksDecoder
-                |> Http.expectJson (RemoteData.fromResult >> DoSearchReceived)
-            }
 
 -- #####
 -- #####   VIEW
@@ -99,131 +97,21 @@ getBooks { searchString, searchAuthors, searchTitle } =
 
 view : Model -> Html Msg
 view model =
-    div [ class "center" ]
-        [ viewBookSearcher model
-        , viewBooks model.searchbooks
-        ]
+    case model.bookView of
+        Tiles ->
+            SelectorTiles.view model.booktiles
+            
+        Details index ->
+            SelectorDetails.view model.bookdetails
 
-
-viewBookSearcher : Model -> Html Msg
-viewBookSearcher model =
-    div [ class "container" ]
-        [
-            p [] 
-                [ text "Search for books via Google's Books Api."
-                , br [] []
-                , text "Find your book, and add it easily to the library."
-                ]
-            , Form.form []
-                [ 
-                Form.group []
-                    [ Form.label [ ] [ text "Title"]
-                    , Input.text [ Input.id "searchTitle", Input.onInput UpdateTitle ]
-                    , Form.help [] [ text "What is (part of) the title of the book." ]
-                    ]
-                , Form.group []
-                    [ Form.label [ ] [ text "Author(s)"]
-                    , Input.text [ Input.id "searchAuthors", Input.onInput UpdateAuthors ]
-                    , Form.help [] [ text "What is (part of) the authors of the book." ]
-                    ]
-                , Form.group []
-                    [ Form.label [ ] [ text "Keywords"]
-                    , Input.text [ Input.id "searchString", Input.onInput UpdateString ]
-                    , Form.help [] [ text "Keywords to find the book." ]
-                    ]
-            --   , Form.group []
-            --     [ Form.label [ ] [ text "Isbn"]
-            --     , Input.number [ Input.id "searchIsbn", Input.onInput UpdateIsbn ]
-            --     , Form.help [] [ text "Isbn." ]
-            --     ]
-            ]
-                                       
-        ]
-
-
-viewFetchError : String -> Html Msg
-viewFetchError errorMessage =
-    let
-        errorHeading =
-            "Couldn't fetch posts at this time."
-    in
-    div []
-        [ h3 [] [ text errorHeading ]
-        , text ("Error: " ++ errorMessage)
-        ]
-
-
-viewBooks : WebData SearchBooks -> Html Msg
-viewBooks searchbooks =
-   -- viewBooks model.searchbooks
-    case searchbooks of
-        RemoteData.NotAsked ->
-            div [ class "container" ] 
-                [ Button.button
-                    [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick DoSearch ]
-                    [ text "Search" ]
-                    , p [] [ br [] [] ]
-                ]
-
-        RemoteData.Loading ->
-            div [ class "container" ]
-                [ Spinner.spinner
-                    [ Spinner.grow
-                    , Spinner.large
-                    , Spinner.color Text.primary
-                    ]
-                    [ Spinner.srMessage "Loading..." ]
-                ]
-
-        RemoteData.Success actualSearchBooks ->
-            div [ class "container" ]
-                [ Button.button
-                    [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick DoSearch ]
-                    [ text "Search" ]
-                    , p [] [ br [] [] ]
-                , viewBookTiles actualSearchBooks 
-                ]
-                
-        RemoteData.Failure httpError ->
-            div [ class "container" ]
-                [ Button.button
-                    [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick DoSearch ]
-                    [ text "Search" ]
-                    , p [] [ br [] [] ]
-                , viewFetchError (buildErrorMessage httpError) 
-                ]
-
-
-viewBookTiles : SearchBooks -> Html Msg
-viewBookTiles searchbooks =
-    List.range 0 (Domain.SearchBook.length searchbooks - 1)
-        |> List.map2 viewBookTilesCard (Domain.SearchBook.toList searchbooks)
-        |> div [ class "row"  ]
-
-
--- "http://books.google.com/books/content?id=qR_NAQAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api"
--- zoom=1 -> zoom=10 for better resolution
-getthumbnail : SearchBook -> String
-getthumbnail searchbook =
-    String.replace "&zoom=1&" "&zoom=3&" searchbook.thumbnail
-
-viewBookTilesCard : SearchBook -> Int -> Html Msg
-viewBookTilesCard searchbook index =
-    div [ class "col-lg-4 col-md-6 mb-4", onClick (ClickedBookDetail searchbook index) ]
-    [
-    -- Card.config [ Card.attrs [ style "width" "20rem", style "height" "35rem"  ]  ]
-       Card.config [ Card.attrs [ ] ]
-        |> Card.imgTop [ src (getthumbnail searchbook), class "bookselector-img-top" ] [] 
-        |> Card.block [ ] 
-            [ Block.titleH4 [ class "card-title text-truncate bookselector-text-title" ] [ text searchbook.title ]
-            , Block.titleH6 [ class "text-muted bookselector-text-author" ] [ text searchbook.authors ]
-            , Block.text [ class "text-muted small bookselector-text-published" ] [ text searchbook.publishedDate ]
-            , Block.text [ class "card-text block-with-text bookselector-text-description" ] [ text searchbook.description ]
-            , Block.text [ class "text-muted small bookselector-text-language" ] [ text searchbook.language ]
-            ]
-        |> Card.imgBottom [ src (getthumbnail searchbook), class "bookselector-img-bottom" ] [] 
-        |> Card.view
-    ]
+        DetailsEdit index ->
+            case model.bookDetailsEdit of
+                Just bookDetailsEdit ->
+                    SelectorDetailsEdit.view bookDetailsEdit
+            
+                Nothing ->
+                    div [] []                    
+            
 
 
 -- #####
@@ -233,28 +121,59 @@ viewBookTilesCard searchbook index =
 
 type Msg
     = 
-        UpdateAuthors String
-        | UpdateTitle String
-        | UpdateString String
+        UpdateSearchTitle String
+        | UpdateSearchAuthor String
+        | UpdateSearchString String
         | DoSearch
-        | DoSearchReceived (WebData SearchBooks)
-        | ClickedBookDetail SearchBook Int
+        | DoBooksReceived (WebData (Array SearchBook))
+        | DoDetail Int
+        | UpdateTitle String
+        | UpdateAuthors String
+        | UpdateDescription String
+        | UpdatePublishedDate String
+        | UpdateLanguage String
+        | UpdateOwner String
+        | UpdateLocation String
+        | DoNext
+        | DoPrevious
+        | DoCancel
+        | DoAddToLibrary
+        | DoLibraryBookInsert
+        | LibraryBookInserted (Result Http.Error LibraryBook)
 
 
 update : Msg -> Model -> Session -> { model : Model, session : Session, cmd : Cmd Msg } 
 update msg model session =
+    let
+        a = Debug.log "BookSelector update model.bookView" model.bookView
+        a2 = Debug.log "BookSelector update msg " msg
+    in
+    
+    case model.bookView of
+        Tiles ->
+            updateTiles msg model session
+        
+        Details index ->
+            updateDetails msg model session index
+
+        DetailsEdit index ->
+            updateDetailsEdit msg model session index
+    
+
+updateTiles : Msg -> Model -> Session -> { model : Model, session : Session, cmd : Cmd Msg } 
+updateTiles msg model session =
     case msg of
-        UpdateTitle title ->
+        UpdateSearchTitle title ->
            { model = { model | searchTitle = title }
            , session = session
            , cmd = Cmd.none }
 
-        UpdateAuthors authors ->
+        UpdateSearchAuthor authors ->
            { model = { model | searchAuthors = authors }
            , session = session
            , cmd = Cmd.none }
 
-        UpdateString string ->
+        UpdateSearchString string ->
            { model = { model | searchString = string }
            , session = session
            , cmd = Cmd.none }
@@ -262,23 +181,190 @@ update msg model session =
         DoSearch ->
            { model =  { model | searchbooks = RemoteData.Loading }
            , session = session
-           , cmd = getBooks { searchTitle = model.searchTitle, searchAuthors = model.searchAuthors, searchString = model.searchString }
+           , cmd = Domain.SearchBook.getBooks DoBooksReceived { searchTitle = model.searchTitle, searchAuthors = model.searchAuthors, searchString = model.searchString }
            }
 
-        DoSearchReceived response ->
-            { model =  { model | searchbooks = response }
+        DoBooksReceived response ->
+            let
+                booktiles = model.booktiles
+                -- response
+                
+                booktiles1 = 
+                    { booktiles 
+                    | books = response
+                    }
+            in
+                { model =  { model | booktiles = booktiles1 }
+                , session = session
+                , cmd = Cmd.none }
+
+        DoDetail index ->
+            { model = doIndex model index
             , session = session
             , cmd = Cmd.none }
 
-        ClickedBookDetail searchbook index ->
-            case model.searchbooks of
-                RemoteData.Success actualSearchBooks ->
-                    { model = 
-                        { model 
-                        | bookSelectorDetailModel = Just (BookSelectorDetail.initialModel (getUser session) actualSearchBooks index)
-                        }
-                    , session = changedPageSession BookSelectorDetailPage session
-                    , cmd = Cmd.none }
+        DoCancel -> -- TO DO
+            { model = 
+                { model 
+                | bookView = Tiles
+                }
+                , session = session, cmd = Cmd.none }
+
+        _ ->
+            { model = model, session = session, cmd = Cmd.none}
+
+
+updateDetails : Msg -> Model -> Session -> Int -> { model : Model, session : Session, cmd : Cmd Msg } 
+updateDetails msg model session index =
+    case msg of
+        DoPrevious ->
+            { model = doIndex model (index - 1)
+            , session = session
+            , cmd = Cmd.none }
+
+        DoNext ->
+            { model = doIndex model (index + 1)
+            , session = session
+            , cmd = Cmd.none }
+
+
+        DoCancel ->
+            { model = 
+                { model 
+                | bookView = Tiles
+                }
+                , session = session, cmd = Cmd.none }
+        
+        DoAddToLibrary ->
+            let
+                searchBook = model.bookdetails.maybeBook
+            in
+                { model = 
+                    { model 
+                    | bookView = DetailsEdit index
+                    , bookDetailsEdit = Just (initialBookDetailsEdit searchBook (Session.getUser session))
+                    }
+                    , session = session, cmd = Cmd.none }
+
+        _ ->
+            { model = model, session = session, cmd = Cmd.none}
+
+
+updateDetailsEdit : Msg -> Model -> Session -> Int -> { model : Model, session : Session, cmd : Cmd Msg } 
+updateDetailsEdit msg model session index =
+    case ( msg, model.bookDetailsEdit ) of
+        ( DoCancel, _ ) ->
+            { model = 
+                { model 
+                | bookView = Details index
+                }
+                , session = session, cmd = Cmd.none }
+
+        ( UpdateTitle title, Just bookDetailsEdit ) ->
+            let
+                book = bookDetailsEdit.book |> setTitle title
+                bookDetailsEdit1 = { bookDetailsEdit | book = book }
+            in
+                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
+
+        ( UpdateAuthors authors, Just bookDetailsEdit ) ->
+            let
+                book = bookDetailsEdit.book |> setAuthors authors
+                bookDetailsEdit1 = { bookDetailsEdit | book = book }
+            in
+                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
+
+        ( UpdateDescription description, Just bookDetailsEdit ) ->
+            let
+                book = bookDetailsEdit.book |> setDescription description
+                bookDetailsEdit1 = { bookDetailsEdit | book = book }
+            in
+                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
+
+        ( UpdateLanguage language, Just bookDetailsEdit ) ->
+            let
+                book = bookDetailsEdit.book |> setLanguage language
+                bookDetailsEdit1 = { bookDetailsEdit | book = book }
+            in
+                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
+
+        ( UpdatePublishedDate publishedDate, Just bookDetailsEdit ) ->
+            let
+                book = bookDetailsEdit.book |> setPublishedDate publishedDate
+                bookDetailsEdit1 = { bookDetailsEdit | book = book }
+            in
+                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
+
+        ( UpdateOwner owner, Just bookDetailsEdit ) ->
+            let
+                book = bookDetailsEdit.book |> setOwner owner
+                bookDetailsEdit1 = { bookDetailsEdit | book = book }
+            in
+                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
+
+        ( UpdateLocation location, Just bookDetailsEdit ) ->
+            let
+                book = bookDetailsEdit.book |> setLocation location
+                bookDetailsEdit1 = { bookDetailsEdit | book = book }
+            in
+                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
+
+        ( DoLibraryBookInsert, Just bookDetailsEdit ) ->
+            case session.token of
+                Just token ->
+                    let
+                        libraryAppApiCmd = Debug.log " oLibraryBookInsert -> "
+                            insertBook LibraryBookInserted token bookDetailsEdit.book
+                    in
+                        { model = model, session = session, cmd = libraryAppApiCmd }
+                Nothing ->
+                        { model = model, session = session, cmd = Cmd.none }
+
+        ( LibraryBookInserted (Result.Err err), Just bookDetailsEdit ) ->
+            { model = model
+            , session = Session.fail session ("LibraryBookInserted Result.Err error : " ++ buildErrorMessage err)
+            , cmd = Cmd.none
+            }
                 
-                _ ->
+        ( LibraryBookInserted (Result.Ok libraryBookInserted), Just bookDetailsEdit ) ->
+            { model = model
+            , session = Session.succeed session ("The book \"" ++ bookDetailsEdit.book.title ++ "\" has been added to the library!")
+            , cmd = Cmd.none 
+            }
+
+        ( _, _ ) ->
                     { model = model, session = session, cmd = Cmd.none }
+
+
+-- #####
+-- #####   UTILITY
+-- #####
+            
+    
+doIndex : Model -> Int -> Model
+doIndex model index =
+    case model.booktiles.books of
+        RemoteData.Success actualBooks ->
+            let
+                bookdetails = model.bookdetails
+                maybeBook = Array.get index actualBooks
+                actionHtml = 
+                            []
+                doActionDisabled = 
+                            False
+                
+                bookdetails1 = 
+                    { bookdetails 
+                    | maybeBook = maybeBook
+                    , hasPrevious = index > 0
+                    , hasNext = index + 1 < Array.length actualBooks
+                    , actionHtml = actionHtml
+                    , doActionDisabled = doActionDisabled
+                    }
+            in
+                { model 
+                | bookdetails = bookdetails1
+                , bookView = Details index
+                }
+        _ ->
+            model
