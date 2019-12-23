@@ -34,5 +34,4 @@ frontend/index.html
 .DS_Store
 
 # dotenv
-.env
-main.js
+env.js
