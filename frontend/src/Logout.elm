@@ -50,15 +50,15 @@ view = div [ class "container" ]
     ]
 
 
-logoutUri : Url
-logoutUri = myBaseUri
+logoutUri : Session -> String
+logoutUri session = Session.getThisBaseUrlString session
 
 update : Msg -> Session -> ( Session, Cmd Msg )
 update msg session =
     case msg of
         Logout ->
             ( session
-            , Navigation.load (Url.toString logoutUri)
+            , Navigation.load (logoutUri session)
             )
 
 

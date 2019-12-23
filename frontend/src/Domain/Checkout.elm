@@ -16,18 +16,19 @@ import Json.Decode.Extra as Extra
 import RemoteData exposing (RemoteData, WebData, succeed)
 
 import Utils exposing (..)
+import Session exposing (..)
 
-libraryApiCheckoutsUrl : String
-libraryApiCheckoutsUrl =
-    libraryApiBaseUrl ++ "/checkouts"
+libraryApiCheckoutsUrl : Session -> String
+libraryApiCheckoutsUrl session =
+    Session.getLibraryApiBaseUrlString session ++ "/checkouts"
 
-libraryApiCheckoutsCurrentUrl : String
-libraryApiCheckoutsCurrentUrl =
-    libraryApiBaseUrl ++ "/checkouts/current"
+libraryApiCheckoutsCurrentUrl : Session -> String
+libraryApiCheckoutsCurrentUrl session =
+    Session.getLibraryApiBaseUrlString session ++ "/checkouts/current"
 
-libraryApiCheckoutUrl : Int -> String
-libraryApiCheckoutUrl bookId =
-    libraryApiBaseUrl ++ "/checkout/" ++ String.fromInt bookId
+libraryApiCheckoutUrl : Session -> Int -> String
+libraryApiCheckoutUrl session bookId =
+    Session.getLibraryApiBaseUrlString session ++ "/checkout/" ++ String.fromInt bookId
 
 type alias Checkout = 
     {
@@ -51,11 +52,11 @@ emptyCheckout =
     }
 
 
-getCheckouts : OAuth.Token -> (WebData (Array Checkout) -> msg) -> Cmd msg
-getCheckouts token msg =
+getCheckouts : (WebData (Array Checkout) -> msg) -> Session -> OAuth.Token  -> Cmd msg
+getCheckouts msg session token  =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" libraryApiCheckoutsUrl ++ "?access_token=" ++ puretoken
+        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutsUrl session) ++ "?access_token=" ++ puretoken
     in
         Http.get
             { url = requestUrl
@@ -64,11 +65,11 @@ getCheckouts token msg =
                 |> Http.expectJson (RemoteData.fromResult >> msg)
             }
 
-getCheckoutsCurrent : OAuth.Token -> (WebData (Array Checkout) -> msg) -> Cmd msg
-getCheckoutsCurrent token msg =
+getCheckoutsCurrent : (WebData (Array Checkout) -> msg) -> Session -> OAuth.Token ->  Cmd msg
+getCheckoutsCurrent msg session token =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" libraryApiCheckoutsCurrentUrl ++ "?access_token=" ++ puretoken
+        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutsCurrentUrl session) ++ "?access_token=" ++ puretoken
     in
         Http.get
             { url = requestUrl
@@ -77,11 +78,11 @@ getCheckoutsCurrent token msg =
                 |> Http.expectJson (RemoteData.fromResult >> msg)
             }
 
-doCheckout : OAuth.Token -> (Result Http.Error () -> msg) -> Int -> Cmd msg
-doCheckout token msg bookId =
+doCheckout : (Result Http.Error () -> msg) -> Session -> OAuth.Token -> Int -> Cmd msg
+doCheckout msg session token bookId =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutUrl bookId) ++ "?access_token=" ++ puretoken
+        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutUrl session bookId) ++ "?access_token=" ++ puretoken
     in
         Http.request
             { method = "PUT"

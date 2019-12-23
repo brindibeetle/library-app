@@ -314,7 +314,7 @@ updateDetailsEdit msg model session index =
                 Just token ->
                     let
                         libraryAppApiCmd = Debug.log " oLibraryBookInsert -> "
-                            insertBook LibraryBookInserted token bookDetailsEdit.book
+                            insertBook LibraryBookInserted session token bookDetailsEdit.book
                     in
                         { model = model, session = session, cmd = libraryAppApiCmd }
                 Nothing ->

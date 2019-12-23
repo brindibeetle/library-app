@@ -5,7 +5,8 @@ import Bootstrap.Navbar as Navbar
 import RemoteData exposing (RemoteData, WebData, succeed)
 
 import Domain.User as User
-
+import Domain.InitFlags exposing (..) 
+import Url exposing (Url)
 
 type alias Session =
     { token : Maybe OAuth.Token
@@ -13,6 +14,7 @@ type alias Session =
     , page : Page
     , navbarState : Navbar.State 
     , message : Message
+    , initFlags : InitFlags
     }
 
 
@@ -33,13 +35,14 @@ getUser session =
             "Not found"
             
             
-initialSession : Maybe OAuth.Token -> Navbar.State -> Session
-initialSession token navbarState =
+initialSession : Maybe OAuth.Token -> Navbar.State -> InitFlags -> Session
+initialSession token navbarState initFlags =
     { token = token
     , user = RemoteData.NotAsked
     , page = WelcomePage
     , navbarState = navbarState
     , message = Empty
+    , initFlags = initFlags
     }
 
 succeed : Session -> String -> Session
@@ -105,4 +108,49 @@ toString page =
 
         LibraryPage ->
             "LibraryPage"
+
+
+getGoogleClientId : Session -> String
+getGoogleClientId session =
+    session.initFlags.googleClientId
+
+getLibraryApiBaseUrlString : Session -> String
+getLibraryApiBaseUrlString session =
+    session.initFlags.libraryApiBaseUrlString
+
+getThisBaseUrlString : Session -> String
+getThisBaseUrlString session =
+    session.initFlags.thisBaseUrlString
+
+
+getLibraryApiBaseUrl : Session -> Url
+getLibraryApiBaseUrl session =
+    case Url.fromString (getLibraryApiBaseUrlString session) of
+        Just url ->
+            url
     
+        Nothing ->
+            { protocol = Url.Http
+            , host = "NOT GOOD.URL"
+            , port_ = Nothing
+            , path = ""
+            , query = Nothing
+            , fragment = Nothing
+            }
+    
+
+
+getThisBaseUrl : Session -> Url
+getThisBaseUrl session =
+    case Url.fromString (getThisBaseUrlString session) of
+        Just url ->
+            url
+    
+        Nothing ->
+            { protocol = Url.Http
+            , host = "NOT GOOD.URL"
+            , port_ = Nothing
+            , path = ""
+            , query = Nothing
+            , fragment = Nothing
+            }

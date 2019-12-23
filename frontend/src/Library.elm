@@ -177,15 +177,13 @@ update msg model session =
                         }
                     , session = session
                     , cmd = Cmd.batch 
-                        [ Domain.LibraryBook.getBooks 
-                            { token = token
-                            , msg = DoBooksReceived
-                            , title = model.searchTitle
+                        [ Domain.LibraryBook.getBooks DoBooksReceived session token
+                            { title = model.searchTitle
                             , author = model.searchAuthor
                             , location = model.searchLocation
                             , owner = model.searchOwner 
                             }
-                        , getCheckoutsCurrent token DoCheckoutsReceived
+                        , getCheckoutsCurrent DoCheckoutsReceived session token 
                         ]
                      }
                 Nothing ->
@@ -270,7 +268,7 @@ update msg model session =
                 ( Just book, Just token ) ->
                     { model = doCheckoutDone model index
                     , session = session
-                    , cmd = Domain.Checkout.doCheckout token DoCheckoutDone book.id }
+                    , cmd = Domain.Checkout.doCheckout DoCheckoutDone session token book.id }
 
                 ( _, _ ) ->
                     { model = model, session = session, cmd = Cmd.none }

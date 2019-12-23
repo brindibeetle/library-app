@@ -4,18 +4,18 @@ import Url exposing (Protocol(..), Url)
 import Time
 import Http
 
-libraryApiBaseUrl : String
-libraryApiBaseUrl = "http://localhost:8080/api/v1"
+-- libraryApiBaseUrl : String
+-- libraryApiBaseUrl = "http://localhost:8080/api/v1"
 
-myBaseUri : Url
-myBaseUri = 
-    { protocol = Http
-    , host = "localhost"
-    , path = ""
-    , port_ = Just 8000
-    , query = Nothing
-    , fragment = Nothing
-    }
+-- myBaseUri : Url
+-- myBaseUri = 
+--     { protocol = Http
+--     , host = "localhost"
+--     , path = ""
+--     , port_ = Just 8000
+--     , query = Nothing
+--     , fragment = Nothing
+--     }
 
 languages : List (String, String)
 languages = [ ("",""), ("en", "English"), ("nl", "Nederlands"), ("fr", "Français") ]
@@ -24,6 +24,8 @@ locations : List (String, String)
 locations = [ ("", ""), ("am", "Amsterdam"), ("ro", "Rotterdam"), ("br", "Bruxelles"), ("ch", "Chessy"), ("home", "At home") ]
 
 
+-- appClientId : String
+-- appClientId = "937704847273-2ctk7g4e2qshu89gqch4at5qskqdus8n.apps.googleusercontent.com" -- libary-api-frontend / Webclient 2
 
 toWeekday : Time.Weekday -> String
 toWeekday weekday =
@@ -100,3 +102,6 @@ buildErrorMessage httpError =
 
         Http.BadBody message ->
             message
+
+
+

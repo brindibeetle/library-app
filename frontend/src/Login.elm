@@ -47,7 +47,7 @@ initialLogin session =
             ( {session
               | user = RemoteData.Loading
               }
-            , getUser token )
+            , getUser session token )
 
         Nothing ->
             ( session, Cmd.none )
@@ -88,8 +88,12 @@ view = div [ class "container" ]
     ]
 
 
-configurationFor : OAuthConfiguration
-configurationFor =
+clientId : Session -> String
+clientId session = Session.getGoogleClientId session
+
+
+configurationFor : Session -> OAuthConfiguration
+configurationFor session =
    let
         defaultHttpsUrl =
             { protocol = Https
@@ -100,7 +104,7 @@ configurationFor =
             , fragment = Nothing
             }
     in
-        { clientId = "937704847273-2ctk7g4e2qshu89gqch4at5qskqdus8n.apps.googleusercontent.com" -- libary-api-frontend / Webclient 2
+        { clientId = clientId session
         , secret = "<secret>"
         , authorizationEndpoint = { defaultHttpsUrl | host = "accounts.google.com", path = "/o/oauth2/v2/auth" }
         , tokenEndpoint = { defaultHttpsUrl | host = "www.googleapis.com", path = "/oauth2/v4/token" }
@@ -113,11 +117,9 @@ configurationFor =
         }
 
 
-redirectUri : Url
-redirectUri = 
-    { myBaseUri 
-    | path = "/login"
-    }
+redirectUrl : Session -> Url
+redirectUrl session = 
+    Session.getThisBaseUrl session
 
 
 -- #####
@@ -135,11 +137,11 @@ update msg session =
 
         SignInRequested  ->
             let
-                config = configurationFor
+                config = configurationFor session
 
                 auth =
                     { clientId = config.clientId
-                    , redirectUri = redirectUri
+                    , redirectUri = redirectUrl session
                     , scope = config.scope
                     , state = Just ""
                     --  , state = Just (makeState model.state provider) // google.<model.state>
@@ -159,12 +161,17 @@ update msg session =
             , Cmd.none )
 
 
-getUser : OAuth.Token -> Cmd Msg
-getUser token =
+libraryApiBaseUrl : Session -> String
+libraryApiBaseUrl session =
+    Session.getLibraryApiBaseUrlString session
+
+
+getUser : Session -> OAuth.Token -> Cmd Msg
+getUser session token =
     let
         a = Debug.log "getUser token" token
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" libraryApiBaseUrl ++ "/user" ++ "?access_token=" ++ puretoken
+        requestUrl = Debug.log "requestUrl" (libraryApiBaseUrl session) ++ "/user" ++ "?access_token=" ++ puretoken
 
     in
         Http.get

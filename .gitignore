@@ -32,3 +32,7 @@ hs_err_pid*
 frontend/elm-stuff/
 frontend/index.html
 .DS_Store
+
+# dotenv
+.env
+main.js

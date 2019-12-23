@@ -7,7 +7,7 @@ import Html.Attributes exposing (..)
 import Http as Http
 import Browser.Navigation as Navigation
 
-import Route exposing (..)
+-- import Route exposing (..)
 
 import RemoteData exposing (RemoteData, WebData, succeed)
 

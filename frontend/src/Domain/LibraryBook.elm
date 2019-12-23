@@ -10,6 +10,7 @@ import Http
 
 import Domain.SearchBook exposing (..)
 import Utils exposing (..)
+import Session exposing (..)
 
 type alias LibraryBook = 
     {
@@ -72,15 +73,16 @@ emptyLibrarybook =
     }
 
 
-libraryApiBooksUrl : String
-libraryApiBooksUrl = libraryApiBaseUrl ++ "/books"
+libraryApiBooksUrl : Session -> String
+libraryApiBooksUrl session = 
+    Session.getLibraryApiBaseUrlString session ++ "/books"
 
 
-getBooks : { token : OAuth.Token, msg : (WebData (Array LibraryBook) -> msg), title : String, author : String, location : String, owner : String } -> Cmd msg
-getBooks { token, msg, title, author, location, owner } =
+getBooks :  (WebData (Array LibraryBook) -> msg) -> Session -> OAuth.Token -> { title : String, author : String, location : String, owner : String } -> Cmd msg
+getBooks msg session token { title, author, location, owner } =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" libraryApiBooksUrl ++ "?access_token=" ++ puretoken
+        requestUrl = Debug.log "requestUrl" (libraryApiBooksUrl session) ++ "?access_token=" ++ puretoken
     in
         Http.get
             { url = requestUrl
@@ -90,12 +92,12 @@ getBooks { token, msg, title, author, location, owner } =
             }
 
 
-insertBook : (Result Http.Error LibraryBook -> msg ) -> OAuth.Token -> LibraryBook -> Cmd msg
-insertBook msg token libraryBook =
+insertBook : (Result Http.Error LibraryBook -> msg ) -> Session -> OAuth.Token -> LibraryBook -> Cmd msg
+insertBook msg session token libraryBook =
     let
         -- librarybook1 = Debug.log "BookSelector.insertBook " libraryBook
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" libraryApiBooksUrl ++ "?access_token=" ++ puretoken
+        requestUrl = Debug.log "requestUrl" (libraryApiBooksUrl session) ++ "?access_token=" ++ puretoken
         -- requestUrl = Debug.log "requestUrl" LibraryAppApi.libraryApiBooksUrl
         jsonBody = Debug.log "jsonBody" (newLibraryBookEncoder libraryBook)
         printheaders = Debug.log "token" (OAuth.tokenToString token)

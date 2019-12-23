@@ -15,23 +15,28 @@ import Welcome
 import BookSelector exposing (..)
 import Library exposing (..)
 import LibraryAppCDN as LibraryAppCDN
+import Domain.InitFlags exposing (..)
 
-import Route exposing (Route)
+-- import Route exposing (Route)
 import Menu exposing (..)
 import Bootstrap.CDN as CDN
 
 
-main : Program () Model Msg
+main : Program String Model Msg
 main =
     Browser.application
         { init = init
         , view = view
         , update = update
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         , onUrlRequest = LinkClicked
         , onUrlChange = UrlChanged
         }
 
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Sub.none
 
 type Model =
     BookSelector BookSelector.Model Session
@@ -41,11 +46,12 @@ type Model =
     | Welcome Session
 
 
-initialState : Maybe OAuth.Token -> (Model, Cmd Msg )
-initialState maybeToken =
+initialState : Maybe OAuth.Token -> String -> (Model, Cmd Msg )
+initialState maybeToken flags =
     let
+        a = Debug.log "initialState" (getInitFlags flags)
         ( navbarState, menuCmd ) = Menu.initialState
-        session = initialSession maybeToken navbarState
+        session = initialSession maybeToken navbarState (getInitFlags flags)
         ( loginSession, loginCmd ) = Login.initialLogin session
         
     in
@@ -56,17 +62,17 @@ initialState maybeToken =
 
 
 -- refresh page : 
-init : () -> Url -> Nav.Key -> ( Model, Cmd Msg )
+init : String -> Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url navKey =
     case OAuth.Implicit.parseToken (queryAsFragment url) of
         OAuth.Implicit.Empty ->
-            initialState Nothing
+            initialState Nothing flags
 
         OAuth.Implicit.Success { token, state } ->
-            initialState (Just token)
+            initialState (Just token) flags
 
         OAuth.Implicit.Error { error, errorDescription } ->
-            initialState Nothing
+            initialState Nothing flags
 
 
 -- #####
