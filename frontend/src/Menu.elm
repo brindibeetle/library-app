@@ -64,6 +64,12 @@ menuActionsWithAccessToken =
             , page = CheckinPage
         }
         , {
+            title = "Your books"
+            , description = "Administer your books in the library"
+            , imageLink = ""
+            , page = BooksEditorPage
+        }
+        , {
             title = "Logout"
             , description = "Say goodbye"
             , imageLink = ""

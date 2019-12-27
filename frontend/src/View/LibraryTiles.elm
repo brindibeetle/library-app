@@ -21,18 +21,18 @@ import Bootstrap.Spinner as Spinner
 import Bootstrap.Card.Block as Block
 
 import Domain.Checkout exposing (..)
-import Domain.Book exposing (..)
+import Domain.LibraryBook exposing (..)
 import Utils exposing (..)
 
 import Css exposing (..)
 
 
 -- #####
--- #####   VIEW
+-- #####   CONFIG
 -- #####
 
 
-type alias Config msg a =
+type alias Config msg =
     { userEmail : String
 
     , searchTitle : String 
@@ -58,12 +58,43 @@ type alias Config msg a =
 
     , doSearch : msg
     , doAction : Int -> msg
-    , books : WebData (Array (Book a)) 
+    , books : WebData (Array LibraryBook) 
     , checkouts : WebData (Array (Maybe Checkout)) 
     }
 
+
+
+setShowSearch : { title : Bool, authors : Bool, location : Bool, owner : Bool, checkStatus : Bool, checkoutUser : Bool } -> Config msg -> Config msg
+setShowSearch { title, authors, location, owner, checkStatus, checkoutUser } config =
+    { config 
+    | showSearchTitle = title
+    , showSearchAuthors = authors
+    , showSearchLocation = location
+    , showSearchOwner = owner
+    , showSearchCheckStatus = checkStatus
+    , showSearchCheckoutUser = checkoutUser
+    }
+
+
+setSearch : { title : String, authors : String, location : String, owner : String, checkStatus : String, checkoutUser : String } -> Config msg -> Config msg
+setSearch { title, authors, location, owner, checkStatus, checkoutUser } config =
+    { config 
+    | searchTitle = title
+    , searchAuthors = authors
+    , searchLocation = location
+    , searchOwner = owner
+    , searchCheckStatus = checkStatus
+    , searchCheckoutUser = checkoutUser
+    }
+
+
+-- #####
+-- #####   VIEW
+-- #####
+
+
 -- view : WebData (Array (Book a)) -> WebData (Array (Maybe Checkout)) ->  Html Msg
-view : Config msg a -> Html msg
+view : Config msg -> Html msg
 view config =
     div [ class "row containerFluid"]
         [ div [ class "col-lg-2 col-md-3 mb-4" ]
@@ -73,7 +104,7 @@ view config =
         ]
 
 
-viewBookFilter : Config msg a -> Html msg
+viewBookFilter : Config msg -> Html msg
 viewBookFilter config =
     let
         { books, doSearch } = config
@@ -83,38 +114,56 @@ viewBookFilter config =
             [
                 Form.form []
                 [ 
-                    Form.group []
-                        [ Form.label [ ] [ text "Title"]
-                        , Input.text [ Input.small, Input.value config.searchTitle, Input.onInput (config.updateSearchTitle) ]
-                        ]
-                    , Form.group []
-                        [ Form.label [ ] [ text "Author(s)"]
-                        , Input.text [  Input.small,Input.value config.searchAuthors, Input.onInput (config.updateSearchAuthors)   ]
-                        ]
-                    , Form.group []
-                        [ Form.label [ ] [ text "Location"]
-                        , Select.select [ Select.onChange config.updateSearchLocation
+                    if config.showSearchTitle then
+                        Form.group []
+                            [ Form.label [ ] [ text "Title"]
+                            , Input.text [ Input.small, Input.value config.searchTitle, Input.onInput (config.updateSearchTitle) ]
                             ]
-                            ( List.map (selectitem config.searchLocation) (("","") :: getLocations books) )
-                        ]
-                    , Form.group []
-                        [ Form.label [ ] [ text "Owner"]
-                        , Select.select [ Select.onChange config.updateSearchOwner
+                        else
+                            div [] []
+                    , if config.showSearchAuthors then
+                        Form.group []
+                            [ Form.label [ ] [ text "Author(s)"]
+                            , Input.text [  Input.small,Input.value config.searchAuthors, Input.onInput (config.updateSearchAuthors)   ]
                             ]
-                            ( List.map (selectitem config.searchOwner) (("","") :: getOwners books) )
-                        ]
-                    , Form.group []
-                        [ Form.label [ ] [ text "Availability"]
-                        , Select.select [ Select.onChange config.updateSearchCheckStatus
+                        else
+                            div [] []
+                    , if config.showSearchLocation then
+                        Form.group []
+                            [ Form.label [ ] [ text "Location"]
+                            , Select.select [ Select.onChange config.updateSearchLocation
+                                ]
+                                ( List.map (selectitem config.searchLocation) (("","") :: getLocations books) )
                             ]
-                            ( List.map (selectitem config.searchCheckStatus) (("","") :: Dict.toList checkedStatusList) )
-                        ]
-                    , Form.group []
-                        [ Form.label [ ] [ text "Checked out by"]
-                        , Select.select [ Select.onChange config.updateSearchCheckoutUser
+                        else
+                            div [] []
+                    , if config.showSearchOwner then
+                        Form.group []
+                            [ Form.label [ ] [ text "Owner"]
+                            , Select.select [ Select.onChange config.updateSearchOwner
+                                ]
+                                ( List.map (selectitem config.searchOwner) (("","") :: getOwners books) )
                             ]
-                            ( List.map (selectitem config.searchCheckoutUser) (("","") :: getCheckoutUsers config.checkouts ) )
-                        ]
+                        else
+                            div [] []
+                    , if config.showSearchCheckStatus then
+                        Form.group []
+                            [ Form.label [ ] [ text "Availability"]
+                            , Select.select [ Select.onChange config.updateSearchCheckStatus
+                                ]
+                                ( List.map (selectitem config.searchCheckStatus) (("","") :: Dict.toList checkedStatusList) )
+                            ]
+                        else
+                            div [] []
+                    , if config.showSearchCheckoutUser then
+                        Form.group []
+                            [ Form.label [ ] [ text "Checked out by"]
+                            , Select.select [ Select.onChange config.updateSearchCheckoutUser
+                                ]
+                                ( List.map (selectitem config.searchCheckoutUser) (("","") :: getCheckoutUsers config.checkouts ) )
+                            ]
+                        else
+                            div [] []
                     -- , Button.button
                     --     [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick doSearch ]
                     --     [ text "Filter" ]
@@ -145,7 +194,7 @@ merge2RemoteDatas a b =
 
 -- viewBooks : msg -> WebData (Array (Book a)) -> WebData (Array (Maybe Checkout)) -> Html msg
 -- viewBooks doSearch books checkoutsCorresponding =
-viewBooks : Config msg a -> Html msg
+viewBooks : Config msg -> Html msg
 viewBooks config =
     let
         { books, checkouts, doSearch } = config
@@ -181,7 +230,7 @@ viewBooks config =
                 ]
 
         
-viewBookTiles : Config msg a -> Array (Book a) -> Array (Maybe Checkout) -> Html msg
+viewBookTiles : Config msg -> Array LibraryBook -> Array (Maybe Checkout) -> Html msg
 viewBookTiles config books checkouts =
     List.range 0 (Array.length books - 1)
         |> List.map3 bookCheckoutIndex (Array.toList books) (Array.toList checkouts)
@@ -201,12 +250,12 @@ viewBookTiles config books checkouts =
 
 -- "http://books.google.com/books/content?id=qR_NAQAAQBAJ&printsec=frontcover&img=1&zoom=1&edge=curl&source=gbs_api"
 -- zoom=1 -> zoom=10 for better resolution
-getthumbnail : (Book a) -> String
+getthumbnail : LibraryBook -> String
 getthumbnail book =
     String.replace "&zoom=1&" "&zoom=7&" book.thumbnail
 
 
-viewBookTilesCard : Config msg a -> { book : (Book a) , checkout : Maybe Checkout , index : Int } -> Html msg
+viewBookTilesCard : Config msg -> { book : LibraryBook , checkout : Maybe Checkout , index : Int } -> Html msg
 viewBookTilesCard { doAction, userEmail } { book, checkout, index } =
     case checkout of
         Just checkout1 ->
@@ -273,37 +322,36 @@ viewBookTilesCard { doAction, userEmail } { book, checkout, index } =
 -- #####
 
 
-setSearchTitle : String -> Config msg a -> Config msg a
+setSearchTitle : String -> Config msg -> Config msg
 setSearchTitle title config =
     { config | searchTitle = title }
 
-setSearchAuthors : String -> Config msg a -> Config msg a
+setSearchAuthors : String -> Config msg -> Config msg
 setSearchAuthors authors config =
     { config | searchAuthors = authors }
 
 
-setSearchLocation : String -> Config msg a -> Config msg a
+setSearchLocation : String -> Config msg -> Config msg
 setSearchLocation location config =
     { config | searchLocation = location }
 
 
-setSearchOwner : String -> Config msg a -> Config msg a
+setSearchOwner : String -> Config msg -> Config msg
 setSearchOwner owner config =
     { config | searchOwner = owner }
 
 
-setCheckStatus : String -> Config msg a -> Config msg a
+setCheckStatus : String -> Config msg -> Config msg
 setCheckStatus status config =
     { config | searchCheckStatus = status }
 
 
-setCheckoutUser : String -> Config msg a -> Config msg a
+setCheckoutUser : String -> Config msg -> Config msg
 setCheckoutUser user config =
     { config | searchCheckoutUser = user }
  
 
-
-getLocations : WebData (Array (Book a)) -> List ( String, String )
+getLocations : WebData (Array LibraryBook) -> List ( String, String )
 getLocations webDataBooks =
     case webDataBooks of
         RemoteData.Success actualBooks ->
@@ -312,7 +360,8 @@ getLocations webDataBooks =
         _ ->
             []
 
-addLocation : Book a -> List (String, String) -> List (String, String)
+
+addLocation : LibraryBook -> List (String, String) -> List (String, String)
 addLocation book locations =
     if book.location == "" then
         locations
@@ -323,7 +372,7 @@ addLocation book locations =
             ( book.location, book.location ) :: locations
 
 
-getOwners : WebData (Array (Book a)) -> List ( String, String )
+getOwners : WebData (Array LibraryBook) -> List ( String, String )
 getOwners webDataBooks =
     case webDataBooks of
         RemoteData.Success actualBooks ->
@@ -332,7 +381,7 @@ getOwners webDataBooks =
         _ ->
             []
 
-addOwner : Book a -> List (String, String) -> List (String, String)
+addOwner : LibraryBook -> List (String, String) -> List (String, String)
 addOwner book owners =
     if book.owner == "" then
         owners
@@ -382,8 +431,8 @@ selectitem valueSelected (value1, text1) =
 
 booksFilter : 
     { searchTitle : String, searchAuthors : String, searchOwner : String, searchLocation : String, searchCheckStatus : String, searchCheckoutUser : String } 
-    -> { book: Book a, checkout: Maybe Checkout, index: Int } 
-    -> Maybe { book: Book a, checkout: Maybe Checkout, index: Int }
+    -> { book: LibraryBook, checkout: Maybe Checkout, index: Int } 
+    -> Maybe { book: LibraryBook, checkout: Maybe Checkout, index: Int }
 booksFilter 
     { searchTitle, searchAuthors, searchOwner, searchLocation, searchCheckStatus, searchCheckoutUser } 
     { book, checkout, index } =
@@ -410,6 +459,6 @@ booksFilter
         Nothing
 
 
-bookCheckoutIndex : Book a -> Maybe Checkout -> Int -> { book: Book a, checkout: Maybe Checkout, index: Int }
+bookCheckoutIndex : LibraryBook -> Maybe Checkout -> Int -> { book: LibraryBook, checkout: Maybe Checkout, index: Int }
 bookCheckoutIndex book checkout index =
     { book = book, checkout = checkout, index = index }

@@ -90,28 +90,8 @@ type Page
     | BookSelectorPage 
     | LibraryPage
     | CheckinPage
+    | BooksEditorPage
 
-
-toString : Page -> String
-toString page =
-    case page of
-        WelcomePage ->
-            "WelcomePage"
-
-        LoginPage ->
-            "LoginPage"
-
-        LogoutPage ->
-            "LogoutPage"
-
-        BookSelectorPage ->
-            "BookSelectorPage"
-
-        LibraryPage ->
-            "LibraryPage"
-
-        CheckinPage ->
-            "CheckinPage"
 
 getGoogleClientId : Session -> String
 getGoogleClientId session =

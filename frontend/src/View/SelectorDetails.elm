@@ -12,7 +12,6 @@ import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Form.Select as Select
 import Bootstrap.Button as Button
 
-import Domain.Book exposing (..)
 import Domain.Checkout exposing (..)
 import Domain.SearchBook exposing (..)
 import Domain.LibraryBook exposing (..)
@@ -138,22 +137,6 @@ viewBookDetail config =
             Nothing ->
                 div [ class "container" ]
                     [ text "Oeps : BookDetails.elm config.book = Nothing" ]
-
-
-model2LibraryBook : Book a -> LibraryBook
-model2LibraryBook book =
-    {
-        id = 0
-        , title = book.title
-        , authors = book.authors
-        , description = book.description
-        , publishedDate = book.publishedDate
-        , language = book.language
-        , smallThumbnail = book.smallThumbnail
-        , thumbnail = book.thumbnail
-        , owner = book.owner
-        , location = book.location
-    }
 
 
 checkTitle : String -> String -> String
