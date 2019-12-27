@@ -15,6 +15,7 @@ import Welcome
 import BookSelector exposing (..)
 import Library exposing (..)
 import Checkin exposing (..)
+import BooksEditor exposing (..)
 import LibraryAppCDN as LibraryAppCDN
 import Domain.InitFlags exposing (..)
 
@@ -43,6 +44,7 @@ type Model =
     BookSelector BookSelector.Model Session
     | Library Library.Model Session
     | Checkin Checkin.Model Session
+    | BooksEditor BooksEditor.Model Session
     | Login Session
     | Logout Session
     | Welcome Session
@@ -111,6 +113,9 @@ view model =
 
                 Checkin checkinModel session  ->
                     Checkin.view checkinModel |> Html.map CheckinMsg   
+
+                BooksEditor booksEditorModel session  ->
+                    BooksEditor.view booksEditorModel |> Html.map BooksEditorMsg   
             ]
         }
 
@@ -123,6 +128,8 @@ toSession model =
         Library _ session ->
             session
         Checkin _ session ->
+            session
+        BooksEditor _ session ->
             session
         Login session ->
             session
@@ -147,6 +154,9 @@ toModel model cmd session =
         ( CheckinPage, Checkin checkinModel session1  ) ->
             ( Checkin checkinModel session, cmd )
 
+        ( BooksEditorPage, BooksEditor booksEditorModel session1  ) ->
+            ( BooksEditor booksEditorModel session, cmd )
+
         ( LoginPage, model1 ) ->
             ( Login (toSession model1), cmd )
 
@@ -168,6 +178,13 @@ toModel model cmd session =
             in
                 ( Checkin checkinModel session, Cmd.batch [ cmd, initialCheckinCmd |> Cmd.map CheckinMsg ] )
 
+        ( BooksEditorPage, model1 ) ->
+            let
+                ( booksEditorModel, initialBooksEditorCmd ) = BooksEditor.initialModelCmd session
+            in
+                ( BooksEditor booksEditorModel session, Cmd.batch [ cmd, initialBooksEditorCmd |> Cmd.map BooksEditorMsg ] )
+
+
 
 -- #####
 -- #####   UPDATE
@@ -182,12 +199,18 @@ type Msg
     | BookSelectorMsg BookSelector.Msg
     | LibraryMsg Library.Msg
     | CheckinMsg Checkin.Msg
+    | BooksEditorMsg BooksEditor.Msg
     | LinkClicked UrlRequest
     | UrlChanged Url
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        a = Debug.log "Main update msg " msg
+        b = Debug.log "Main update model " model
+    in
+    
     case (msg, model) of
         ( WelcomeMsg subMsg, model1 ) ->
            let
@@ -237,6 +260,13 @@ update msg model =
                     Checkin.update subMsg checkinModel session
             in
                 toModel (Checkin checkinUpdated.model checkinUpdated.session) (checkinUpdated.cmd |> Cmd.map CheckinMsg) checkinUpdated.session
+
+        ( BooksEditorMsg subMsg, BooksEditor booksEditorModel session ) ->
+            let
+                booksEditorUpdated =
+                    BooksEditor.update subMsg booksEditorModel session
+            in
+                toModel (BooksEditor booksEditorUpdated.model booksEditorUpdated.session) (booksEditorUpdated.cmd |> Cmd.map BooksEditorMsg) booksEditorUpdated.session
 
         ( LinkClicked _, _ ) ->
             ( model, Cmd.none )

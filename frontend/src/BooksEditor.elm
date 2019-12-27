@@ -1,4 +1,4 @@
-module Checkin exposing (..)
+module BooksEditor exposing (..)
 
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -19,15 +19,14 @@ type Model =
     Library Library.Model
 
 
-
 initialModel : String -> Model
 initialModel userEmail =
     Library (Library.initialModel userEmail)
-    |> model2Checkin
+    |> model2BooksEditor
 
 
-model2Checkin : Model -> Model
-model2Checkin model =
+model2BooksEditor : Model -> Model
+model2BooksEditor model =
     let
         libraryModel = toModel model
         booktiles = libraryModel.booktiles
@@ -36,8 +35,8 @@ model2Checkin model =
         Library 
         { libraryModel 
         | booktiles = booktiles
-            |>  Tiles.setShowSearch { title = False, authors = False, location = False, owner = False, checkStatus = False, checkoutUser = False }
-            |> setSearch { title = "", authors = "", location = "", owner = "", checkStatus = "checkedout", checkoutUser = userEmail } 
+            |>  Tiles.setShowSearch { title = True, authors = True, location = True, owner = False, checkStatus = False, checkoutUser = False }
+            |> setSearch { title = "", authors = "", location = "", owner = userEmail, checkStatus = "", checkoutUser = "" } 
         }
 
 

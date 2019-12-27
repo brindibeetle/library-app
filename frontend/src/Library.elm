@@ -13,7 +13,6 @@ import Domain.SearchBook exposing (..)
 import Domain.LibraryBook exposing (..)
 import Session exposing (..)
 import Domain.Checkout exposing (..)
-import Domain.Book exposing (..)
 import Utils exposing (..)
 
 import Css exposing (..)
@@ -26,8 +25,8 @@ type alias Model =
         librarybooks : WebData (Array LibraryBook)
         , checkouts : WebData (Array Checkout)
         , bookView : BookView
-        , booktiles : LibraryTiles.Config Msg LibraryBook
-        , bookdetails : BookDetails.Config Msg LibraryBook
+        , booktiles : LibraryTiles.Config Msg 
+        , bookdetails : BookDetails.Config Msg
     }
 
 
@@ -401,7 +400,7 @@ updateDoActionDone msg model session index =
 -- #####   UTILITY
 -- #####
             
-setBookTiles : Model -> LibraryTiles.Config Msg LibraryBook -> Model 
+setBookTiles : Model -> LibraryTiles.Config Msg -> Model 
 setBookTiles model booktiles =
     { model | booktiles = booktiles }
 

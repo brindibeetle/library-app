@@ -7139,6 +7139,13 @@ var $author$project$Main$BookSelector = F2(
 var $author$project$Main$BookSelectorMsg = function (a) {
 	return {$: 'BookSelectorMsg', a: a};
 };
+var $author$project$Main$BooksEditor = F2(
+	function (a, b) {
+		return {$: 'BooksEditor', a: a, b: b};
+	});
+var $author$project$Main$BooksEditorMsg = function (a) {
+	return {$: 'BooksEditorMsg', a: a};
+};
 var $author$project$Main$Checkin = F2(
 	function (a, b) {
 		return {$: 'Checkin', a: a, b: b};
@@ -7190,10 +7197,10 @@ var $author$project$BookSelector$initialModel = {
 	booktiles: {books: $krisajenkins$remotedata$RemoteData$NotAsked, doAction: $author$project$BookSelector$DoDetail, doSearch: $author$project$BookSelector$DoSearch, searchAuthors: '', searchString: '', searchTitle: '', updateSearchAuthor: $author$project$BookSelector$UpdateSearchAuthor, updateSearchString: $author$project$BookSelector$UpdateSearchString, updateSearchTitle: $author$project$BookSelector$UpdateSearchTitle},
 	searchbooks: $krisajenkins$remotedata$RemoteData$NotAsked
 };
-var $author$project$Checkin$Library = function (a) {
+var $author$project$BooksEditor$Library = function (a) {
 	return {$: 'Library', a: a};
 };
-var $author$project$Checkin$LibraryMsg = function (a) {
+var $author$project$BooksEditor$LibraryMsg = function (a) {
 	return {$: 'LibraryMsg', a: a};
 };
 var $author$project$Library$DoBooksReceived = function (a) {
@@ -8194,11 +8201,108 @@ var $author$project$Library$initialModel = function (userEmail) {
 		librarybooks: $krisajenkins$remotedata$RemoteData$NotAsked
 	};
 };
+var $author$project$View$LibraryTiles$setSearch = F2(
+	function (_v0, config) {
+		var title = _v0.title;
+		var authors = _v0.authors;
+		var location = _v0.location;
+		var owner = _v0.owner;
+		var checkStatus = _v0.checkStatus;
+		var checkoutUser = _v0.checkoutUser;
+		return _Utils_update(
+			config,
+			{searchAuthors: authors, searchCheckStatus: checkStatus, searchCheckoutUser: checkoutUser, searchLocation: location, searchOwner: owner, searchTitle: title});
+	});
+var $author$project$View$LibraryTiles$setShowSearch = F2(
+	function (_v0, config) {
+		var title = _v0.title;
+		var authors = _v0.authors;
+		var location = _v0.location;
+		var owner = _v0.owner;
+		var checkStatus = _v0.checkStatus;
+		var checkoutUser = _v0.checkoutUser;
+		return _Utils_update(
+			config,
+			{showSearchAuthors: authors, showSearchCheckStatus: checkStatus, showSearchCheckoutUser: checkoutUser, showSearchLocation: location, showSearchOwner: owner, showSearchTitle: title});
+	});
+var $author$project$BooksEditor$toModel = function (model) {
+	var libraryModel = model.a;
+	return libraryModel;
+};
+var $author$project$BooksEditor$model2BooksEditor = function (model) {
+	var libraryModel = $author$project$BooksEditor$toModel(model);
+	var booktiles = libraryModel.booktiles;
+	var userEmail = booktiles.userEmail;
+	return $author$project$BooksEditor$Library(
+		_Utils_update(
+			libraryModel,
+			{
+				booktiles: A2(
+					$author$project$View$LibraryTiles$setSearch,
+					{authors: '', checkStatus: '', checkoutUser: '', location: '', owner: userEmail, title: ''},
+					A2(
+						$author$project$View$LibraryTiles$setShowSearch,
+						{authors: true, checkStatus: false, checkoutUser: false, location: true, owner: false, title: true},
+						booktiles))
+			}));
+};
+var $author$project$BooksEditor$initialModel = function (userEmail) {
+	return $author$project$BooksEditor$model2BooksEditor(
+		$author$project$BooksEditor$Library(
+			$author$project$Library$initialModel(userEmail)));
+};
+var $author$project$BooksEditor$initialModelCmd = function (session1) {
+	var _v0 = A2(
+		$author$project$Library$doSearch,
+		$author$project$BooksEditor$toModel(
+			$author$project$BooksEditor$initialModel(
+				$author$project$Session$getUser(session1))),
+		session1);
+	var model = _v0.model;
+	var session = _v0.session;
+	var cmd = _v0.cmd;
+	return _Utils_Tuple2(
+		$author$project$BooksEditor$Library(model),
+		A2($elm$core$Platform$Cmd$map, $author$project$BooksEditor$LibraryMsg, cmd));
+};
+var $author$project$Checkin$Library = function (a) {
+	return {$: 'Library', a: a};
+};
+var $author$project$Checkin$LibraryMsg = function (a) {
+	return {$: 'LibraryMsg', a: a};
+};
+var $author$project$Checkin$toModel = function (model) {
+	var libraryModel = model.a;
+	return libraryModel;
+};
+var $author$project$Checkin$model2Checkin = function (model) {
+	var libraryModel = $author$project$Checkin$toModel(model);
+	var booktiles = libraryModel.booktiles;
+	var userEmail = booktiles.userEmail;
+	return $author$project$Checkin$Library(
+		_Utils_update(
+			libraryModel,
+			{
+				booktiles: A2(
+					$author$project$View$LibraryTiles$setSearch,
+					{authors: '', checkStatus: 'checkedout', checkoutUser: userEmail, location: '', owner: '', title: ''},
+					A2(
+						$author$project$View$LibraryTiles$setShowSearch,
+						{authors: false, checkStatus: false, checkoutUser: false, location: false, owner: false, title: false},
+						booktiles))
+			}));
+};
+var $author$project$Checkin$initialModel = function (userEmail) {
+	return $author$project$Checkin$model2Checkin(
+		$author$project$Checkin$Library(
+			$author$project$Library$initialModel(userEmail)));
+};
 var $author$project$Checkin$initialModelCmd = function (session1) {
 	var _v0 = A2(
 		$author$project$Library$doSearch,
-		$author$project$Library$initialModel(
-			$author$project$Session$getUser(session1)),
+		$author$project$Checkin$toModel(
+			$author$project$Checkin$initialModel(
+				$author$project$Session$getUser(session1))),
 		session1);
 	var model = _v0.model;
 	var session = _v0.session;
@@ -8229,6 +8333,9 @@ var $author$project$Main$toSession = function (model) {
 		case 'Checkin':
 			var session = model.b;
 			return session;
+		case 'BooksEditor':
+			var session = model.b;
+			return session;
 		case 'Login':
 			var session = model.a;
 			return session;
@@ -8250,14 +8357,14 @@ var $author$project$Main$toModel = F3(
 					$author$project$Main$Welcome(session),
 					cmd);
 			case 'LoginPage':
-				var _v8 = _v0.a;
+				var _v10 = _v0.a;
 				var model1 = _v0.b;
 				return _Utils_Tuple2(
 					$author$project$Main$Login(
 						$author$project$Main$toSession(model1)),
 					cmd);
 			case 'LogoutPage':
-				var _v9 = _v0.a;
+				var _v11 = _v0.a;
 				var model1 = _v0.b;
 				return _Utils_Tuple2(
 					$author$project$Main$Logout(
@@ -8273,7 +8380,7 @@ var $author$project$Main$toModel = F3(
 						A2($author$project$Main$BookSelector, bookSelectorModel, session),
 						cmd);
 				} else {
-					var _v10 = _v0.a;
+					var _v12 = _v0.a;
 					var model1 = _v0.b;
 					return _Utils_Tuple2(
 						A2($author$project$Main$BookSelector, $author$project$BookSelector$initialModel, session),
@@ -8289,11 +8396,11 @@ var $author$project$Main$toModel = F3(
 						A2($author$project$Main$Library, libraryModel, session),
 						cmd);
 				} else {
-					var _v11 = _v0.a;
+					var _v13 = _v0.a;
 					var model1 = _v0.b;
-					var _v12 = $author$project$Library$initialModelCmd(session);
-					var libraryModel = _v12.a;
-					var initialLibraryCmd = _v12.b;
+					var _v14 = $author$project$Library$initialModelCmd(session);
+					var libraryModel = _v14.a;
+					var initialLibraryCmd = _v14.b;
 					return _Utils_Tuple2(
 						A2($author$project$Main$Library, libraryModel, session),
 						$elm$core$Platform$Cmd$batch(
@@ -8303,7 +8410,7 @@ var $author$project$Main$toModel = F3(
 									A2($elm$core$Platform$Cmd$map, $author$project$Main$LibraryMsg, initialLibraryCmd)
 								])));
 				}
-			default:
+			case 'CheckinPage':
 				if (_v0.b.$ === 'Checkin') {
 					var _v6 = _v0.a;
 					var _v7 = _v0.b;
@@ -8313,11 +8420,11 @@ var $author$project$Main$toModel = F3(
 						A2($author$project$Main$Checkin, checkinModel, session),
 						cmd);
 				} else {
-					var _v13 = _v0.a;
+					var _v15 = _v0.a;
 					var model1 = _v0.b;
-					var _v14 = $author$project$Checkin$initialModelCmd(session);
-					var checkinModel = _v14.a;
-					var initialCheckinCmd = _v14.b;
+					var _v16 = $author$project$Checkin$initialModelCmd(session);
+					var checkinModel = _v16.a;
+					var initialCheckinCmd = _v16.b;
 					return _Utils_Tuple2(
 						A2($author$project$Main$Checkin, checkinModel, session),
 						$elm$core$Platform$Cmd$batch(
@@ -8325,6 +8432,30 @@ var $author$project$Main$toModel = F3(
 								[
 									cmd,
 									A2($elm$core$Platform$Cmd$map, $author$project$Main$CheckinMsg, initialCheckinCmd)
+								])));
+				}
+			default:
+				if (_v0.b.$ === 'BooksEditor') {
+					var _v8 = _v0.a;
+					var _v9 = _v0.b;
+					var booksEditorModel = _v9.a;
+					var session1 = _v9.b;
+					return _Utils_Tuple2(
+						A2($author$project$Main$BooksEditor, booksEditorModel, session),
+						cmd);
+				} else {
+					var _v17 = _v0.a;
+					var model1 = _v0.b;
+					var _v18 = $author$project$BooksEditor$initialModelCmd(session);
+					var booksEditorModel = _v18.a;
+					var initialBooksEditorCmd = _v18.b;
+					return _Utils_Tuple2(
+						A2($author$project$Main$BooksEditor, booksEditorModel, session),
+						$elm$core$Platform$Cmd$batch(
+							_List_fromArray(
+								[
+									cmd,
+									A2($elm$core$Platform$Cmd$map, $author$project$Main$BooksEditorMsg, initialBooksEditorCmd)
 								])));
 				}
 		}
@@ -9760,6 +9891,18 @@ var $author$project$Library$update = F3(
 				return A4($author$project$Library$updateDoActionDone, msg, model, session, index);
 		}
 	});
+var $author$project$BooksEditor$update = F3(
+	function (msg, model, session) {
+		var _v0 = _Utils_Tuple2(msg, model);
+		var subMsg = _v0.a.a;
+		var libraryModel = _v0.b.a;
+		var libraryUpdated = A3($author$project$Library$update, subMsg, libraryModel, session);
+		return {
+			cmd: A2($elm$core$Platform$Cmd$map, $author$project$BooksEditor$LibraryMsg, libraryUpdated.cmd),
+			model: $author$project$BooksEditor$Library(libraryUpdated.model),
+			session: libraryUpdated.session
+		};
+	});
 var $author$project$Checkin$update = F3(
 	function (msg, model, session) {
 		var _v0 = _Utils_Tuple2(msg, model);
@@ -9769,7 +9912,7 @@ var $author$project$Checkin$update = F3(
 		return {
 			cmd: A2($elm$core$Platform$Cmd$map, $author$project$Checkin$LibraryMsg, libraryUpdated.cmd),
 			model: $author$project$Checkin$Library(libraryUpdated.model),
-			session: session
+			session: libraryUpdated.session
 		};
 	});
 var $author$project$Login$Profile = F2(
@@ -10088,8 +10231,10 @@ var $author$project$Welcome$update = F2(
 	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
+		var b = A2($elm$core$Debug$log, 'Main update model ', model);
+		var a = A2($elm$core$Debug$log, 'Main update msg ', msg);
 		var _v0 = _Utils_Tuple2(msg, model);
-		_v0$9:
+		_v0$10:
 		while (true) {
 			switch (_v0.a.$) {
 				case 'WelcomeMsg':
@@ -10129,7 +10274,7 @@ var $author$project$Main$update = F2(
 							$author$project$Main$Welcome(sessionUpdated),
 							A2($elm$core$Platform$Cmd$map, $author$project$Main$LogoutMsg, logoutCmd));
 					} else {
-						break _v0$9;
+						break _v0$10;
 					}
 				case 'MenuMsg':
 					var subMsg = _v0.a.a;
@@ -10158,7 +10303,7 @@ var $author$project$Main$update = F2(
 							A2($elm$core$Platform$Cmd$map, $author$project$Main$BookSelectorMsg, bookSelectorUpdated.cmd),
 							bookSelectorUpdated.session);
 					} else {
-						break _v0$9;
+						break _v0$10;
 					}
 				case 'LibraryMsg':
 					if (_v0.b.$ === 'Library') {
@@ -10173,7 +10318,7 @@ var $author$project$Main$update = F2(
 							A2($elm$core$Platform$Cmd$map, $author$project$Main$LibraryMsg, libraryUpdated.cmd),
 							libraryUpdated.session);
 					} else {
-						break _v0$9;
+						break _v0$10;
 					}
 				case 'CheckinMsg':
 					if (_v0.b.$ === 'Checkin') {
@@ -10188,7 +10333,22 @@ var $author$project$Main$update = F2(
 							A2($elm$core$Platform$Cmd$map, $author$project$Main$CheckinMsg, checkinUpdated.cmd),
 							checkinUpdated.session);
 					} else {
-						break _v0$9;
+						break _v0$10;
+					}
+				case 'BooksEditorMsg':
+					if (_v0.b.$ === 'BooksEditor') {
+						var subMsg = _v0.a.a;
+						var _v8 = _v0.b;
+						var booksEditorModel = _v8.a;
+						var session = _v8.b;
+						var booksEditorUpdated = A3($author$project$BooksEditor$update, subMsg, booksEditorModel, session);
+						return A3(
+							$author$project$Main$toModel,
+							A2($author$project$Main$BooksEditor, booksEditorUpdated.model, booksEditorUpdated.session),
+							A2($elm$core$Platform$Cmd$map, $author$project$Main$BooksEditorMsg, booksEditorUpdated.cmd),
+							booksEditorUpdated.session);
+					} else {
+						break _v0$10;
 					}
 				case 'LinkClicked':
 					return _Utils_Tuple2(model, $elm$core$Platform$Cmd$none);
@@ -13324,10 +13484,6 @@ var $author$project$BookSelector$view = function (model) {
 			}
 	}
 };
-var $author$project$Checkin$toModel = function (model) {
-	var libraryModel = model.a;
-	return libraryModel;
-};
 var $author$project$Utils$lookup = F2(
 	function (key, list) {
 		return A2(
@@ -14529,7 +14685,7 @@ var $author$project$View$LibraryTiles$viewBookFilter = function (config) {
 				_List_Nil,
 				_List_fromArray(
 					[
-						A2(
+						config.showSearchTitle ? A2(
 						$rundis$elm_bootstrap$Bootstrap$Form$group,
 						_List_Nil,
 						_List_fromArray(
@@ -14548,8 +14704,8 @@ var $author$project$View$LibraryTiles$viewBookFilter = function (config) {
 										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(config.searchTitle),
 										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput(config.updateSearchTitle)
 									]))
-							])),
-						A2(
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchAuthors ? A2(
 						$rundis$elm_bootstrap$Bootstrap$Form$group,
 						_List_Nil,
 						_List_fromArray(
@@ -14568,8 +14724,8 @@ var $author$project$View$LibraryTiles$viewBookFilter = function (config) {
 										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(config.searchAuthors),
 										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput(config.updateSearchAuthors)
 									]))
-							])),
-						A2(
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchLocation ? A2(
 						$rundis$elm_bootstrap$Bootstrap$Form$group,
 						_List_Nil,
 						_List_fromArray(
@@ -14594,8 +14750,8 @@ var $author$project$View$LibraryTiles$viewBookFilter = function (config) {
 										$elm$core$List$cons,
 										_Utils_Tuple2('', ''),
 										$author$project$View$LibraryTiles$getLocations(books))))
-							])),
-						A2(
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchOwner ? A2(
 						$rundis$elm_bootstrap$Bootstrap$Form$group,
 						_List_Nil,
 						_List_fromArray(
@@ -14620,8 +14776,8 @@ var $author$project$View$LibraryTiles$viewBookFilter = function (config) {
 										$elm$core$List$cons,
 										_Utils_Tuple2('', ''),
 										$author$project$View$LibraryTiles$getOwners(books))))
-							])),
-						A2(
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchCheckStatus ? A2(
 						$rundis$elm_bootstrap$Bootstrap$Form$group,
 						_List_Nil,
 						_List_fromArray(
@@ -14646,8 +14802,8 @@ var $author$project$View$LibraryTiles$viewBookFilter = function (config) {
 										$elm$core$List$cons,
 										_Utils_Tuple2('', ''),
 										$elm$core$Dict$toList($author$project$Utils$checkedStatusList))))
-							])),
-						A2(
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchCheckoutUser ? A2(
 						$rundis$elm_bootstrap$Bootstrap$Form$group,
 						_List_Nil,
 						_List_fromArray(
@@ -14672,7 +14828,7 @@ var $author$project$View$LibraryTiles$viewBookFilter = function (config) {
 										$elm$core$List$cons,
 										_Utils_Tuple2('', ''),
 										$author$project$View$LibraryTiles$getCheckoutUsers(config.checkouts))))
-							]))
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil)
 					]))
 			]));
 };
@@ -15229,6 +15385,13 @@ var $author$project$Library$view = function (model) {
 			return $author$project$View$LibraryDetails$view(model.bookdetails);
 	}
 };
+var $author$project$BooksEditor$view = function (model) {
+	return A2(
+		$elm$html$Html$map,
+		$author$project$BooksEditor$LibraryMsg,
+		$author$project$Library$view(
+			$author$project$BooksEditor$toModel(model)));
+};
 var $author$project$Checkin$view = function (model) {
 	return A2(
 		$elm$html$Html$map,
@@ -15427,6 +15590,7 @@ var $author$project$Menu$menuActionsNoAccessToken = _List_fromArray(
 		{description: 'You must log in to use the library', imageLink: '', page: $author$project$Session$LoginPage, title: 'Login'}
 	]);
 var $author$project$Session$BookSelectorPage = {$: 'BookSelectorPage'};
+var $author$project$Session$BooksEditorPage = {$: 'BooksEditorPage'};
 var $author$project$Session$CheckinPage = {$: 'CheckinPage'};
 var $author$project$Session$LibraryPage = {$: 'LibraryPage'};
 var $author$project$Session$LogoutPage = {$: 'LogoutPage'};
@@ -15435,6 +15599,7 @@ var $author$project$Menu$menuActionsWithAccessToken = _List_fromArray(
 		{description: 'Add books to the library', imageLink: '', page: $author$project$Session$BookSelectorPage, title: 'Add books'},
 		{description: 'Checkout books from the library', imageLink: '', page: $author$project$Session$LibraryPage, title: 'Library'},
 		{description: 'Return books to the library', imageLink: '', page: $author$project$Session$CheckinPage, title: 'Checkin'},
+		{description: 'Administer your books in the library', imageLink: '', page: $author$project$Session$BooksEditorPage, title: 'Your books'},
 		{description: 'Say goodbye', imageLink: '', page: $author$project$Session$LogoutPage, title: 'Logout'}
 	]);
 var $rundis$elm_bootstrap$Bootstrap$Navbar$maybeBrand = function (brand_) {
@@ -16494,13 +16659,20 @@ var $author$project$Main$view = function (model) {
 							$elm$html$Html$map,
 							$author$project$Main$LibraryMsg,
 							$author$project$Library$view(libraryModel));
-					default:
+					case 'Checkin':
 						var checkinModel = model.a;
 						var session = model.b;
 						return A2(
 							$elm$html$Html$map,
 							$author$project$Main$CheckinMsg,
 							$author$project$Checkin$view(checkinModel));
+					default:
+						var booksEditorModel = model.a;
+						var session = model.b;
+						return A2(
+							$elm$html$Html$map,
+							$author$project$Main$BooksEditorMsg,
+							$author$project$BooksEditor$view(booksEditorModel));
 				}
 			}()
 			]),

@@ -17,7 +17,6 @@ import Bootstrap.Form.Select as Select
 import Bootstrap.Button as Button
 import OAuth
 
-import Domain.Book exposing (..)
 import Domain.Checkout exposing (..)
 import Domain.SearchBook exposing (..)
 import Domain.LibraryBook exposing (..)
@@ -27,14 +26,14 @@ import Regex
 
 
 
-type alias Config msg a =
+type alias Config msg =
     { userEmail : String
     , doCheckout : msg
     , doCheckin : msg
     , doPrevious : msg
     , doNext : msg
     , doCancel : msg
-    , maybeBook : Maybe (Book a)
+    , maybeBook : Maybe LibraryBook
     , maybeCheckout : Maybe Checkout
     , hasPrevious : Bool
     , hasNext : Bool
@@ -50,7 +49,7 @@ type Status =
 -- #####
 
 
-view : Config msg a -> Html msg
+view : Config msg -> Html msg
 view config =
     viewBookDetail config
             
@@ -69,7 +68,7 @@ selectitem valueSelected (value1, text1) =
             Select.item [ value value1 ] [ text text1 ] 
 
 
-viewBookDetail : Config msg a -> Html msg
+viewBookDetail : Config msg -> Html msg
 viewBookDetail config =
     let
         { maybeBook } = config
@@ -126,7 +125,7 @@ viewBookDetail config =
                     [ text "Oeps : BookDetails.elm config.book = Nothing" ]
 
 
-viewBookDetailButtons : Config msg a -> Html msg
+viewBookDetailButtons : Config msg -> Html msg
 viewBookDetailButtons config =
     case ( config.maybeCheckout, config.doActionPrepare ) of
 
@@ -318,7 +317,7 @@ viewBookDetailButtons config =
                     )
                 ]
 
-model2LibraryBook : Book a -> LibraryBook
+model2LibraryBook : LibraryBook -> LibraryBook
 model2LibraryBook book =
     {
         id = 0
