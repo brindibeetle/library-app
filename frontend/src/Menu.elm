@@ -1,33 +1,13 @@
 module Menu exposing (..)
 
-import Browser
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import Http as Http
-import Browser.Navigation as Navigation
 
 -- import Route exposing (..)
 
-import RemoteData exposing (RemoteData, WebData, succeed)
-
-import Utils exposing (buildErrorMessage)
-
-import Bootstrap.Table as Table
-import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input
-import Bootstrap.Form.Select as Select
-import Bootstrap.Form.Checkbox as Checkbox
-import Bootstrap.Form.Radio as Radio
-import Bootstrap.Form.Textarea as Textarea
-import Bootstrap.Form.Fieldset as Fieldset
-import Bootstrap.Button as Button
-import Bootstrap.Card as Card
-import Bootstrap.Text as Text
-import Bootstrap.Card.Block as Block
 import Bootstrap.Navbar as Navbar
 
-import Domain.SearchBook as SearchBook
 import Session exposing (..)
 
 
@@ -76,6 +56,12 @@ menuActionsWithAccessToken =
             , description = "Checkout books from the library"
             , imageLink = ""
             , page = LibraryPage
+        }
+        , {
+            title = "Checkin"
+            , description = "Return books to the library"
+            , imageLink = ""
+            , page = CheckinPage
         }
         , {
             title = "Logout"

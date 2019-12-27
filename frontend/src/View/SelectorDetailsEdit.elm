@@ -52,16 +52,6 @@ view config =
             
 
 
-selectitem : (String) -> (String, String) -> Select.Item msg
-selectitem valueSelected (value1, text1) =
-    case valueSelected == value1 of
-        True ->
-            Select.item [ selected True, value value1 ] [ text text1 ] 
-
-        False ->
-            Select.item [ value value1 ] [ text text1 ] 
-
-
 viewBookDetail : Config msg -> Html msg
 viewBookDetail config =
     let
@@ -280,3 +270,15 @@ actionHtmlCheckout { maybeCheckout, user } =
                     ]
                 ]
             ]
+
+
+
+selectitem : (String) -> (String, String) -> Select.Item msg
+selectitem valueSelected (value1, text1) =
+    case valueSelected == value1 of
+        True ->
+            Select.item [ selected True, value value1 ] [ text text1 ] 
+
+        False ->
+            Select.item [ value value1 ] [ text text1 ] 
+

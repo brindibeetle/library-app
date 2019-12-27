@@ -19,10 +19,6 @@ import Session exposing (..)
 type alias Model = 
     {
         searchbooks : WebData SearchBooks
-        , searchTitle : String 
-        , searchAuthors : String 
-        , searchString : String 
-        -- , searchIsbn : Int
 
         , bookView : BookView
 
@@ -34,13 +30,13 @@ type alias Model =
 initialModel : Model
 initialModel =
     { searchbooks = RemoteData.NotAsked
-    , searchTitle = ""
-    , searchAuthors = ""
-    , searchString = ""
-    -- , searchIsbn = 0
     , bookView = Tiles
     , booktiles = 
-        { updateSearchTitle = UpdateSearchTitle
+        { searchTitle = ""
+        , searchAuthors = ""
+        , searchString = ""
+        -- , searchIsbn = 0
+        , updateSearchTitle = UpdateSearchTitle
         , updateSearchAuthor = UpdateSearchAuthor
         , updateSearchString = UpdateSearchString
         , doSearch = DoSearch
@@ -145,8 +141,9 @@ type Msg
 update : Msg -> Model -> Session -> { model : Model, session : Session, cmd : Cmd Msg } 
 update msg model session =
     let
-        a = Debug.log "BookSelector update model.bookView" model.bookView
-        a2 = Debug.log "BookSelector update msg " msg
+        a = Debug.log "update msg = " msg
+        -- a1 = Debug.log "update model.searchTitle = " model.searchTitle
+        -- a2 = Debug.log "update msg = " msg
     in
     
     case model.bookView of
@@ -164,24 +161,27 @@ updateTiles : Msg -> Model -> Session -> { model : Model, session : Session, cmd
 updateTiles msg model session =
     case msg of
         UpdateSearchTitle title ->
-           { model = { model | searchTitle = title }
+           { model = model.booktiles |> setSearchTitle title |> setBookTiles model
            , session = session
            , cmd = Cmd.none }
 
         UpdateSearchAuthor authors ->
-           { model = { model | searchAuthors = authors }
+           { model = model.booktiles |> setSearchAuthors authors |> setBookTiles model
            , session = session
            , cmd = Cmd.none }
 
         UpdateSearchString string ->
-           { model = { model | searchString = string }
+           { model = model.booktiles |> setSearchString string |> setBookTiles model
            , session = session
            , cmd = Cmd.none }
 
         DoSearch ->
            { model =  { model | searchbooks = RemoteData.Loading }
            , session = session
-           , cmd = Domain.SearchBook.getBooks DoBooksReceived { searchTitle = model.searchTitle, searchAuthors = model.searchAuthors, searchString = model.searchString }
+           , cmd = Domain.SearchBook.getBooks DoBooksReceived 
+                    { searchTitle = model.booktiles.searchTitle
+                    , searchAuthors = model.booktiles.searchAuthors
+                    , searchString = model.booktiles.searchString }
            }
 
         DoBooksReceived response ->
@@ -368,3 +368,13 @@ doIndex model index =
                 }
         _ ->
             model
+
+
+-- #####
+-- #####   UTILS
+-- #####
+
+
+setBookTiles : Model -> SelectorTiles.Config Msg -> Model 
+setBookTiles model booktiles =
+    { model | booktiles = booktiles }

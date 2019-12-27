@@ -89,6 +89,7 @@ type Page
     | LogoutPage
     | BookSelectorPage 
     | LibraryPage
+    | CheckinPage
 
 
 toString : Page -> String
@@ -109,6 +110,8 @@ toString page =
         LibraryPage ->
             "LibraryPage"
 
+        CheckinPage ->
+            "CheckinPage"
 
 getGoogleClientId : Session -> String
 getGoogleClientId session =

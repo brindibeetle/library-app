@@ -3,6 +3,10 @@ module Utils exposing (..)
 import Url exposing (Protocol(..), Url)
 import Time
 import Http
+import Bootstrap.Form.Select as Select exposing (..)
+import Html.Attributes exposing (..)
+import Html exposing (..)
+import Dict exposing (..)
 
 -- libraryApiBaseUrl : String
 -- libraryApiBaseUrl = "http://localhost:8080/api/v1"
@@ -17,12 +21,21 @@ import Http
 --     , fragment = Nothing
 --     }
 
+checkedStatusList : Dict String String
+checkedStatusList = Dict.fromList [ ("available", "Available books"), ("checkedout", "Checked out books") ]
+
 languages : List (String, String)
 languages = [ ("",""), ("en", "English"), ("nl", "Nederlands"), ("fr", "Français") ]
 
 locations : List (String, String)
 locations = [ ("", ""), ("am", "Amsterdam"), ("ro", "Rotterdam"), ("br", "Bruxelles"), ("ch", "Chessy"), ("home", "At home") ]
 
+lookup : String -> List (String, String) -> String
+lookup key list =
+    List.filter (\(key1, value) -> key1 == key ) list
+    |> List.head 
+    |> Maybe.map Tuple.second
+    |> Maybe.withDefault key 
 
 -- appClientId : String
 -- appClientId = "937704847273-2ctk7g4e2qshu89gqch4at5qskqdus8n.apps.googleusercontent.com" -- libary-api-frontend / Webclient 2
@@ -102,6 +115,5 @@ buildErrorMessage httpError =
 
         Http.BadBody message ->
             message
-
 
 
