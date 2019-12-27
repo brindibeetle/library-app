@@ -78,8 +78,8 @@ libraryApiBooksUrl session =
     Session.getLibraryApiBaseUrlString session ++ "/books"
 
 
-getBooks :  (WebData (Array LibraryBook) -> msg) -> Session -> OAuth.Token -> { title : String, author : String, location : String, owner : String } -> Cmd msg
-getBooks msg session token { title, author, location, owner } =
+getBooks :  (WebData (Array LibraryBook) -> msg) -> Session -> OAuth.Token -> Cmd msg
+getBooks msg session token =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
         requestUrl = Debug.log "requestUrl" (libraryApiBooksUrl session) ++ "?access_token=" ++ puretoken

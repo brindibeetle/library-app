@@ -84,6 +84,12 @@ public class CheckoutService {
         return checkoutRepository.findAtDates(currentDate, currentDate);
     }
 
+    public List<Checkout> findCurrentMine() {
+        ZonedDateTime currentDate = utilityService.currentDateTime();
+        String userEmail = utilityService.userEmail();
+        return checkoutRepository.findAtDatesOfUser(userEmail, currentDate, currentDate);
+    }
+
     public Checkout findById(Long id) {
         Optional<Checkout> optionalCheckout = checkoutRepository.findById(id);
         if (!optionalCheckout.isPresent()) {
@@ -143,5 +149,4 @@ public class CheckoutService {
 
         checkoutRepository.deleteById(id);
     }
-
 }

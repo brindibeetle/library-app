@@ -4,6 +4,7 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 import Array exposing (Array)
+import Dict
 
 import RemoteData exposing (WebData)
 
@@ -11,6 +12,8 @@ import Utils exposing (buildErrorMessage)
 
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
+import Bootstrap.Form.Radio as Radio
+import Bootstrap.Form.Select as Select
 import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Text as Text
@@ -30,54 +33,95 @@ import Css exposing (..)
 
 
 type alias Config msg a =
-    { updateSearchTitle :  String -> msg 
-    , updateSearchAuthor :  String -> msg 
+    { userEmail : String
+
+    , searchTitle : String 
+    , searchAuthors : String 
+    , searchLocation : String 
+    , searchOwner : String 
+    , searchCheckStatus : String 
+    , searchCheckoutUser : String
+
+    , updateSearchTitle :  String -> msg 
+    , updateSearchAuthors :  String -> msg 
     , updateSearchLocation :  String -> msg 
     , updateSearchOwner :  String -> msg 
+    , updateSearchCheckStatus :  String -> msg 
+    , updateSearchCheckoutUser :  String -> msg 
+
+    , showSearchTitle : Bool
+    , showSearchAuthors : Bool
+    , showSearchLocation : Bool
+    , showSearchOwner : Bool
+    , showSearchCheckStatus : Bool
+    , showSearchCheckoutUser : Bool
+
     , doSearch : msg
     , doAction : Int -> msg
     , books : WebData (Array (Book a)) 
     , checkouts : WebData (Array (Maybe Checkout)) 
     }
 
-
 -- view : WebData (Array (Book a)) -> WebData (Array (Maybe Checkout)) ->  Html Msg
 view : Config msg a -> Html msg
 view config =
-    div []
-        [ viewBookSearcher config
-        , viewBooks config
+    div [ class "row containerFluid"]
+        [ div [ class "col-lg-2 col-md-3 mb-4" ]
+            [ viewBookFilter config ]
+        , div [ class "col-lg-8" ]
+            [ viewBooks config ]
         ]
 
 
-viewBookSearcher : Config msg a -> Html msg
-viewBookSearcher config =
-    div [ class "container" ]
-        [
-            Form.form []
-            [ 
-              Form.group []
-                [ Form.label [ ] [ text "Title"]
-                , Input.text [ Input.id "searchbookTitle", Input.onInput (config.updateSearchTitle) ]
-                , Form.help [] [ text "What is (part of) the title of the book." ]
-                ]
-              , Form.group []
-                [ Form.label [ ] [ text "Author(s)"]
-                , Input.text [ Input.id "searchbookAuthor", Input.onInput (config.updateSearchAuthor)   ]
-                , Form.help [] [ text "What is (part of) the authors of the book." ]
-                ]
-              , Form.group []
-                [ Form.label [ ] [ text "Location"]
-                , Input.text [ Input.id "searchbookLocation", Input.onInput (config.updateSearchLocation)   ]
-                , Form.help [] [ text "What is the location of the book." ]
-                ]
-              , Form.group []
-                [ Form.label [ ] [ text "Owner of the book"]
-                , Input.text [ Input.id "searchbookOwner", Input.onInput (config.updateSearchOwner)   ]
-                , Form.help [] [ text "Who is the owner of the book." ]
+viewBookFilter : Config msg a -> Html msg
+viewBookFilter config =
+    let
+        { books, doSearch } = config
+
+    in
+        div [ class "container" ]
+            [
+                Form.form []
+                [ 
+                    Form.group []
+                        [ Form.label [ ] [ text "Title"]
+                        , Input.text [ Input.small, Input.value config.searchTitle, Input.onInput (config.updateSearchTitle) ]
+                        ]
+                    , Form.group []
+                        [ Form.label [ ] [ text "Author(s)"]
+                        , Input.text [  Input.small,Input.value config.searchAuthors, Input.onInput (config.updateSearchAuthors)   ]
+                        ]
+                    , Form.group []
+                        [ Form.label [ ] [ text "Location"]
+                        , Select.select [ Select.onChange config.updateSearchLocation
+                            ]
+                            ( List.map (selectitem config.searchLocation) (("","") :: getLocations books) )
+                        ]
+                    , Form.group []
+                        [ Form.label [ ] [ text "Owner"]
+                        , Select.select [ Select.onChange config.updateSearchOwner
+                            ]
+                            ( List.map (selectitem config.searchOwner) (("","") :: getOwners books) )
+                        ]
+                    , Form.group []
+                        [ Form.label [ ] [ text "Availability"]
+                        , Select.select [ Select.onChange config.updateSearchCheckStatus
+                            ]
+                            ( List.map (selectitem config.searchCheckStatus) (("","") :: Dict.toList checkedStatusList) )
+                        ]
+                    , Form.group []
+                        [ Form.label [ ] [ text "Checked out by"]
+                        , Select.select [ Select.onChange config.updateSearchCheckoutUser
+                            ]
+                            ( List.map (selectitem config.searchCheckoutUser) (("","") :: getCheckoutUsers config.checkouts ) )
+                        ]
+                    -- , Button.button
+                    --     [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick doSearch ]
+                    --     [ text "Filter" ]
                 ]
             ]
-        ]
+
+
 
 
 viewFetchError : String -> Html msg
@@ -115,10 +159,7 @@ viewBooks config =
     case books_checkouts of
         RemoteData.NotAsked ->
             div [ class "container" ] 
-                [ Button.button
-                    [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick doSearch ]
-                    [ text "Search" ]
-                    , p [] [ br [] [] ]
+                [ p [] [ br [] [] ]
                 ]
 
         RemoteData.Loading ->
@@ -131,28 +172,30 @@ viewBooks config =
                 ]
 
         RemoteData.Success ( actualBooks, actualCheckouts ) ->
-            div [ class "container" ]
-                [ Button.button
-                    [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick doSearch ]
-                    [ text "Search" ]
-                    , p [] [ br [] [] ]
-                , viewBookTiles config actualBooks actualCheckouts
-                ]
+            div [ class "containerFluid" ]
+                [ viewBookTiles config actualBooks actualCheckouts ]
                 
         RemoteData.Failure httpError ->
             div [ class "container" ]
-                [ Button.button
-                    [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick doSearch ]
-                    [ text "Search" ]
-                    , p [] [ br [] [] ]
-                , viewFetchError (buildErrorMessage httpError) 
+                [ viewFetchError (buildErrorMessage httpError) 
                 ]
 
         
 viewBookTiles : Config msg a -> Array (Book a) -> Array (Maybe Checkout) -> Html msg
 viewBookTiles config books checkouts =
     List.range 0 (Array.length books - 1)
-        |> List.map3 (viewBookTilesCard config) (Array.toList books) (Array.toList checkouts)
+        |> List.map3 bookCheckoutIndex (Array.toList books) (Array.toList checkouts)
+        |> List.filterMap
+            ( booksFilter 
+                        { searchTitle = config.searchTitle
+                        , searchAuthors = config.searchAuthors
+                        , searchOwner = config.searchOwner
+                        , searchLocation = config.searchLocation
+                        , searchCheckStatus = config.searchCheckStatus
+                        , searchCheckoutUser = config.searchCheckoutUser
+                        }
+            )
+        |> List.map (viewBookTilesCard config)
         |> div [ class "row"  ]
 
 
@@ -163,30 +206,52 @@ getthumbnail book =
     String.replace "&zoom=1&" "&zoom=7&" book.thumbnail
 
 
-viewBookTilesCard : Config msg a -> (Book a) -> Maybe Checkout -> Int -> Html msg
-viewBookTilesCard { doAction } book maybeCheckout index =
-    case maybeCheckout of
-        Just checkout ->
-            div [ class "col-lg-4 col-md-6 mb-4", onClick (doAction index) ]
-                [ 
-                    Card.config [ Card.attrs [ class "card-checkout" ] ]
-                        |> Card.imgTop [ src (getthumbnail book), class "bookselector-img-top" ] [] 
-                        |> Card.block [ ] 
-                            [ Block.titleH4 [ class "card-title text-truncate bookselector-text-title" ] [ text book.title ]
-                            , Block.titleH6 [ class "text-muted bookselector-text-author" ] [ text book.authors ]
-                            , Block.text [ class "text-muted small bookselector-text-published" ] [ text book.publishedDate ]
-                            , Block.text [ class "card-text block-with-text bookselector-text-description" ] [ text book.description ]
-                            , Block.text [ class "text-muted small bookselector-text-language" ] [ text book.language ]
-                            , Block.text [ class "text-checkout" ] 
-                                    [ p [] [ text "Checked out!" ]
-                                    , p [ class "small" ] [ text ("from " ++ getNiceTime checkout.dateTimeFrom ++ ", by " ++ checkout.userEmail ) ]
-                                    ]
-                            ]
-                        |> Card.imgBottom [ src (getthumbnail book), class "bookselector-img-bottom" ] [] 
-                        |> Card.view
-                ]
+viewBookTilesCard : Config msg a -> { book : (Book a) , checkout : Maybe Checkout , index : Int } -> Html msg
+viewBookTilesCard { doAction, userEmail } { book, checkout, index } =
+    case checkout of
+        Just checkout1 ->
+            if ( userEmail == checkout1.userEmail) then
+                div [ class "col-lg-3 col-md-4 mb-4", onClick (doAction index) ]
+                    [ 
+                        Card.config [ Card.attrs [ class "card-checkout-x" ] ]
+                            |> Card.imgTop [ src (getthumbnail book), class "bookselector-img-top" ] [] 
+                            |> Card.block [ ] 
+                                [ Block.titleH4 [ class "card-title text-truncate bookselector-text-title" ] [ text book.title ]
+                                , Block.titleH6 [ class "text-muted bookselector-text-author" ] [ text book.authors ]
+                                , Block.text [ class "text-muted small bookselector-text-published" ] [ text book.publishedDate ]
+                                , Block.text [ class "card-text block-with-text bookselector-text-description" ] [ text book.description ]
+                                , Block.text [ class "text-muted small bookselector-text-language" ] [ text book.language ]
+                                , Block.text [ class "text-checkout-x" ] 
+                                        [ p [] [ text "Checked out!" ]
+                                        , p [ class "small" ] [ text ("from " ++ getNiceTime checkout1.dateTimeFrom ++ ", by You" ) ]
+                                        ]
+                                ]
+                            |> Card.imgBottom [ src (getthumbnail book), class "bookselector-img-bottom" ] [] 
+                            |> Card.view
+                    ]
+            else
+                    div [ class "col-lg-3 col-md-4 mb-4", onClick (doAction index) ]
+                    [ 
+                        Card.config [ Card.attrs [ class "card-checkout" ] ]
+                            |> Card.imgTop [ src (getthumbnail book), class "bookselector-img-top" ] [] 
+                            |> Card.block [ ] 
+                                [ Block.titleH4 [ class "card-title text-truncate bookselector-text-title" ] [ text book.title ]
+                                , Block.titleH6 [ class "text-muted bookselector-text-author" ] [ text book.authors ]
+                                , Block.text [ class "text-muted small bookselector-text-published" ] [ text book.publishedDate ]
+                                , Block.text [ class "card-text block-with-text bookselector-text-description" ] [ text book.description ]
+                                , Block.text [ class "text-muted small bookselector-text-language" ] [ text book.language ]
+                                , Block.text [ class "text-checkout" ] 
+                                        [ p [] [ text "Checked out!" ]
+                                        , p [ class "small" ] [ text ("from " ++ getNiceTime checkout1.dateTimeFrom ++ ", by " ++ checkout1.userEmail ) ]
+                                        ]
+                                ]
+                            |> Card.imgBottom [ src (getthumbnail book), class "bookselector-img-bottom" ] [] 
+                            |> Card.view
+                    ]
+
         Nothing ->
-            div [ class "col-lg-4 col-md-6 mb-4", onClick (doAction index) ]
+            div [ class "col-lg-3 col-md-4 mb-4", onClick (doAction index) ]
+            -- div [ class "col-lg-4 col-md-6 mb-4", onClick (doAction index) ]
                 [ 
                     Card.config [ Card.attrs [] ]
                         |> Card.imgTop [ src (getthumbnail book), class "bookselector-img-top" ] [] 
@@ -207,3 +272,144 @@ viewBookTilesCard { doAction } book maybeCheckout index =
 -- #####   UTILITY
 -- #####
 
+
+setSearchTitle : String -> Config msg a -> Config msg a
+setSearchTitle title config =
+    { config | searchTitle = title }
+
+setSearchAuthors : String -> Config msg a -> Config msg a
+setSearchAuthors authors config =
+    { config | searchAuthors = authors }
+
+
+setSearchLocation : String -> Config msg a -> Config msg a
+setSearchLocation location config =
+    { config | searchLocation = location }
+
+
+setSearchOwner : String -> Config msg a -> Config msg a
+setSearchOwner owner config =
+    { config | searchOwner = owner }
+
+
+setCheckStatus : String -> Config msg a -> Config msg a
+setCheckStatus status config =
+    { config | searchCheckStatus = status }
+
+
+setCheckoutUser : String -> Config msg a -> Config msg a
+setCheckoutUser user config =
+    { config | searchCheckoutUser = user }
+ 
+
+
+getLocations : WebData (Array (Book a)) -> List ( String, String )
+getLocations webDataBooks =
+    case webDataBooks of
+        RemoteData.Success actualBooks ->
+            List.foldl addLocation [] (Array.toList actualBooks)
+            
+        _ ->
+            []
+
+addLocation : Book a -> List (String, String) -> List (String, String)
+addLocation book locations =
+    if book.location == "" then
+        locations
+    else
+        if List.member ( book.location, book.location ) locations then
+            locations
+        else
+            ( book.location, book.location ) :: locations
+
+
+getOwners : WebData (Array (Book a)) -> List ( String, String )
+getOwners webDataBooks =
+    case webDataBooks of
+        RemoteData.Success actualBooks ->
+            List.foldl addOwner [] (Array.toList actualBooks)
+            
+        _ ->
+            []
+
+addOwner : Book a -> List (String, String) -> List (String, String)
+addOwner book owners =
+    if book.owner == "" then
+        owners
+    else
+        if List.member (book.owner, book.owner) owners then
+            owners
+        else
+            ( book.owner, book.owner ) :: owners
+
+getCheckoutUsers : WebData (Array (Maybe Checkout)) -> List ( String, String )
+getCheckoutUsers webDataCheckouts =
+    case webDataCheckouts of
+        RemoteData.Success actualCheckouts ->
+            Array.toList actualCheckouts
+            |> List.foldl addCheckoutUser []
+            
+        _ ->
+            []
+
+addCheckoutUser : Maybe Checkout -> List (String, String) -> List (String, String)
+addCheckoutUser maybeCheckout users =
+    case maybeCheckout of
+        Just checkout ->
+            if checkout.userEmail == "" then
+                users
+            else
+                if List.member (checkout.userEmail, checkout.userEmail) users then
+                    users
+                else
+                    ( checkout.userEmail, checkout.userEmail ) :: users
+
+        Nothing ->
+            users
+
+
+
+selectitem : (String) -> (String, String) -> Select.Item msg
+selectitem valueSelected (value1, text1) =
+    case valueSelected == value1 of
+        True ->
+            Select.item [ selected True, value value1 ] [ text text1 ] 
+
+        False ->
+            Select.item [ value value1 ] [ text text1 ] 
+
+
+
+booksFilter : 
+    { searchTitle : String, searchAuthors : String, searchOwner : String, searchLocation : String, searchCheckStatus : String, searchCheckoutUser : String } 
+    -> { book: Book a, checkout: Maybe Checkout, index: Int } 
+    -> Maybe { book: Book a, checkout: Maybe Checkout, index: Int }
+booksFilter 
+    { searchTitle, searchAuthors, searchOwner, searchLocation, searchCheckStatus, searchCheckoutUser } 
+    { book, checkout, index } =
+    if
+        ( String.isEmpty searchTitle || String.contains (String.toUpper searchTitle) (String.toUpper book.title) )
+        && ( String.isEmpty searchAuthors || String.contains (String.toUpper searchAuthors) (String.toUpper book.authors) )
+        && ( String.isEmpty searchOwner || searchOwner == book.owner) 
+        && ( String.isEmpty searchLocation || searchOwner == book.location) 
+        && ( String.isEmpty searchCheckStatus 
+            || ( searchCheckStatus == "available" && checkout == Nothing )
+            || ( searchCheckStatus == "checkedout" && checkout /= Nothing )
+        )
+        && ( String.isEmpty searchCheckoutUser 
+            || case checkout of
+                Just checkout1 ->
+                    checkout1.userEmail == searchCheckoutUser
+            
+                Nothing ->
+                    False
+        )
+    then
+        Just { book = book, checkout = checkout, index = index }
+    else
+        Nothing
+
+
+bookCheckoutIndex : Book a -> Maybe Checkout -> Int -> { book: Book a, checkout: Maybe Checkout, index: Int }
+bookCheckoutIndex book checkout index =
+    { book = book, checkout = checkout, index = index }

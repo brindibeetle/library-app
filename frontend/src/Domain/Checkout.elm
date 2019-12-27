@@ -26,9 +26,17 @@ libraryApiCheckoutsCurrentUrl : Session -> String
 libraryApiCheckoutsCurrentUrl session =
     Session.getLibraryApiBaseUrlString session ++ "/checkouts/current"
 
+libraryApiCheckoutsCurrentMineUrl : Session -> String
+libraryApiCheckoutsCurrentMineUrl session =
+    Session.getLibraryApiBaseUrlString session ++ "/checkouts/current/mine"
+
 libraryApiCheckoutUrl : Session -> Int -> String
 libraryApiCheckoutUrl session bookId =
     Session.getLibraryApiBaseUrlString session ++ "/checkout/" ++ String.fromInt bookId
+
+libraryApiCheckinUrl : Session -> Int -> String
+libraryApiCheckinUrl session bookId =
+    Session.getLibraryApiBaseUrlString session ++ "/checkin/" ++ String.fromInt bookId
 
 type alias Checkout = 
     {
@@ -78,6 +86,19 @@ getCheckoutsCurrent msg session token =
                 |> Http.expectJson (RemoteData.fromResult >> msg)
             }
 
+getCheckoutsCurrentMine : (WebData (Array Checkout) -> msg) -> Session -> OAuth.Token ->  Cmd msg
+getCheckoutsCurrentMine msg session token =
+    let
+        puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
+        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutsCurrentMineUrl session) ++ "?access_token=" ++ puretoken
+    in
+        Http.get
+            { url = requestUrl
+            , expect =  
+                checkoutsDecoder
+                |> Http.expectJson (RemoteData.fromResult >> msg)
+            }
+
 doCheckout : (Result Http.Error () -> msg) -> Session -> OAuth.Token -> Int -> Cmd msg
 doCheckout msg session token bookId =
     let
@@ -94,6 +115,21 @@ doCheckout msg session token bookId =
             , tracker = Nothing
             }
 
+doCheckin : (Result Http.Error () -> msg) -> Session -> OAuth.Token -> Int -> Cmd msg
+doCheckin msg session token bookId =
+    let
+        puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
+        requestUrl = Debug.log "requestUrl" (libraryApiCheckinUrl session bookId) ++ "?access_token=" ++ puretoken
+    in
+        Http.request
+            { method = "PUT"
+            , headers = []
+            , url = requestUrl
+            , body = emptyBody
+            , expect = Http.expectWhatever msg
+            , timeout = Nothing
+            , tracker = Nothing
+            }
 
 checkoutsDecoder : Decoder (Array Checkout)
 checkoutsDecoder =

@@ -29,7 +29,11 @@ import Css exposing (..)
 
 
 type alias Config msg =
-    { updateSearchTitle :  String -> msg 
+    { searchTitle : String 
+    , searchAuthors : String 
+    , searchString : String 
+    -- , searchIsbn : Int
+    , updateSearchTitle :  String -> msg 
     , updateSearchAuthor :  String -> msg 
     , updateSearchString :  String -> msg 
     , doSearch : msg
@@ -55,17 +59,17 @@ viewBookSearcher config =
             [ 
               Form.group []
                 [ Form.label [ ] [ text "Title"]
-                , Input.text [ Input.id "searchbookTitle", Input.onInput (config.updateSearchTitle) ]
+                , Input.text [ Input.value config.searchTitle, Input.onInput config.updateSearchTitle ]
                 , Form.help [] [ text "What is (part of) the title of the book." ]
                 ]
               , Form.group []
                 [ Form.label [ ] [ text "Author(s)"]
-                , Input.text [ Input.id "searchbookAuthor", Input.onInput (config.updateSearchAuthor)   ]
+                , Input.text [ Input.value config.searchAuthors, Input.onInput config.updateSearchAuthor   ]
                 , Form.help [] [ text "What is (part of) the authors of the book." ]
                 ]
               , Form.group []
                 [ Form.label [ ] [ text "Keywords"]
-                , Input.text [ Input.id "searchbookKeywords", Input.onInput (config.updateSearchString)   ]
+                , Input.text [ Input.value config.searchString, Input.onInput config.updateSearchString   ]
                 , Form.help [] [ text "Keywords to find the book." ]
                 ]
             ]
@@ -89,10 +93,6 @@ viewBooks : Config msg -> Html msg
 viewBooks config =
     let
         { books, doSearch } = config
-
-        waarzijnwe = Debug.log "Library.elm viewBooks libraryBooks " books
-        -- waarzijnwe1 = Debug.log "Library.elm viewBooks checkoutsCorresponding " checkouts
-
     in
     case books of
         RemoteData.NotAsked ->
@@ -113,7 +113,7 @@ viewBooks config =
                 ]
 
         RemoteData.Success actualBooks ->
-            div [ class "container" ]
+            div [ class "containerFluid" ]
                 [ Button.button
                     [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick doSearch ]
                     [ text "Search" ]
@@ -142,12 +142,14 @@ viewBookTiles config books =
 -- zoom=1 -> zoom=10 for better resolution
 getthumbnail : SearchBook -> String
 getthumbnail book =
-    String.replace "&zoom=1&" "&zoom=7&" book.thumbnail
+    -- String.replace "&zoom=1&" "&zoom=3&" book.thumbnail
+    book.smallThumbnail
 
 
 viewBookTilesCard : Config msg -> SearchBook -> Int -> Html msg
 viewBookTilesCard { doAction } book index =
-    div [ class "col-lg-4 col-md-6 mb-4", onClick (doAction index) ]
+    -- div [ class "col-lg-4 col-md-6 mb-4", onClick (doAction index) ]
+    div [ class "col-lg-2 col-md-3 mb-4", onClick (doAction index) ]
         [ 
             Card.config [ Card.attrs [] ]
                 |> Card.imgTop [ src (getthumbnail book), class "bookselector-img-top" ] [] 
@@ -168,3 +170,16 @@ viewBookTilesCard { doAction } book index =
 -- #####   UTILITY
 -- #####
 
+setSearchTitle : String -> Config msg -> Config msg 
+setSearchTitle title config =
+    { config | searchTitle = title }
+
+
+setSearchAuthors : String -> Config msg -> Config msg 
+setSearchAuthors authors config =
+    { config | searchAuthors = authors }
+
+
+setSearchString : String -> Config msg -> Config msg 
+setSearchString string config =
+    { config | searchString = string }

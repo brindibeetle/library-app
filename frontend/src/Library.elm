@@ -6,7 +6,6 @@ import Html.Attributes exposing (..)
 import Array exposing (Array)
 
 import Http as Http
-import OAuth
 
 import RemoteData exposing (WebData)
 
@@ -26,12 +25,7 @@ type alias Model =
     {
         librarybooks : WebData (Array LibraryBook)
         , checkouts : WebData (Array Checkout)
-        , searchTitle : String 
-        , searchAuthor : String 
-        , searchLocation : String 
-        , searchOwner : String 
         , bookView : BookView
-        , checkinPromisedDate : String
         , booktiles : LibraryTiles.Config Msg LibraryBook
         , bookdetails : BookDetails.Config Msg LibraryBook
     }
@@ -40,39 +34,48 @@ type alias Model =
 type BookView =
     Tiles
     | Details Int
-    | Checkout Int
-    | CheckoutDone Int
+    | DoAction Int
+    | DoActionDone Int
 
 
-initialModel : Model
-initialModel =
+initialModel : String -> Model
+initialModel userEmail =
     { librarybooks = RemoteData.NotAsked
     , checkouts = RemoteData.NotAsked
-    , searchTitle = ""
-    , searchAuthor = ""
-    , searchLocation = ""
-    , searchOwner = ""
     , bookView = Tiles
-    , checkinPromisedDate = ""
     , booktiles = 
-        { updateSearchTitle = UpdateSearchTitle
-        , updateSearchAuthor = UpdateSearchAuthor
+        { userEmail = userEmail
+
+        , searchTitle = ""
+        , searchAuthors = ""
+        , searchLocation = ""
+        , searchOwner = ""
+        , searchCheckStatus = ""
+        , searchCheckoutUser = ""
+
+        , updateSearchTitle = UpdateSearchTitle
+        , updateSearchAuthors = UpdateSearchAuthors
         , updateSearchLocation = UpdateSearchLocation
         , updateSearchOwner = UpdateSearchOwner
+        , updateSearchCheckStatus = UpdateSearchCheckStatus
+        , updateSearchCheckoutUser = UpdateSearchCheckoutUser
+        
+        , showSearchTitle = True
+        , showSearchAuthors = True
+        , showSearchLocation = True
+        , showSearchOwner = True
+        , showSearchCheckStatus = True
+        , showSearchCheckoutUser = True
+
         , doSearch = DoSearch
         , doAction = DoDetail
         , checkouts = RemoteData.NotAsked
         , books = RemoteData.NotAsked
-         }
+        }
     , bookdetails = 
-        { updateTitle = UpdateTitle
-        , updateAuthors = UpdateAuthors
-        , updateDescription = UpdateDescription
-        , updatePublishedDate = UpdatePublishedDate
-        , updateLanguage = UpdateLanguage
-        , doAction = DoCheckout
-        , textAction = "Do checkout"
-        , doActionDisabled = False
+        { userEmail = userEmail
+        , doCheckout = DoCheckout
+        , doCheckin = DoCheckin
         , doPrevious = DoPrevious
         , doNext = DoNext
         , doCancel = DoCancel
@@ -80,9 +83,18 @@ initialModel =
         , maybeCheckout = Nothing
         , hasPrevious = False
         , hasNext = False
-        , actionHtml = []
+        , doActionPrepare = False
         }
     }
+
+
+initialModelCmd : Session -> ( Model, Cmd Msg )
+initialModelCmd session1 =
+    let
+        { model, session, cmd } = doSearch ( initialModel (Session.getUser session1)) session1
+    in
+        ( model, cmd )
+    
 
 
 -- #####
@@ -99,11 +111,12 @@ view model =
         Details index ->
             BookDetails.view model.bookdetails
 
-        Checkout index ->
+        DoAction index ->
             BookDetails.view model.bookdetails
 
-        CheckoutDone index ->
+        DoActionDone index ->
             BookDetails.view model.bookdetails
+
 
 -- #####
 -- #####   UPDATE
@@ -113,7 +126,7 @@ view model =
 type Msg
     = 
         UpdateSearchTitle String
-        | UpdateSearchAuthor String
+        | UpdateSearchAuthors String
         | UpdateSearchLocation String
         | UpdateSearchOwner String
         | DoSearch
@@ -125,71 +138,84 @@ type Msg
         | UpdateDescription String
         | UpdatePublishedDate String
         | UpdateLanguage String
+        | UpdateLocation String
+        | UpdateOwner String
+        | UpdateSearchCheckStatus String
+        | UpdateSearchCheckoutUser String
         | DoNext
         | DoPrevious
         | DoCancel
         | DoCheckout
+        | DoCheckin
         | UpdateCheckinPromisedDate String
         | DoCheckoutDone (Result Http.Error ())
+        | DoCheckinDone (Result Http.Error ())
 
 
 
 update : Msg -> Model -> Session -> { model : Model, session : Session, cmd : Cmd Msg } 
 update msg model session =
     let
-        waarzijnwe = Debug.log "Library.elm update msg " msg
+        a = Debug.log "update msg = " msg
+        -- a1 = Debug.log "update model.searchTitle = " model.searchTitle
+        -- a2 = Debug.log "update msg = " msg
     in
     
-    case ( model.bookView, msg ) of
-        ( Tiles, UpdateSearchTitle title ) ->
-           { model = { model | searchTitle = title }
+    case model.bookView of
+        Tiles ->
+            updateTiles msg model session
+
+        Details index ->
+            updateDetails msg model session index
+
+        DoAction index ->
+            updateDoAction msg model session index
+            
+        DoActionDone index ->
+            updateDoActionDone msg model session index
+
+    
+
+updateTiles : Msg -> Model -> Session -> { model : Model, session : Session, cmd : Cmd Msg } 
+updateTiles msg model session =
+    let
+        waarzijnwe = Debug.log "Library.elm updateTiles msg " msg
+    in
+    case msg of
+        UpdateSearchTitle title ->
+           { model = model.booktiles |> setSearchTitle title |> setBookTiles model
            , session = session
            , cmd = Cmd.none }
 
-        ( Tiles, UpdateSearchAuthor author ) ->
-           { model = { model | searchAuthor = author }
+        UpdateSearchAuthors authors ->
+           { model = model.booktiles |> setSearchAuthors authors |> setBookTiles model
            , session = session
            , cmd = Cmd.none }
 
-        ( Tiles, UpdateSearchLocation location ) ->
-           { model = { model | searchLocation = location }
+        UpdateSearchLocation location ->
+           { model = model.booktiles |> setSearchLocation location |> setBookTiles model
            , session = session
            , cmd = Cmd.none }
 
-        ( Tiles, UpdateSearchOwner owner ) ->
-           { model = { model | searchOwner = owner }
+        UpdateSearchOwner owner ->
+           { model = model.booktiles |> setSearchOwner owner |> setBookTiles model
            , session = session
            , cmd = Cmd.none }
 
-        ( Tiles, DoSearch ) ->
-            case session.token of
-                Just token ->
-                    let
-                        booktiles = model.booktiles
-                        booktiles1 = { booktiles | books = RemoteData.Loading }
-                    in
-                    
-                    { model =  
-                        { model 
-                        | booktiles = booktiles1
-                        , checkouts = RemoteData.Loading
-                        , librarybooks = RemoteData.Loading
-                        }
-                    , session = session
-                    , cmd = Cmd.batch 
-                        [ Domain.LibraryBook.getBooks DoBooksReceived session token
-                            { title = model.searchTitle
-                            , author = model.searchAuthor
-                            , location = model.searchLocation
-                            , owner = model.searchOwner 
-                            }
-                        , getCheckoutsCurrent DoCheckoutsReceived session token 
-                        ]
-                     }
-                Nothing ->
-                    { model = model, session = session, cmd = Cmd.none }
+        UpdateSearchCheckStatus status ->
+            { model = model.booktiles |> setCheckStatus status |> setBookTiles model
+            , session = session
+            , cmd = Cmd.none }
 
-        ( Tiles, DoBooksReceived response ) ->
+        UpdateSearchCheckoutUser user ->
+            { model = model.booktiles |> setCheckoutUser user |> setBookTiles model
+            , session = session
+            , cmd = Cmd.none }
+
+        DoSearch ->
+            doSearch model session
+
+        DoBooksReceived response ->
             let
                 booktiles = model.booktiles
                 -- response
@@ -211,7 +237,7 @@ update msg model session =
             -- , session = session
             -- , cmd = Cmd.none }
 
-        ( Tiles, DoCheckoutsReceived response ) ->
+        DoCheckoutsReceived response ->
             let
                 booktiles = model.booktiles
                 booktiles1 = 
@@ -225,55 +251,117 @@ update msg model session =
             -- , session = session
             -- , cmd = Cmd.none }
 
-        ( Tiles, DoDetail index ) ->
-            { model = doIndex model index (Session.getUser session)
-            , session = session
-            , cmd = Cmd.none }
-                
-        ( Details index, DoPrevious ) ->
-            { model = doIndex model (index - 1) (Session.getUser session)
+        DoDetail index ->
+            { model = doIndex model index
             , session = session
             , cmd = Cmd.none }
 
-        ( Details index, DoNext ) ->
-            { model = doIndex model (index + 1) (Session.getUser session)
-            , session = session
-            , cmd = Cmd.none }
 
-        ( Tiles, DoCancel ) -> -- TO DO
+        DoCancel -> -- TO DO
             { model = 
                 { model 
                 | bookView = Tiles
                 }
                 , session = session, cmd = Cmd.none }
 
-        ( Details index, DoCancel ) ->
+        _ ->
+            { model = model, session = session, cmd = Cmd.none }
+
+
+doSearch : Model -> Session -> { model : Model, session : Session, cmd : Cmd Msg } 
+doSearch model session =
+    case session.token of
+        Just token ->
+            let
+                booktiles = model.booktiles
+                booktiles1 = { booktiles | books = RemoteData.Loading }
+            in
+            
+            { model =  
+                { model 
+                | booktiles = booktiles1
+                , checkouts = RemoteData.Loading
+                , librarybooks = RemoteData.Loading
+                }
+            , session = session
+            , cmd = Cmd.batch 
+                [ Domain.LibraryBook.getBooks DoBooksReceived session token
+                , getCheckoutsCurrent DoCheckoutsReceived session token 
+                ]
+                }
+        Nothing ->
+            { model = model, session = session, cmd = Cmd.none }
+
+            
+updateDetails : Msg -> Model -> Session -> Int -> { model : Model, session : Session, cmd : Cmd Msg } 
+updateDetails msg model session index =
+    case msg of
+        DoPrevious ->
+            { model = doIndex model (index - 1)
+            , session = session
+            , cmd = Cmd.none }
+
+        DoNext ->
+            { model = doIndex model (index + 1)
+            , session = session
+            , cmd = Cmd.none }
+
+        DoCancel ->
             { model = 
                 { model 
                 | bookView = Tiles
                 }
                 , session = session, cmd = Cmd.none }
         
-        ( Details index, DoCheckout ) ->
-            { model = doCheckout model index (Session.getUser session)
+        DoCheckout ->
+            { model = doAction model index
             , session = session
             , cmd = Cmd.none }
 
-        ( Checkout index, DoCancel ) ->
-            { model = doIndex model index (Session.getUser session)
+        DoCheckin ->
+            { model = doAction model index
+            , session = session
+            , cmd = Cmd.none }
+
+        _ ->            
+            { model = model, session = session, cmd = Cmd.none }
+
+
+updateDoAction : Msg -> Model -> Session -> Int -> { model : Model, session : Session, cmd : Cmd Msg } 
+updateDoAction msg model session index =
+    case msg of
+        DoCancel ->
+            { model = doActionCancel (doIndex model index) index
                 , session = session, cmd = Cmd.none }
 
-        ( Checkout index, DoCheckout ) ->
+        DoCheckout ->
             case ( model.bookdetails.maybeBook, session.token ) of
                 ( Just book, Just token ) ->
-                    { model = doCheckoutDone model index
+                    { model = doActionDone model index
                     , session = session
                     , cmd = Domain.Checkout.doCheckout DoCheckoutDone session token book.id }
 
                 ( _, _ ) ->
                     { model = model, session = session, cmd = Cmd.none }
             
-        ( CheckoutDone index, DoCheckoutDone checkout ) ->
+        DoCheckin ->
+            case ( model.bookdetails.maybeBook, session.token ) of
+                ( Just book, Just token ) ->
+                    { model = doActionDone model index
+                    , session = session
+                    , cmd = Domain.Checkout.doCheckin DoCheckinDone session token book.id }
+
+                ( _, _ ) ->
+                    { model = model, session = session, cmd = Cmd.none }
+            
+        _ ->
+            { model = model, session = session, cmd = Cmd.none }
+
+
+updateDoActionDone : Msg -> Model -> Session -> Int -> { model : Model, session : Session, cmd : Cmd Msg } 
+updateDoActionDone msg model session index =
+    case msg of
+        DoCheckoutDone checkout ->
             case ( model.bookdetails.maybeBook, checkout ) of
                 ( Just book, Result.Ok result ) ->
                     { model = model
@@ -288,26 +376,36 @@ update msg model session =
                 ( _, _ ) ->
                     { model = model, session = session, cmd = Cmd.none }
 
-        ( Details index, UpdateTitle title ) ->
-                    { model = model, session = session, cmd = Cmd.none }
-        ( Details index, UpdateAuthors author ) ->
-                    { model = model, session = session, cmd = Cmd.none }
-        ( Details index, UpdateDescription description ) ->
-                    { model = model, session = session, cmd = Cmd.none }
-        ( Details index, UpdateLanguage language ) ->
-                    { model = model, session = session, cmd = Cmd.none }
-        ( Details index, UpdatePublishedDate publishedDate ) ->
+
+        DoCheckinDone checkout ->
+            case ( model.bookdetails.maybeBook, checkout ) of
+                ( Just book, Result.Ok result ) ->
+                    { model = model
+                    , session = Session.succeed session ("The book \"" ++ book.title ++ "\" has been checked in!")
+                    , cmd = Cmd.none }
+
+                ( _, Result.Err error  ) ->
+                    { model = model
+                    , session = Session.fail session ("The book has NOT been checked in : " ++ buildErrorMessage error)
+                    , cmd = Cmd.none }
+
+                ( _, _ ) ->
                     { model = model, session = session, cmd = Cmd.none }
 
-        ( _, _ ) ->
-                    { model = model, session = session, cmd = Cmd.none }
+
+        _ ->
+            { model = model, session = session, cmd = Cmd.none }
 
 
 -- #####
 -- #####   UTILITY
 -- #####
             
-    
+setBookTiles : Model -> LibraryTiles.Config Msg LibraryBook -> Model 
+setBookTiles model booktiles =
+    { model | booktiles = booktiles }
+
+
 -- Distribute Checkouts :
 -- LibraryBooks = Book 1, Book 5, Book 3
 -- Before :
@@ -338,8 +436,8 @@ distributeCheckoutsLibrarybook actualCheckouts librarybook =
     |> List.head
 
 
-doIndex : Model -> Int -> String -> Model
-doIndex model index user =
+doIndex : Model -> Int -> Model
+doIndex model index =
     let
         books_checkouts = merge2RemoteDatas model.booktiles.books model.booktiles.checkouts
     in
@@ -349,29 +447,19 @@ doIndex model index user =
                     bookdetails = model.bookdetails
                     maybeBook = Array.get index actualBooks
                     maybeCheckout = Array.get index actualCheckouts
-                    actionHtml = 
+                    maybeCheckout1 = 
                         case maybeCheckout of
-                            Just (Just checkout) ->
-                                actionHtmlCheckout 
-                                    { maybeCheckout = Just checkout
-                                    , user = user
-                                    }
-                            _ ->
-                                []
-                    doActionDisabled = 
-                        case maybeCheckout of
-                            Just (Just _) ->
-                                True 
-                            _ ->
-                                False
+                            Nothing  ->
+                                Nothing
+                            Just checkout ->
+                                checkout
                     
                     bookdetails1 = 
                         { bookdetails 
                         | maybeBook = maybeBook
+                        , maybeCheckout = maybeCheckout1
                         , hasPrevious = index > 0
                         , hasNext = index + 1 < Array.length actualBooks
-                        , actionHtml = actionHtml
-                        , doActionDisabled = doActionDisabled
                         }
                 in
                     { model 
@@ -382,18 +470,14 @@ doIndex model index user =
                 model
 
 
-doCheckout: Model -> Int -> String -> Model
-doCheckout model index user =
+doAction: Model -> Int -> Model
+doAction model index =
     let
         bookdetails = model.bookdetails
-        maybeCheckout = bookdetails.maybeCheckout
 
         bookdetails1 = 
             { bookdetails 
-            | actionHtml = actionHtmlCheckout 
-                { maybeCheckout = maybeCheckout
-                , user = user
-                }
+            | doActionPrepare = True
             , hasPrevious = False
             , hasNext = False
             }
@@ -401,13 +485,29 @@ doCheckout model index user =
     in
         { model
         | bookdetails = bookdetails1
-        , bookView = Checkout index
+        , bookView = DoAction index
+        }
+
+doActionCancel: Model -> Int -> Model
+doActionCancel model index =
+    let
+        bookdetails = model.bookdetails
+
+        bookdetails1 = 
+            { bookdetails 
+            | doActionPrepare = False
+            }
+        
+    in
+        { model
+        | bookdetails = bookdetails1
+        , bookView = Details index
         }
 
 
-doCheckoutDone: Model -> Int -> Model
-doCheckoutDone model index =
+doActionDone: Model -> Int -> Model
+doActionDone model index =
     { model
-    | bookView = CheckoutDone index
+    | bookView = DoActionDone index
     }
 

@@ -16,10 +16,17 @@ public class BookService {
 
     // instantiated by Lombok (RequiredArgsConstructor)
     private final BookRepository repository;
+    private final UtilityService utilityService;
 
     public List<Book> findAll() {
         return repository.findAll();
     }
+
+    public List<Book> findMyBooks() {
+        String userEmail = utilityService.userEmail();
+        return repository.findByOwner(userEmail);
+    }
+
 
     public Book findById(Long id) {
         Optional<Book> optionalBook = repository.findById(id);

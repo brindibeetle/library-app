@@ -14,6 +14,7 @@ import Logout
 import Welcome
 import BookSelector exposing (..)
 import Library exposing (..)
+import Checkin exposing (..)
 import LibraryAppCDN as LibraryAppCDN
 import Domain.InitFlags exposing (..)
 
@@ -41,6 +42,7 @@ subscriptions _ =
 type Model =
     BookSelector BookSelector.Model Session
     | Library Library.Model Session
+    | Checkin Checkin.Model Session
     | Login Session
     | Logout Session
     | Welcome Session
@@ -106,6 +108,9 @@ view model =
         
                 Library libraryModel session  ->
                     Library.view libraryModel |> Html.map LibraryMsg   
+
+                Checkin checkinModel session  ->
+                    Checkin.view checkinModel |> Html.map CheckinMsg   
             ]
         }
 
@@ -117,6 +122,8 @@ toSession model =
             session
         Library _ session ->
             session
+        Checkin _ session ->
+            session
         Login session ->
             session
         Logout session ->
@@ -125,34 +132,41 @@ toSession model =
             session
 
 
-toModel :  Model -> Session -> Model
-toModel model session =
+toModel :  Model -> Cmd Msg -> Session -> ( Model, Cmd Msg )
+toModel model cmd session =
     case ( session.page, model ) of
         ( WelcomePage, _ ) ->
-            Welcome session
+            ( Welcome session, cmd )
 
         ( BookSelectorPage, BookSelector bookSelectorModel session1 ) ->
-            BookSelector bookSelectorModel session
+            ( BookSelector bookSelectorModel session, cmd )
 
         ( LibraryPage, Library libraryModel session1  ) ->
-            Library libraryModel session
+            ( Library libraryModel session, cmd )
+
+        ( CheckinPage, Checkin checkinModel session1  ) ->
+            ( Checkin checkinModel session, cmd )
 
         ( LoginPage, model1 ) ->
-            Login (toSession model1)
+            ( Login (toSession model1), cmd )
 
         ( LogoutPage, model1 ) ->
-            Logout (toSession model1)
+            ( Logout (toSession model1), cmd )
 
         ( BookSelectorPage, model1 ) ->
-            BookSelector BookSelector.initialModel session
+            ( BookSelector BookSelector.initialModel session, cmd )
 
         ( LibraryPage, model1 ) ->
-            Library Library.initialModel session
+            let
+                ( libraryModel, initialLibraryCmd ) = Library.initialModelCmd session
+            in
+                ( Library libraryModel session, Cmd.batch [ cmd, initialLibraryCmd |> Cmd.map LibraryMsg ] )
 
-
-notFoundView : Html msg
-notFoundView =
-    h3 [] [ text "Oops! The page you requested was not found!" ]
+        ( CheckinPage, model1 ) ->
+            let
+                ( checkinModel, initialCheckinCmd ) = Checkin.initialModelCmd session
+            in
+                ( Checkin checkinModel session, Cmd.batch [ cmd, initialCheckinCmd |> Cmd.map CheckinMsg ] )
 
 
 -- #####
@@ -167,6 +181,7 @@ type Msg
     | MenuMsg Menu.Msg
     | BookSelectorMsg BookSelector.Msg
     | LibraryMsg Library.Msg
+    | CheckinMsg Checkin.Msg
     | LinkClicked UrlRequest
     | UrlChanged Url
 
@@ -176,10 +191,10 @@ update msg model =
     case (msg, model) of
         ( WelcomeMsg subMsg, model1 ) ->
            let
-                ( sessionUpdated, menuCmd ) =
+                ( sessionUpdated, welcomeCmd ) =
                     Welcome.update subMsg (toSession model1)
             in
-                ( toModel model1 sessionUpdated, menuCmd |> Cmd.map WelcomeMsg )
+                toModel model1 (welcomeCmd |> Cmd.map WelcomeMsg) sessionUpdated 
 
         ( LoginMsg subMsg, model1 ) ->
             let
@@ -200,23 +215,28 @@ update msg model =
                 ( sessionUpdated, menuCmd ) =
                     Menu.update subMsg (toSession model1)
             in
-                ( toModel model1 sessionUpdated, menuCmd |> Cmd.map MenuMsg )
+                toModel model1 (menuCmd |> Cmd.map MenuMsg)  sessionUpdated
 
         ( BookSelectorMsg subMsg, BookSelector bookSelectorModel session ) ->
             let
                 bookSelectorUpdated =
                     BookSelector.update subMsg bookSelectorModel session
             in
-                ( toModel (BookSelector bookSelectorUpdated.model bookSelectorUpdated.session) bookSelectorUpdated.session
-                    , bookSelectorUpdated.cmd |> Cmd.map BookSelectorMsg)
+                toModel (BookSelector bookSelectorUpdated.model bookSelectorUpdated.session) (bookSelectorUpdated.cmd |> Cmd.map BookSelectorMsg) bookSelectorUpdated.session
 
         ( LibraryMsg subMsg, Library libraryModel session ) ->
             let
                 libraryUpdated =
                     Library.update subMsg libraryModel session
             in
-                ( toModel (Library libraryUpdated.model libraryUpdated.session) libraryUpdated.session
-                    , libraryUpdated.cmd |> Cmd.map LibraryMsg)
+                toModel (Library libraryUpdated.model libraryUpdated.session) (libraryUpdated.cmd |> Cmd.map LibraryMsg) libraryUpdated.session
+
+        ( CheckinMsg subMsg, Checkin checkinModel session ) ->
+            let
+                checkinUpdated =
+                    Checkin.update subMsg checkinModel session
+            in
+                toModel (Checkin checkinUpdated.model checkinUpdated.session) (checkinUpdated.cmd |> Cmd.map CheckinMsg) checkinUpdated.session
 
         ( LinkClicked _, _ ) ->
             ( model, Cmd.none )
@@ -240,19 +260,5 @@ queryAsFragment url =
 
         _ ->
             url
-
-
-errorResponseToString : { error : OAuth.ErrorCode, errorDescription : Maybe String } -> String
-errorResponseToString { error, errorDescription } =
-    let
-        code =
-            OAuth.errorCodeToString error
-
-        desc =
-            errorDescription
-                |> Maybe.withDefault ""
-                |> String.replace "+" " "
-    in
-    code ++ ": " ++ desc
 
 

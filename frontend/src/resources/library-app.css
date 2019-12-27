@@ -13,11 +13,19 @@ a {
   height: 32rem;
 }
 
+.card-checkout-x {
+  border: 10px solid greenyellow;
+} 
 .card-checkout {
   border: 10px solid red;
 } 
 .text-checkout {
   background-color: red;
+  text-align: center;
+  color: white;
+} 
+.text-checkout-x {
+  background-color: greenyellow;
   text-align: center;
   color: white;
 } 
