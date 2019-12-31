@@ -67,7 +67,7 @@ menuActionsWithAccessToken =
             title = "Your books"
             , description = "Administer your books in the library"
             , imageLink = ""
-            , page = BooksEditorPage
+            , page = BookEditorPage
         }
         , {
             title = "Logout"

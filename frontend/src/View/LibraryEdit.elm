@@ -1,4 +1,4 @@
-module View.SelectorDetailsEdit exposing (..)
+module View.LibraryEdit exposing (..)
 
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -13,27 +13,18 @@ import Bootstrap.Form.Select as Select
 import Bootstrap.Button as Button
 
 import Domain.Checkout exposing (..)
-import Domain.SearchBook exposing (..)
-import Domain.LibraryBook exposing (..)
+-- import Domain.SearchBook exposing (..)
+import Domain.LibraryBook as LibraryBook exposing (..)
 import Session exposing (..)
 import Utils exposing (..)
 import Regex
+import Http
 
 
-
-type alias Config msg =
-    { updateTitle :  String -> msg 
-    , updateAuthors :  String -> msg 
-    , updateDescription :  String -> msg 
-    , updatePublishedDate :  String -> msg 
-    , updateLanguage :  String -> msg
-    , updateOwner : String -> msg
-    , updateLocation : String -> msg
-    , doAction : msg
-    , textAction : String
-    , doActionDisabled : Bool
-    , doCancel : msg
-    , book : LibraryBook
+type alias Config =
+    { book : LibraryBook
+    , doInsert : { visible : Bool }
+    , doUpdate : { visible : Bool }
     }
 
 
@@ -42,7 +33,7 @@ type alias Config msg =
 -- #####
 
 
-view : Config msg -> Html msg
+view : Config -> Html Msg
 view config =
     viewBookDetail config
             
@@ -51,7 +42,7 @@ view config =
             
 
 
-viewBookDetail : Config msg -> Html msg
+viewBookDetail : Config -> Html Msg
 viewBookDetail config =
     let
         { book } = config
@@ -73,44 +64,44 @@ viewBookDetail config =
                 Form.form []
                 [ Form.group []
                     [ Form.label [ ] [ text "Title"]
-                    , Input.text [ Input.id "title", Input.onInput config.updateTitle, Input.value book.title
+                    , Input.text [ Input.id "title", Input.onInput UpdateTitle, Input.value book.title
                         , if titleInputFeedback == "" then Input.success else Input.danger ]
                     , Form.invalidFeedback [] [ text titleInputFeedback ]
                     ]
                 , Form.group []
                     [ Form.label [ ] [ text "Author(s)"]
-                    , Input.text [ Input.id "authors", Input.onInput config.updateAuthors, Input.value book.authors
+                    , Input.text [ Input.id "authors", Input.onInput UpdateAuthors, Input.value book.authors
                         , if authorsInputFeedback == "" then Input.success else Input.danger ]
                     , Form.invalidFeedback [] [ text authorsInputFeedback ]
                     ]
                 , Form.group []
                     [ Form.label [ ] [ text "Description"]
-                    , Textarea.textarea [ Textarea.id "description", Textarea.rows 5, Textarea.onInput config.updateDescription, Textarea.value book.description
+                    , Textarea.textarea [ Textarea.id "description", Textarea.rows 5, Textarea.onInput UpdateDescription, Textarea.value book.description
                         , if descriptionInputFeedback == "" then Textarea.success else Textarea.danger ]
                     , Form.invalidFeedback [] [ text descriptionInputFeedback ]
                     ]
                 , Form.group []
                     [ Form.label [ ] [ text "Published date"]
-                    , Input.text [ Input.id "publishedDate", Input.onInput config.updatePublishedDate, Input.value book.publishedDate
+                    , Input.text [ Input.id "publishedDate", Input.onInput UpdatePublishedDate, Input.value book.publishedDate
                         , if publishedDateInputFeedback == "" then Input.success else Input.danger ]
                     , Form.invalidFeedback [] [ text publishedDateInputFeedback ]
                     ]
                 , Form.group []
                     [ Form.label [ ] [ text "Language"]
-                    , Select.select [ Select.id "language", Select.onChange config.updateLanguage
+                    , Select.select [ Select.id "language", Select.onChange UpdateLanguage
                         , if languageInputFeedback == "" then Select.success else Select.danger ]
                         ( List.map (selectitem book.language) languages )
                     , Form.invalidFeedback [] [ text languageInputFeedback ]
                     ]
                 , Form.group []
                     [ Form.label [ ] [ text "Owner of the book"]
-                    , Input.email [ Input.id "owner", Input.onInput config.updateOwner, Input.value book.owner
+                    , Input.email [ Input.id "owner", Input.onInput UpdateOwner, Input.value book.owner
                         , if ownerInputFeedback == "" then Input.success else Input.danger ]
                     , Form.invalidFeedback [] [ text ownerInputFeedback ]
                     ]
                 , Form.group []
                     [ Form.label [ ] [ text "Location of the book"]
-                    , Select.select [ Select.id "location", Select.onChange config.updateLocation
+                    , Select.select [ Select.id "location", Select.onChange UpdateLocation
                         , if locationInputFeedback == "" then Select.success else Select.danger ]
                         ( List.map (selectitem book.location) locations )
                     , Form.invalidFeedback [] [ text locationInputFeedback ]
@@ -138,13 +129,18 @@ viewBookDetail config =
                                     ]
                                 , Table.td [] 
                                     [ Button.button
-                                        [ Button.outlineSecondary, Button.attrs [ ], Button.onClick config.doCancel ]
+                                        [ Button.outlineSecondary, Button.attrs [ ], Button.onClick DoCancel ]
                                         [ text "Cancel" ]
                                     ]
-                                , Table.td [] 
+                                , Table.td [ Table.cellAttr ( hidden (not config.doInsert.visible) ) ] 
                                     [ Button.button
-                                        [ Button.outlinePrimary, Button.attrs [ ], Button.onClick config.doAction, not(allOk) |> Button.disabled  ]
-                                        [ text "Add to library" ]
+                                        [ Button.outlinePrimary, Button.attrs [ ], Button.onClick DoInsert, not(allOk) |> Button.disabled  ]
+                                        [ text "Insert" ]
+                                    ]
+                                , Table.td [ Table.cellAttr ( hidden (not config.doUpdate.visible) ) ] 
+                                    [ Button.button
+                                        [ Button.outlinePrimary, Button.attrs [ ], Button.onClick DoUpdate, not(allOk) |> Button.disabled  ]
+                                        [ text "Update" ]
                                     ]
                                 , Table.td [] 
                                     [ Button.button
@@ -213,7 +209,123 @@ isObligatory label value =
 
         _ ->
             ""
-            
+
+
+-- #####
+-- #####   UPDATE
+-- #####
+
+
+type Msg =
+        UpdateTitle String
+        | UpdateAuthors String
+        | UpdateDescription String
+        | UpdatePublishedDate String
+        | UpdateLanguage String
+        | UpdateOwner String
+        | UpdateLocation String
+        | DoInsert
+        | DoInserted (Result Http.Error LibraryBook)
+        | DoUpdate
+        | DoUpdated (Result Http.Error String)
+        | DoCancel
+
+
+update : Msg -> Config -> Session -> { model : Config, session : Session, cmd : Cmd Msg } 
+update msg model session =
+    case msg of
+
+        UpdateTitle title ->
+            let
+                book = model.book
+            in
+                { model = { model | book = book |> setTitle title }, session = session, cmd = Cmd.none }
+
+        UpdateAuthors authors ->
+            let
+                book = model.book
+            in
+                { model = { model | book = book |> setAuthors authors }, session = session, cmd = Cmd.none }
+
+        UpdateDescription description ->
+            let
+                book = model.book
+            in
+                { model = { model | book = book |> setDescription description }, session = session, cmd = Cmd.none }
+
+        UpdateLanguage language ->
+            let
+                book = model.book
+            in
+                { model = { model | book = book |> setLanguage language }, session = session, cmd = Cmd.none }
+
+        UpdatePublishedDate publishedDate ->
+            let
+                book = model.book
+            in
+                { model = { model | book = book |> setPublishedDate publishedDate }, session = session, cmd = Cmd.none }
+
+        UpdateOwner owner ->
+            let
+                book = model.book
+            in
+                { model = { model | book = book |> setOwner owner }, session = session, cmd = Cmd.none }
+
+        UpdateLocation location ->
+            let
+                book = model.book
+            in
+                { model = { model | book = book |> setLocation location }, session = session, cmd = Cmd.none }
+
+        DoInsert ->
+            case session.token of
+                Just token ->
+                    let
+                        libraryAppApiCmd = Debug.log " oLibraryBookInsert -> "
+                            LibraryBook.insert DoInserted session token model.book
+                    in
+                        { model = model, session = session, cmd = libraryAppApiCmd }
+                Nothing ->
+                        { model = model, session = session, cmd = Cmd.none }
+
+        DoUpdate ->
+            case session.token of
+                Just token ->
+                    let
+                        libraryAppApiCmd = Debug.log " oLibraryBookUpdate -> "
+                            LibraryBook.update DoUpdated session token model.book
+                    in
+                        { model = model, session = session, cmd = libraryAppApiCmd }
+                Nothing ->
+                        { model = model, session = session, cmd = Cmd.none }
+
+
+        DoInserted (Result.Ok _) ->
+            { model = model
+            , session = Session.succeed session ("The book \"" ++ model.book.title ++ "\" has been added to the library!")
+            , cmd = Cmd.none 
+            }
+
+        DoInserted (Result.Err err) ->
+            { model = model
+            , session = Session.fail session ("The book \"" ++ model.book.title ++ "\" has NOT been added to the library : " ++ buildErrorMessage err)
+            , cmd = Cmd.none
+            }
+
+        DoUpdated (Result.Ok _) ->
+            { model = model
+            , session = Session.succeed session ("The book \"" ++ model.book.title ++ "\" has been updated in the library!")
+            , cmd = Cmd.none 
+            }
+
+        DoUpdated (Result.Err err) ->
+            { model = model
+            , session = Session.fail session ("The book \"" ++ model.book.title ++ "\" has NOT been updated in the library : " ++ buildErrorMessage err)
+            , cmd = Cmd.none
+            }
+                
+        DoCancel ->
+            { model = model, session = session, cmd = Cmd.none }
 
 
 -- #####
@@ -221,43 +333,12 @@ isObligatory label value =
 -- #####
 
 
-actionHtmlCheckout : { maybeCheckout : Maybe Checkout, user : String } -> List (Html msg)
-actionHtmlCheckout { maybeCheckout, user } = 
-    case maybeCheckout of
-        Just checkout ->
-            [ Form.group []
-                [ Form.label [ ] [ text "Checked out at"]
-                , Input.text 
-                    [ Input.value (getNiceTime checkout.dateTimeFrom), Input.disabled True
-                    , Input.danger 
-                    ]
-                ]
-            , Form.group []
-                [ Form.label [ ] [ text "Checked out by"]
-                , Input.text 
-                    [ Input.value checkout.userEmail, Input.disabled True
-                    , Input.danger 
-                    ]
-                ]
-            ]
-
-        Nothing ->
-            [ Form.group []
-                [ Form.label [ ] [ text "Checked out by"]
-                , Input.text 
-                    [ Input.id "checkoutUser", Input.value user, Input.disabled True
-                    ]
-                ]
-            ]
-
-
-
 selectitem : (String) -> (String, String) -> Select.Item msg
 selectitem valueSelected (value1, text1) =
-    case valueSelected == value1 of
-        True ->
-            Select.item [ selected True, value value1 ] [ text text1 ] 
+    if valueSelected == value1
+    then 
+        Select.item [ selected True, value value1 ] [ text text1 ] 
 
-        False ->
-            Select.item [ value value1 ] [ text text1 ] 
+    else
+        Select.item [ value value1 ] [ text text1 ] 
 

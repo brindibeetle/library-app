@@ -22,11 +22,13 @@ public class BookService {
         return repository.findAll();
     }
 
-    public List<Book> findMyBooks() {
-        String userEmail = utilityService.userEmail();
+    public List<Book> findByOwner(String userEmail) {
         return repository.findByOwner(userEmail);
     }
 
+    public Long countByOwner(String userEmail) {
+        return repository.countByOwner(userEmail);
+    }
 
     public Book findById(Long id) {
         Optional<Book> optionalBook = repository.findById(id);

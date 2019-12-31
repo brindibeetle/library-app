@@ -1,6 +1,5 @@
 module Login exposing (..)
 
-import Browser
 import Browser.Navigation as Navigation exposing (..)
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -9,30 +8,17 @@ import Http as Http
 import OAuth
 import OAuth.Implicit exposing (defaultParsers)
 import Url exposing (Protocol(..), Url)
-import Url.Parser.Query as Query
 import Json.Decode as Json
 
 import RemoteData exposing (RemoteData, WebData, succeed)
 
-import Bootstrap.CDN as CDN
-import Bootstrap.Table as Table
-import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input
-import Bootstrap.Form.Select as Select
-import Bootstrap.Form.Checkbox as Checkbox
-import Bootstrap.Form.Radio as Radio
-import Bootstrap.Form.Textarea as Textarea
-import Bootstrap.Form.Fieldset as Fieldset
 import Bootstrap.Button as Button
-import Bootstrap.Card as Card
-import Bootstrap.Text as Text
-import Bootstrap.Card.Block as Block
 
-import Debug as Debug
 
 import Session exposing (..)
 import Utils exposing (..)
 import Domain.User exposing (..)
+import Domain.UserInfo exposing (..)
 
 
 -- #####
@@ -47,12 +33,11 @@ initialLogin session =
             ( {session
               | user = RemoteData.Loading
               }
-            , getUser session token )
+            , Cmd.batch [ getUser session token, getUserInfo session token ] )
 
         Nothing ->
             ( session, Cmd.none )
     
-
 
 type alias OAuthConfiguration =
     { authorizationEndpoint : Url
@@ -129,6 +114,7 @@ redirectUrl session =
 type Msg =
     SignInRequested
     | DoUserReceived (WebData User)
+    | DoUserInfoReceived (WebData UserInfo)
 
 
 update : Msg -> Session -> ( Session, Cmd Msg )
@@ -153,11 +139,11 @@ update msg session =
             )
 
         DoUserReceived response ->
-            let
-                respons1 = Debug.log "Login.update DoUserReceived" response
-            in
-            
             ( { session | user = response }
+            , Cmd.none )
+
+        DoUserInfoReceived response ->
+            ( { session | userInfo = response }
             , Cmd.none )
 
 
@@ -169,14 +155,28 @@ libraryApiBaseUrl session =
 getUser : Session -> OAuth.Token -> Cmd Msg
 getUser session token =
     let
-        a = Debug.log "getUser token" token
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiBaseUrl session) ++ "/user" ++ "?access_token=" ++ puretoken
+        requestUrl = (libraryApiBaseUrl session) ++ "/user" ++ "?access_token=" ++ puretoken
 
     in
         Http.get
-            { url = Debug.log "getUser" requestUrl
+            { url = requestUrl
             , expect =
                 userDecoder
                 |> Http.expectJson (RemoteData.fromResult >> DoUserReceived)
+            }
+
+
+getUserInfo : Session -> OAuth.Token -> Cmd Msg
+getUserInfo session token =
+    let
+        puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
+        requestUrl = (libraryApiBaseUrl session) ++ "/user/info" ++ "?access_token=" ++ puretoken
+
+    in
+        Http.get
+            { url = requestUrl
+            , expect =
+                userInfoDecoder
+                |> Http.expectJson (RemoteData.fromResult >> DoUserInfoReceived)
             }

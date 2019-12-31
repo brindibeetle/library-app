@@ -3,11 +3,7 @@ module View.LibraryDetails exposing (..)
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import Http as Http
--- import OAuth
 
-import RemoteData exposing (WebData)
-import Array exposing (Array)
 
 import Bootstrap.Table as Table
 import Bootstrap.Form as Form
@@ -15,7 +11,6 @@ import Bootstrap.Form.Input as Input
 import Bootstrap.Form.Textarea as Textarea
 import Bootstrap.Form.Select as Select
 import Bootstrap.Button as Button
-import OAuth
 
 import Domain.Checkout exposing (..)
 import Domain.SearchBook exposing (..)
@@ -28,16 +23,16 @@ import Regex
 
 type alias Config msg =
     { userEmail : String
-    , doCheckout : msg
-    , doCheckin : msg
+    , doAction1 : { msg : msg, text : String, disabled : Bool, visible : Bool }
+    , doAction2 : { msg : msg, text : String, disabled : Bool, visible : Bool }
+    , remarks : String
     , doPrevious : msg
     , doNext : msg
     , doCancel : msg
-    , maybeBook : Maybe LibraryBook
+    , libraryBook : LibraryBook
     , maybeCheckout : Maybe Checkout
     , hasPrevious : Bool
     , hasNext : Bool
-    , doActionPrepare : Bool
     }
 
 type Status =
@@ -71,251 +66,99 @@ selectitem valueSelected (value1, text1) =
 viewBookDetail : Config msg -> Html msg
 viewBookDetail config =
     let
-        { maybeBook } = config
+        { libraryBook } = config
     in
-        case maybeBook of
-            Just book ->
-                div [ class "container" ]
-                    [
-                        Form.form []
-                        [ Form.group []
-                            [ Form.label [ ] [ text "Title"]
-                            , Input.text [ Input.value book.title, Input.disabled True ]
-                            ]
-                        , Form.group []
-                            [ Form.label [ ] [ text "Author(s)"]
-                            , Input.text [ Input.value book.authors, Input.disabled True ]
-                            ]
-                        , Form.group []
-                            [ Form.label [ ] [ text "Description"]
-                            , Textarea.textarea [ Textarea.rows 5, Textarea.value book.description, Textarea.disabled ]
-                            ]
-                        , Form.group []
-                            [ Form.label [ ] [ text "Published date"]
-                            , Input.text [ Input.value book.publishedDate, Input.disabled True ]
-                            ]
-                        , Form.group []
-                            [ Form.label [ ] [ text "Language"]
-                            , Input.text [ Input.value (lookup book.language languages), Input.disabled True ]
-                            ]
-                        , Form.group []
-                            [ Form.label [ ] [ text "Location"]
-                            , Input.text [ Input.value (lookup book.location locations), Input.disabled True ]
-                            ]
-                        , Form.group []
-                            [ Form.label [ ] [ text "Owner"]
-                            , Input.text [ Input.value book.owner, Input.disabled True ]
-                            ]
-                        , Form.group []
-                            [ Form.label [ ] [ text "Image of the book"] 
-                            , Table.simpleTable
-                                ( Table.thead [] []
-                                , Table.tbody []
-                                    [ Table.tr []
-                                    [ Table.td [] [ img [ src book.thumbnail ] [] ]
-                                    ]
-                                    ]
-                                )
-                            ]
-                        , viewBookDetailButtons config
-                        ]
+        div [ class "container" ]
+            [
+                Form.form []
+                [ Form.group []
+                    [ Form.label [ ] [ text "Title"]
+                    , Input.text [ Input.value libraryBook.title, Input.disabled True ]
                     ]
-            Nothing ->
-                div [ class "container" ]
-                    [ text "Oeps : BookDetails.elm config.book = Nothing" ]
+                , Form.group []
+                    [ Form.label [ ] [ text "Author(s)"]
+                    , Input.text [ Input.value libraryBook.authors, Input.disabled True ]
+                    ]
+                , Form.group []
+                    [ Form.label [ ] [ text "Description"]
+                    , Textarea.textarea [ Textarea.rows 5, Textarea.value libraryBook.description, Textarea.disabled ]
+                    ]
+                , Form.group []
+                    [ Form.label [ ] [ text "Published date"]
+                    , Input.text [ Input.value libraryBook.publishedDate, Input.disabled True ]
+                    ]
+                , Form.group []
+                    [ Form.label [ ] [ text "Language"]
+                    , Input.text [ Input.value (lookup libraryBook.language languages), Input.disabled True ]
+                    ]
+                , Form.group []
+                    [ Form.label [ ] [ text "Location"]
+                    , Input.text [ Input.value (lookup libraryBook.location locations), Input.disabled True ]
+                    ]
+                , Form.group []
+                    [ Form.label [ ] [ text "Owner"]
+                    , Input.text [ Input.value libraryBook.owner, Input.disabled True ]
+                    ]
+                , Form.group []
+                    [ Form.label [ ] [ text "Image of the book"] 
+                    , Table.simpleTable
+                        ( Table.thead [] []
+                        , Table.tbody []
+                            [ Table.tr []
+                            [ Table.td [] [ img [ src libraryBook.thumbnail ] [] ]
+                            ]
+                            ]
+                        )
+                    ]
+                , viewBookDetailButtons config
+                ]
+            ]
 
 
 viewBookDetailButtons : Config msg -> Html msg
 viewBookDetailButtons config =
-    case ( config.maybeCheckout, config.doActionPrepare ) of
-
-        ( Just checkout, False ) ->  -- Checkin, prepare
-            let
-                a = Debug.log  "viewBookDetailButtons checkout = "  checkout
-            in
-            
-            if checkout.userEmail == config.userEmail then
-                Form.group []
-                    [ Table.simpleTable
-                        ( Table.thead [] [] 
-                        , Table.tbody []
-                            [ Table.tr []
-                                [ Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doPrevious, not(config.hasPrevious) |> Button.disabled ]
-                                        [ text "<" ]
-                                    ]
-                                , Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlineSecondary, Button.attrs [ ], Button.onClick config.doCancel ]
-                                        [ text "Cancel" ]
-                                    ]
-                                , Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlinePrimary, Button.attrs [ ], Button.onClick config.doCheckin ]
-                                        [ text "Check in" ]
-                                    ]
-                                , Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doNext, not(config.hasNext) |> Button.disabled ]
-                                        [ text ">" ]
-                                    ]
-                                ]
-                            , Table.tr [] 
-                                [ Table.td [ Table.cellAttr (colspan 4) ] 
-                                    [ Form.group []
-                                        [ Form.label [ ] [ text ("You checked this book out at " ++ (getNiceTime checkout.dateTimeFrom) ++ ".") ]
-                                        ]
-                                    ]
-                                ]
-                            ]
-                        )
+    Form.group []
+        [ Table.simpleTable
+            ( Table.thead [] [] 
+            , Table.tbody []
+                [ Table.tr []
+                    [ Table.td [] 
+                        [ Button.button
+                            [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doPrevious, not(config.hasPrevious) |> Button.disabled ]
+                            [ text "<" ]
+                        ]
+                    , Table.td [] 
+                        [ Button.button
+                            [ Button.outlineSecondary, Button.attrs [ ], Button.onClick config.doCancel ]
+                            [ text "Cancel" ]
+                        ]
+                    , Table.td [ Table.cellAttr ( hidden (not config.doAction1.visible) ) ] 
+                        [ Button.button
+                            [ Button.outlinePrimary, Button.attrs [ ], Button.onClick config.doAction1.msg, config.doAction1.disabled |> Button.disabled ]
+                            [ text config.doAction1.text ]
+                        ]
+                    , Table.td [ Table.cellAttr ( hidden (not config.doAction2.visible) ) ] 
+                        [ Button.button
+                            [ Button.outlinePrimary, Button.attrs [ ], Button.onClick config.doAction2.msg, config.doAction2.disabled |> Button.disabled ]
+                            [ text config.doAction2.text ]
+                        ]
+                    , Table.td [] 
+                        [ Button.button
+                            [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doNext, not(config.hasNext) |> Button.disabled ]
+                            [ text ">" ]
+                        ]
                     ]
-
-            else                    -- NOT Authorized to Check in
-                Form.group []
-                    [ Table.simpleTable
-                        ( Table.thead [] [] 
-                        , Table.tbody []
-                            [ Table.tr []
-                                [ Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doPrevious, not(config.hasPrevious) |> Button.disabled ]
-                                        [ text "<" ]
-                                    ]
-                                , Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlineSecondary, Button.attrs [ ], Button.onClick config.doCancel ]
-                                        [ text "Cancel" ]
-                                    ]
-                                , Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlinePrimary, Button.attrs [ ], Button.disabled True ]
-                                        [ text "Check out" ]
-                                    ]
-                                , Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doNext, not(config.hasNext) |> Button.disabled ]
-                                        [ text ">" ]
-                                    ]
-                                ]
-                            , Table.tr [] 
-                                [ Table.td [ Table.cellAttr (colspan 4) ] 
-                                    [ Form.group []
-                                        [ Form.label [ ] [ text (checkout.userEmail ++  " checked this book out at " ++ (getNiceTime checkout.dateTimeFrom) ++ ".") ]
-                                        ]
-                                    ]
-                                ]
+                , Table.tr [] 
+                    [ Table.td [ Table.cellAttr (colspan 4) ] 
+                        [ Form.group []
+                            [ Form.label [ ] [ text config.remarks ]
                             ]
-                        )
+                        ]
                     ]
-
-        ( Just checkout, True ) ->  -- Checkin, Confirm
-            Form.group []
-                [ Table.simpleTable
-                    ( Table.thead [] [] 
-                    , Table.tbody []
-                        [ Table.tr []
-                                [ Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doPrevious, Button.disabled True ]
-                                        [ text "<" ]
-                                    ]
-                            , Table.td [] 
-                                [ Button.button
-                                    [ Button.outlineSecondary, Button.attrs [ ], Button.onClick config.doCancel ]
-                                    [ text "Cancel" ]
-                                ]
-                            , Table.td [] 
-                                [ Button.button
-                                    [ Button.outlinePrimary, Button.attrs [ ], Button.onClick config.doCheckin ]
-                                    [ text "Confirm check in" ]
-                                ]
-                                , Table.td [] 
-                                    [ Button.button
-                                        [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doNext, Button.disabled True ]
-                                        [ text ">" ]
-                                    ]
-                            ]
-                        , Table.tr [] 
-                            [ Table.td [ Table.cellAttr (colspan 4) ] 
-                                [ Form.group []
-                                    [ Form.label [ ] [ text ("Checked in by " ++ config.userEmail ++ "." ) ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    )
                 ]
+            )
+        ]
 
-        ( Nothing, False ) ->                   -- Checkout, prepare
-            Form.group []
-                [ Table.simpleTable
-                    ( Table.thead [] [] 
-                    , Table.tbody []
-                        [ Table.tr []
-                            [ Table.td [] 
-                                [ Button.button
-                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doPrevious, not(config.hasPrevious) |> Button.disabled ]
-                                    [ text "<" ]
-                                ]
-                            , Table.td [] 
-                                [ Button.button
-                                    [ Button.outlineSecondary, Button.attrs [ ], Button.onClick config.doCancel ]
-                                    [ text "Cancel" ]
-                                ]
-                            , Table.td [] 
-                                [ Button.button
-                                    [ Button.outlinePrimary, Button.attrs [ ], Button.onClick config.doCheckout ]
-                                    [ text "Check out" ]
-                                ]
-                            , Table.td [] 
-                                [ Button.button
-                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doNext, not(config.hasNext) |> Button.disabled ]
-                                    [ text ">" ]
-                                ]
-                            ]
-                        ]
-                    )
-                ]
-
-        ( Nothing, True ) ->                   -- Checkout, confirm
-            Form.group []
-                [ Table.simpleTable
-                    ( Table.thead [] [] 
-                    , Table.tbody []
-                        [ Table.tr []
-                            [ Table.td [] 
-                                [ Button.button
-                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doPrevious, Button.disabled True ]
-                                    [ text "<" ]
-                                ]
-                            , Table.td [] 
-                                [ Button.button
-                                    [ Button.outlineSecondary, Button.attrs [ ], Button.onClick config.doCancel ]
-                                    [ text "Cancel" ]
-                                ]
-                            , Table.td [] 
-                                [ Button.button
-                                    [ Button.outlinePrimary, Button.attrs [ ], Button.onClick config.doCheckout ]
-                                    [ text "Confirm check out" ]
-                                ]
-                            , Table.td [] 
-                                [ Button.button
-                                    [ Button.outlineInfo, Button.attrs [ ], Button.onClick config.doNext, Button.disabled True ]
-                                    [ text ">" ]
-                                ]
-                            ]
-                        , Table.tr [] 
-                            [ Table.td [ Table.cellAttr (colspan 4) ] 
-                                [ Form.group []
-                                    [ Form.label [ ] [ text ("Checked out by " ++ config.userEmail ++ "." ) ]
-                                    ]
-                                ]
-                            ]
-                        ]
-                    )
-                ]
 
 model2LibraryBook : LibraryBook -> LibraryBook
 model2LibraryBook book =

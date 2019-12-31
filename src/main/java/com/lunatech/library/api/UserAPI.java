@@ -1,6 +1,7 @@
 package com.lunatech.library.api;
 
 import com.lunatech.library.dto.UserDTO;
+import com.lunatech.library.dto.UserInfoDTO;
 import com.lunatech.library.service.UserService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -26,5 +27,13 @@ public class UserAPI {
     public UserDTO getUser() {
         return userService.getUser();
     }
+
+    @GetMapping(path = "/info", produces = "application/json")
+    @ApiOperation(value = "Get the info for the user", response = UserInfoDTO.class)
+    @ResponseBody
+    public UserInfoDTO getUserInfo() {
+        return userService.getUserInfo();
+    }
+
 
 }

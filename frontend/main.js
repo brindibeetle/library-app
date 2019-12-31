@@ -6505,18 +6505,53 @@ var $author$project$Login$getUser = F2(
 			$elm$core$String$dropLeft,
 			7,
 			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var requestUrl = A2(
-			$elm$core$Debug$log,
-			'requestUrl',
-			$author$project$Login$libraryApiBaseUrl(session)) + ('/user' + ('?access_token=' + puretoken));
-		var a = A2($elm$core$Debug$log, 'getUser token', token);
+		var requestUrl = $author$project$Login$libraryApiBaseUrl(session) + ('/user' + ('?access_token=' + puretoken));
 		return $elm$http$Http$get(
 			{
 				expect: A2(
 					$elm$http$Http$expectJson,
 					A2($elm$core$Basics$composeR, $krisajenkins$remotedata$RemoteData$fromResult, $author$project$Login$DoUserReceived),
 					$author$project$Domain$User$userDecoder),
-				url: A2($elm$core$Debug$log, 'getUser', requestUrl)
+				url: requestUrl
+			});
+	});
+var $author$project$Login$DoUserInfoReceived = function (a) {
+	return {$: 'DoUserInfoReceived', a: a};
+};
+var $author$project$Domain$UserInfo$UserInfo = F3(
+	function (name, numberBooks, numberCheckouts) {
+		return {name: name, numberBooks: numberBooks, numberCheckouts: numberCheckouts};
+	});
+var $elm$json$Json$Decode$int = _Json_decodeInt;
+var $author$project$Domain$UserInfo$userInfoDecoder = A4(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+	'numberCheckouts',
+	$elm$json$Json$Decode$int,
+	0,
+	A4(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
+		'numberBooks',
+		$elm$json$Json$Decode$int,
+		0,
+		A3(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$required,
+			'name',
+			$elm$json$Json$Decode$string,
+			$elm$json$Json$Decode$succeed($author$project$Domain$UserInfo$UserInfo))));
+var $author$project$Login$getUserInfo = F2(
+	function (session, token) {
+		var puretoken = A2(
+			$elm$core$String$dropLeft,
+			7,
+			$truqu$elm_oauth2$OAuth$tokenToString(token));
+		var requestUrl = $author$project$Login$libraryApiBaseUrl(session) + ('/user/info' + ('?access_token=' + puretoken));
+		return $elm$http$Http$get(
+			{
+				expect: A2(
+					$elm$http$Http$expectJson,
+					A2($elm$core$Basics$composeR, $krisajenkins$remotedata$RemoteData$fromResult, $author$project$Login$DoUserInfoReceived),
+					$author$project$Domain$UserInfo$userInfoDecoder),
+				url: requestUrl
 			});
 	});
 var $elm$core$Platform$Cmd$none = $elm$core$Platform$Cmd$batch(_List_Nil);
@@ -6528,7 +6563,12 @@ var $author$project$Login$initialLogin = function (session) {
 			_Utils_update(
 				session,
 				{user: $krisajenkins$remotedata$RemoteData$Loading}),
-			A2($author$project$Login$getUser, session, token));
+			$elm$core$Platform$Cmd$batch(
+				_List_fromArray(
+					[
+						A2($author$project$Login$getUser, session, token),
+						A2($author$project$Login$getUserInfo, session, token)
+					])));
 	} else {
 		return _Utils_Tuple2(session, $elm$core$Platform$Cmd$none);
 	}
@@ -6538,7 +6578,7 @@ var $krisajenkins$remotedata$RemoteData$NotAsked = {$: 'NotAsked'};
 var $author$project$Session$WelcomePage = {$: 'WelcomePage'};
 var $author$project$Session$initialSession = F3(
 	function (token, navbarState, initFlags) {
-		return {initFlags: initFlags, message: $author$project$Session$Empty, navbarState: navbarState, page: $author$project$Session$WelcomePage, token: token, user: $krisajenkins$remotedata$RemoteData$NotAsked};
+		return {initFlags: initFlags, message: $author$project$Session$Empty, navbarState: navbarState, page: $author$project$Session$WelcomePage, token: token, user: $krisajenkins$remotedata$RemoteData$NotAsked, userInfo: $krisajenkins$remotedata$RemoteData$NotAsked};
 	});
 var $author$project$Menu$NavbarMsg = function (a) {
 	return {$: 'NavbarMsg', a: a};
@@ -6584,10 +6624,6 @@ var $author$project$Menu$initialState = $rundis$elm_bootstrap$Bootstrap$Navbar$i
 var $elm$core$Platform$Cmd$map = _Platform_map;
 var $author$project$Main$initialState = F2(
 	function (maybeToken, flags) {
-		var a = A2(
-			$elm$core$Debug$log,
-			'initialState',
-			$author$project$Domain$InitFlags$getInitFlags(flags));
 		var _v0 = $author$project$Menu$initialState;
 		var navbarState = _v0.a;
 		var menuCmd = _v0.b;
@@ -7132,19 +7168,19 @@ var $elm$core$Platform$Sub$none = $elm$core$Platform$Sub$batch(_List_Nil);
 var $author$project$Main$subscriptions = function (_v0) {
 	return $elm$core$Platform$Sub$none;
 };
+var $author$project$Main$BookEditor = F2(
+	function (a, b) {
+		return {$: 'BookEditor', a: a, b: b};
+	});
+var $author$project$Main$BookEditorMsg = function (a) {
+	return {$: 'BookEditorMsg', a: a};
+};
 var $author$project$Main$BookSelector = F2(
 	function (a, b) {
 		return {$: 'BookSelector', a: a, b: b};
 	});
 var $author$project$Main$BookSelectorMsg = function (a) {
 	return {$: 'BookSelectorMsg', a: a};
-};
-var $author$project$Main$BooksEditor = F2(
-	function (a, b) {
-		return {$: 'BooksEditor', a: a, b: b};
-	});
-var $author$project$Main$BooksEditorMsg = function (a) {
-	return {$: 'BooksEditorMsg', a: a};
 };
 var $author$project$Main$Checkin = F2(
 	function (a, b) {
@@ -7184,29 +7220,78 @@ var $author$project$BookSelector$Tiles = {$: 'Tiles'};
 var $author$project$BookSelector$UpdateSearchAuthor = function (a) {
 	return {$: 'UpdateSearchAuthor', a: a};
 };
+var $author$project$BookSelector$UpdateSearchIsbn = function (a) {
+	return {$: 'UpdateSearchIsbn', a: a};
+};
 var $author$project$BookSelector$UpdateSearchString = function (a) {
 	return {$: 'UpdateSearchString', a: a};
 };
 var $author$project$BookSelector$UpdateSearchTitle = function (a) {
 	return {$: 'UpdateSearchTitle', a: a};
 };
+var $author$project$Domain$LibraryBook$emptyLibrarybook = {authors: '', description: '', id: 0, language: '', location: '', owner: '', publishedDate: '', smallThumbnail: '', thumbnail: '', title: ''};
 var $author$project$BookSelector$initialModel = {
-	bookDetailsEdit: $elm$core$Maybe$Nothing,
+	bookDetailsEdit: {
+		book: $author$project$Domain$LibraryBook$emptyLibrarybook,
+		doInsert: {visible: true},
+		doUpdate: {visible: false}
+	},
 	bookView: $author$project$BookSelector$Tiles,
 	bookdetails: {actionHtml: _List_Nil, doAction: $author$project$BookSelector$DoAddToLibrary, doActionDisabled: false, doCancel: $author$project$BookSelector$DoCancel, doNext: $author$project$BookSelector$DoNext, doPrevious: $author$project$BookSelector$DoPrevious, hasNext: false, hasPrevious: false, maybeBook: $elm$core$Maybe$Nothing, textAction: 'Add to library'},
-	booktiles: {books: $krisajenkins$remotedata$RemoteData$NotAsked, doAction: $author$project$BookSelector$DoDetail, doSearch: $author$project$BookSelector$DoSearch, searchAuthors: '', searchString: '', searchTitle: '', updateSearchAuthor: $author$project$BookSelector$UpdateSearchAuthor, updateSearchString: $author$project$BookSelector$UpdateSearchString, updateSearchTitle: $author$project$BookSelector$UpdateSearchTitle},
+	booktiles: {books: $krisajenkins$remotedata$RemoteData$NotAsked, doAction: $author$project$BookSelector$DoDetail, doSearch: $author$project$BookSelector$DoSearch, searchAuthors: '', searchIsbn: 0, searchString: '', searchTitle: '', updateSearchAuthor: $author$project$BookSelector$UpdateSearchAuthor, updateSearchIsbn: $author$project$BookSelector$UpdateSearchIsbn, updateSearchString: $author$project$BookSelector$UpdateSearchString, updateSearchTitle: $author$project$BookSelector$UpdateSearchTitle},
 	searchbooks: $krisajenkins$remotedata$RemoteData$NotAsked
 };
-var $author$project$BooksEditor$Library = function (a) {
-	return {$: 'Library', a: a};
+var $author$project$BookEditor$LibraryTilesMsg = function (a) {
+	return {$: 'LibraryTilesMsg', a: a};
 };
-var $author$project$BooksEditor$LibraryMsg = function (a) {
-	return {$: 'LibraryMsg', a: a};
+var $author$project$Session$getUser = function (session) {
+	var _v0 = session.user;
+	if (_v0.$ === 'Success') {
+		var user1 = _v0.a;
+		return user1.email;
+	} else {
+		return 'Not found';
+	}
 };
-var $author$project$Library$DoBooksReceived = function (a) {
+var $author$project$BookEditor$DoCancel = {$: 'DoCancel'};
+var $author$project$BookEditor$DoDelete = {$: 'DoDelete'};
+var $author$project$BookEditor$DoNext = {$: 'DoNext'};
+var $author$project$BookEditor$DoPrevious = {$: 'DoPrevious'};
+var $author$project$BookEditor$DoUpdate = {$: 'DoUpdate'};
+var $author$project$BookEditor$Tiles = {$: 'Tiles'};
+var $author$project$View$LibraryTiles$intialConfig = function (userEmail) {
+	return {books: $krisajenkins$remotedata$RemoteData$NotAsked, checkouts: $krisajenkins$remotedata$RemoteData$NotAsked, checkoutsDistributed: $krisajenkins$remotedata$RemoteData$NotAsked, searchAuthors: '', searchCheckStatus: '', searchCheckoutUser: '', searchLocation: '', searchOwner: '', searchTitle: '', showSearchAuthors: false, showSearchCheckStatus: false, showSearchCheckoutUser: false, showSearchLocation: false, showSearchOwner: false, showSearchTitle: false, userEmail: userEmail};
+};
+var $author$project$BookEditor$initialModel = function (userEmail) {
+	return {
+		bookView: $author$project$BookEditor$Tiles,
+		bookdetails: {
+			doAction1: {disabled: false, msg: $author$project$BookEditor$DoDelete, text: 'Delete', visible: true},
+			doAction2: {disabled: false, msg: $author$project$BookEditor$DoUpdate, text: 'Update', visible: true},
+			doCancel: $author$project$BookEditor$DoCancel,
+			doNext: $author$project$BookEditor$DoNext,
+			doPrevious: $author$project$BookEditor$DoPrevious,
+			hasNext: false,
+			hasPrevious: false,
+			libraryBook: $author$project$Domain$LibraryBook$emptyLibrarybook,
+			maybeCheckout: $elm$core$Maybe$Nothing,
+			remarks: '',
+			userEmail: userEmail
+		},
+		bookedit: {
+			book: $author$project$Domain$LibraryBook$emptyLibrarybook,
+			doInsert: {visible: false},
+			doUpdate: {visible: true}
+		},
+		booktiles: $author$project$View$LibraryTiles$intialConfig(userEmail),
+		checkouts: $krisajenkins$remotedata$RemoteData$NotAsked,
+		librarybooks: $krisajenkins$remotedata$RemoteData$NotAsked
+	};
+};
+var $author$project$View$LibraryTiles$DoBooksReceived = function (a) {
 	return {$: 'DoBooksReceived', a: a};
 };
-var $author$project$Library$DoCheckoutsReceived = function (a) {
+var $author$project$View$LibraryTiles$DoCheckoutsReceived = function (a) {
 	return {$: 'DoCheckoutsReceived', a: a};
 };
 var $author$project$Domain$LibraryBook$libraryApiBooksUrl = function (session) {
@@ -7234,7 +7319,6 @@ var $author$project$Domain$LibraryBook$LibraryBook = function (id) {
 		};
 	};
 };
-var $elm$json$Json$Decode$int = _Json_decodeInt;
 var $author$project$Domain$LibraryBook$libraryBookDecoder = A4(
 	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optional,
 	'location',
@@ -8130,76 +8214,37 @@ var $author$project$Domain$Checkout$getCheckoutsCurrent = F3(
 				url: requestUrl
 			});
 	});
-var $author$project$Library$doSearch = F2(
+var $author$project$View$LibraryTiles$doSearch = F2(
 	function (model, session) {
 		var _v0 = session.token;
 		if (_v0.$ === 'Just') {
 			var token = _v0.a;
-			var booktiles = model.booktiles;
-			var booktiles1 = _Utils_update(
-				booktiles,
-				{books: $krisajenkins$remotedata$RemoteData$Loading});
 			return {
 				cmd: $elm$core$Platform$Cmd$batch(
 					_List_fromArray(
 						[
-							A3($author$project$Domain$LibraryBook$getBooks, $author$project$Library$DoBooksReceived, session, token),
-							A3($author$project$Domain$Checkout$getCheckoutsCurrent, $author$project$Library$DoCheckoutsReceived, session, token)
+							A3($author$project$Domain$LibraryBook$getBooks, $author$project$View$LibraryTiles$DoBooksReceived, session, token),
+							A3($author$project$Domain$Checkout$getCheckoutsCurrent, $author$project$View$LibraryTiles$DoCheckoutsReceived, session, token)
 						])),
 				model: _Utils_update(
 					model,
-					{booktiles: booktiles1, checkouts: $krisajenkins$remotedata$RemoteData$Loading, librarybooks: $krisajenkins$remotedata$RemoteData$Loading}),
+					{books: $krisajenkins$remotedata$RemoteData$Loading, checkouts: $krisajenkins$remotedata$RemoteData$Loading}),
 				session: session
 			};
 		} else {
 			return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
 		}
 	});
-var $author$project$Session$getUser = function (session) {
-	var _v0 = session.user;
-	if (_v0.$ === 'Success') {
-		var user1 = _v0.a;
-		return user1.email;
-	} else {
-		return 'Not found';
-	}
-};
-var $author$project$Library$DoCancel = {$: 'DoCancel'};
-var $author$project$Library$DoCheckin = {$: 'DoCheckin'};
-var $author$project$Library$DoCheckout = {$: 'DoCheckout'};
-var $author$project$Library$DoDetail = function (a) {
-	return {$: 'DoDetail', a: a};
-};
-var $author$project$Library$DoNext = {$: 'DoNext'};
-var $author$project$Library$DoPrevious = {$: 'DoPrevious'};
-var $author$project$Library$DoSearch = {$: 'DoSearch'};
-var $author$project$Library$Tiles = {$: 'Tiles'};
-var $author$project$Library$UpdateSearchAuthors = function (a) {
-	return {$: 'UpdateSearchAuthors', a: a};
-};
-var $author$project$Library$UpdateSearchCheckStatus = function (a) {
-	return {$: 'UpdateSearchCheckStatus', a: a};
-};
-var $author$project$Library$UpdateSearchCheckoutUser = function (a) {
-	return {$: 'UpdateSearchCheckoutUser', a: a};
-};
-var $author$project$Library$UpdateSearchLocation = function (a) {
-	return {$: 'UpdateSearchLocation', a: a};
-};
-var $author$project$Library$UpdateSearchOwner = function (a) {
-	return {$: 'UpdateSearchOwner', a: a};
-};
-var $author$project$Library$UpdateSearchTitle = function (a) {
-	return {$: 'UpdateSearchTitle', a: a};
-};
-var $author$project$Library$initialModel = function (userEmail) {
-	return {
-		bookView: $author$project$Library$Tiles,
-		bookdetails: {doActionPrepare: false, doCancel: $author$project$Library$DoCancel, doCheckin: $author$project$Library$DoCheckin, doCheckout: $author$project$Library$DoCheckout, doNext: $author$project$Library$DoNext, doPrevious: $author$project$Library$DoPrevious, hasNext: false, hasPrevious: false, maybeBook: $elm$core$Maybe$Nothing, maybeCheckout: $elm$core$Maybe$Nothing, userEmail: userEmail},
-		booktiles: {books: $krisajenkins$remotedata$RemoteData$NotAsked, checkouts: $krisajenkins$remotedata$RemoteData$NotAsked, doAction: $author$project$Library$DoDetail, doSearch: $author$project$Library$DoSearch, searchAuthors: '', searchCheckStatus: '', searchCheckoutUser: '', searchLocation: '', searchOwner: '', searchTitle: '', showSearchAuthors: true, showSearchCheckStatus: true, showSearchCheckoutUser: true, showSearchLocation: true, showSearchOwner: true, showSearchTitle: true, updateSearchAuthors: $author$project$Library$UpdateSearchAuthors, updateSearchCheckStatus: $author$project$Library$UpdateSearchCheckStatus, updateSearchCheckoutUser: $author$project$Library$UpdateSearchCheckoutUser, updateSearchLocation: $author$project$Library$UpdateSearchLocation, updateSearchOwner: $author$project$Library$UpdateSearchOwner, updateSearchTitle: $author$project$Library$UpdateSearchTitle, userEmail: userEmail},
-		checkouts: $krisajenkins$remotedata$RemoteData$NotAsked,
-		librarybooks: $krisajenkins$remotedata$RemoteData$NotAsked
-	};
+var $author$project$View$LibraryTiles$initialModelCmd = function (session1) {
+	var _v0 = A2(
+		$author$project$View$LibraryTiles$doSearch,
+		$author$project$View$LibraryTiles$intialConfig(
+			$author$project$Session$getUser(session1)),
+		session1);
+	var model = _v0.model;
+	var session = _v0.session;
+	var cmd = _v0.cmd;
+	return _Utils_Tuple2(model, cmd);
 };
 var $author$project$View$LibraryTiles$setSearch = F2(
 	function (_v0, config) {
@@ -8225,102 +8270,125 @@ var $author$project$View$LibraryTiles$setShowSearch = F2(
 			config,
 			{showSearchAuthors: authors, showSearchCheckStatus: checkStatus, showSearchCheckoutUser: checkoutUser, showSearchLocation: location, showSearchOwner: owner, showSearchTitle: title});
 	});
-var $author$project$BooksEditor$toModel = function (model) {
-	var libraryModel = model.a;
-	return libraryModel;
-};
-var $author$project$BooksEditor$model2BooksEditor = function (model) {
-	var libraryModel = $author$project$BooksEditor$toModel(model);
-	var booktiles = libraryModel.booktiles;
-	var userEmail = booktiles.userEmail;
-	return $author$project$BooksEditor$Library(
-		_Utils_update(
-			libraryModel,
-			{
-				booktiles: A2(
-					$author$project$View$LibraryTiles$setSearch,
-					{authors: '', checkStatus: '', checkoutUser: '', location: '', owner: userEmail, title: ''},
-					A2(
-						$author$project$View$LibraryTiles$setShowSearch,
-						{authors: true, checkStatus: false, checkoutUser: false, location: true, owner: false, title: true},
-						booktiles))
-			}));
-};
-var $author$project$BooksEditor$initialModel = function (userEmail) {
-	return $author$project$BooksEditor$model2BooksEditor(
-		$author$project$BooksEditor$Library(
-			$author$project$Library$initialModel(userEmail)));
-};
-var $author$project$BooksEditor$initialModelCmd = function (session1) {
-	var _v0 = A2(
-		$author$project$Library$doSearch,
-		$author$project$BooksEditor$toModel(
-			$author$project$BooksEditor$initialModel(
-				$author$project$Session$getUser(session1))),
-		session1);
-	var model = _v0.model;
-	var session = _v0.session;
-	var cmd = _v0.cmd;
+var $author$project$BookEditor$initialModelCmd = function (session1) {
+	var userEmail = $author$project$Session$getUser(session1);
+	var model = $author$project$BookEditor$initialModel(
+		$author$project$Session$getUser(session1));
+	var _v0 = $author$project$View$LibraryTiles$initialModelCmd(session1);
+	var booktiles = _v0.a;
+	var cmd = _v0.b;
+	var model1 = _Utils_update(
+		model,
+		{
+			booktiles: A2(
+				$author$project$View$LibraryTiles$setSearch,
+				{authors: '', checkStatus: '', checkoutUser: '', location: '', owner: userEmail, title: ''},
+				A2(
+					$author$project$View$LibraryTiles$setShowSearch,
+					{authors: true, checkStatus: false, checkoutUser: false, location: true, owner: false, title: true},
+					booktiles))
+		});
 	return _Utils_Tuple2(
-		$author$project$BooksEditor$Library(model),
-		A2($elm$core$Platform$Cmd$map, $author$project$BooksEditor$LibraryMsg, cmd));
+		model1,
+		A2($elm$core$Platform$Cmd$map, $author$project$BookEditor$LibraryTilesMsg, cmd));
 };
-var $author$project$Checkin$Library = function (a) {
-	return {$: 'Library', a: a};
+var $author$project$Checkin$LibraryTilesMsg = function (a) {
+	return {$: 'LibraryTilesMsg', a: a};
 };
-var $author$project$Checkin$LibraryMsg = function (a) {
-	return {$: 'LibraryMsg', a: a};
-};
-var $author$project$Checkin$toModel = function (model) {
-	var libraryModel = model.a;
-	return libraryModel;
-};
-var $author$project$Checkin$model2Checkin = function (model) {
-	var libraryModel = $author$project$Checkin$toModel(model);
-	var booktiles = libraryModel.booktiles;
-	var userEmail = booktiles.userEmail;
-	return $author$project$Checkin$Library(
-		_Utils_update(
-			libraryModel,
-			{
-				booktiles: A2(
-					$author$project$View$LibraryTiles$setSearch,
-					{authors: '', checkStatus: 'checkedout', checkoutUser: userEmail, location: '', owner: '', title: ''},
-					A2(
-						$author$project$View$LibraryTiles$setShowSearch,
-						{authors: false, checkStatus: false, checkoutUser: false, location: false, owner: false, title: false},
-						booktiles))
-			}));
-};
+var $author$project$Checkin$DoCancel = {$: 'DoCancel'};
+var $author$project$Checkin$DoCheckout = {$: 'DoCheckout'};
+var $author$project$Checkin$DoNext = {$: 'DoNext'};
+var $author$project$Checkin$DoPrevious = {$: 'DoPrevious'};
+var $author$project$Checkin$Tiles = {$: 'Tiles'};
 var $author$project$Checkin$initialModel = function (userEmail) {
-	return $author$project$Checkin$model2Checkin(
-		$author$project$Checkin$Library(
-			$author$project$Library$initialModel(userEmail)));
+	return {
+		bookView: $author$project$Checkin$Tiles,
+		bookdetails: {
+			doAction1: {disabled: false, msg: $author$project$Checkin$DoCheckout, text: 'Checkout', visible: true},
+			doAction2: {disabled: false, msg: $author$project$Checkin$DoCheckout, text: '', visible: false},
+			doCancel: $author$project$Checkin$DoCancel,
+			doNext: $author$project$Checkin$DoNext,
+			doPrevious: $author$project$Checkin$DoPrevious,
+			hasNext: false,
+			hasPrevious: false,
+			libraryBook: $author$project$Domain$LibraryBook$emptyLibrarybook,
+			maybeCheckout: $elm$core$Maybe$Nothing,
+			remarks: '',
+			userEmail: userEmail
+		},
+		booktiles: $author$project$View$LibraryTiles$intialConfig(userEmail),
+		checkouts: $krisajenkins$remotedata$RemoteData$NotAsked,
+		librarybooks: $krisajenkins$remotedata$RemoteData$NotAsked
+	};
 };
 var $author$project$Checkin$initialModelCmd = function (session1) {
-	var _v0 = A2(
-		$author$project$Library$doSearch,
-		$author$project$Checkin$toModel(
-			$author$project$Checkin$initialModel(
-				$author$project$Session$getUser(session1))),
-		session1);
-	var model = _v0.model;
-	var session = _v0.session;
-	var cmd = _v0.cmd;
+	var userEmail = $author$project$Session$getUser(session1);
+	var model = $author$project$Checkin$initialModel(
+		$author$project$Session$getUser(session1));
+	var _v0 = $author$project$View$LibraryTiles$initialModelCmd(session1);
+	var booktiles = _v0.a;
+	var cmd = _v0.b;
+	var model1 = _Utils_update(
+		model,
+		{
+			booktiles: A2(
+				$author$project$View$LibraryTiles$setSearch,
+				{authors: '', checkStatus: 'checkedout', checkoutUser: userEmail, location: '', owner: '', title: ''},
+				A2(
+					$author$project$View$LibraryTiles$setShowSearch,
+					{authors: false, checkStatus: false, checkoutUser: false, location: false, owner: false, title: false},
+					booktiles))
+		});
 	return _Utils_Tuple2(
-		$author$project$Checkin$Library(model),
-		A2($elm$core$Platform$Cmd$map, $author$project$Checkin$LibraryMsg, cmd));
+		model1,
+		A2($elm$core$Platform$Cmd$map, $author$project$Checkin$LibraryTilesMsg, cmd));
+};
+var $author$project$Library$LibraryTilesMsg = function (a) {
+	return {$: 'LibraryTilesMsg', a: a};
+};
+var $author$project$Library$DoCancel = {$: 'DoCancel'};
+var $author$project$Library$DoCheckout = {$: 'DoCheckout'};
+var $author$project$Library$DoNext = {$: 'DoNext'};
+var $author$project$Library$DoPrevious = {$: 'DoPrevious'};
+var $author$project$Library$Tiles = {$: 'Tiles'};
+var $author$project$Library$initialModel = function (userEmail) {
+	return {
+		bookView: $author$project$Library$Tiles,
+		bookdetails: {
+			doAction1: {disabled: false, msg: $author$project$Library$DoCheckout, text: 'Checkout', visible: true},
+			doAction2: {disabled: false, msg: $author$project$Library$DoCheckout, text: 'Checkout', visible: false},
+			doCancel: $author$project$Library$DoCancel,
+			doNext: $author$project$Library$DoNext,
+			doPrevious: $author$project$Library$DoPrevious,
+			hasNext: false,
+			hasPrevious: false,
+			libraryBook: $author$project$Domain$LibraryBook$emptyLibrarybook,
+			maybeCheckout: $elm$core$Maybe$Nothing,
+			remarks: '',
+			userEmail: userEmail
+		},
+		booktiles: $author$project$View$LibraryTiles$intialConfig(userEmail),
+		checkouts: $krisajenkins$remotedata$RemoteData$NotAsked,
+		librarybooks: $krisajenkins$remotedata$RemoteData$NotAsked
+	};
 };
 var $author$project$Library$initialModelCmd = function (session1) {
-	var _v0 = A2(
-		$author$project$Library$doSearch,
-		$author$project$Library$initialModel(
-			$author$project$Session$getUser(session1)),
-		session1);
-	var model = _v0.model;
-	var session = _v0.session;
-	var cmd = _v0.cmd;
-	return _Utils_Tuple2(model, cmd);
+	var model = $author$project$Library$initialModel(
+		$author$project$Session$getUser(session1));
+	var _v0 = $author$project$View$LibraryTiles$initialModelCmd(session1);
+	var booktiles = _v0.a;
+	var cmd = _v0.b;
+	var model1 = _Utils_update(
+		model,
+		{
+			booktiles: A2(
+				$author$project$View$LibraryTiles$setShowSearch,
+				{authors: true, checkStatus: true, checkoutUser: true, location: true, owner: true, title: true},
+				booktiles)
+		});
+	return _Utils_Tuple2(
+		model1,
+		A2($elm$core$Platform$Cmd$map, $author$project$Library$LibraryTilesMsg, cmd));
 };
 var $author$project$Main$toSession = function (model) {
 	switch (model.$) {
@@ -8333,7 +8401,7 @@ var $author$project$Main$toSession = function (model) {
 		case 'Checkin':
 			var session = model.b;
 			return session;
-		case 'BooksEditor':
+		case 'BookEditor':
 			var session = model.b;
 			return session;
 		case 'Login':
@@ -8435,35 +8503,35 @@ var $author$project$Main$toModel = F3(
 								])));
 				}
 			default:
-				if (_v0.b.$ === 'BooksEditor') {
+				if (_v0.b.$ === 'BookEditor') {
 					var _v8 = _v0.a;
 					var _v9 = _v0.b;
-					var booksEditorModel = _v9.a;
+					var bookEditorModel = _v9.a;
 					var session1 = _v9.b;
 					return _Utils_Tuple2(
-						A2($author$project$Main$BooksEditor, booksEditorModel, session),
+						A2($author$project$Main$BookEditor, bookEditorModel, session),
 						cmd);
 				} else {
 					var _v17 = _v0.a;
 					var model1 = _v0.b;
-					var _v18 = $author$project$BooksEditor$initialModelCmd(session);
-					var booksEditorModel = _v18.a;
-					var initialBooksEditorCmd = _v18.b;
+					var _v18 = $author$project$BookEditor$initialModelCmd(session);
+					var bookEditorModel = _v18.a;
+					var initialBookEditorCmd = _v18.b;
 					return _Utils_Tuple2(
-						A2($author$project$Main$BooksEditor, booksEditorModel, session),
+						A2($author$project$Main$BookEditor, bookEditorModel, session),
 						$elm$core$Platform$Cmd$batch(
 							_List_fromArray(
 								[
 									cmd,
-									A2($elm$core$Platform$Cmd$map, $author$project$Main$BooksEditorMsg, initialBooksEditorCmd)
+									A2($elm$core$Platform$Cmd$map, $author$project$Main$BookEditorMsg, initialBookEditorCmd)
 								])));
 				}
 		}
 	});
-var $author$project$BookSelector$DetailsEdit = function (a) {
-	return {$: 'DetailsEdit', a: a};
+var $author$project$BookEditor$LibraryEditMsg = function (a) {
+	return {$: 'LibraryEditMsg', a: a};
 };
-var $author$project$BookSelector$Details = function (a) {
+var $author$project$BookEditor$Details = function (a) {
 	return {$: 'Details', a: a};
 };
 var $elm$core$Bitwise$and = _Bitwise_and;
@@ -8511,757 +8579,6 @@ var $elm$core$Array$get = F2(
 var $elm$core$Array$length = function (_v0) {
 	var len = _v0.a;
 	return len;
-};
-var $author$project$BookSelector$doIndex = F2(
-	function (model, index) {
-		var _v0 = model.booktiles.books;
-		if (_v0.$ === 'Success') {
-			var actualBooks = _v0.a;
-			var maybeBook = A2($elm$core$Array$get, index, actualBooks);
-			var doActionDisabled = false;
-			var bookdetails = model.bookdetails;
-			var actionHtml = _List_Nil;
-			var bookdetails1 = _Utils_update(
-				bookdetails,
-				{
-					actionHtml: actionHtml,
-					doActionDisabled: doActionDisabled,
-					hasNext: _Utils_cmp(
-						index + 1,
-						$elm$core$Array$length(actualBooks)) < 0,
-					hasPrevious: index > 0,
-					maybeBook: maybeBook
-				});
-			return _Utils_update(
-				model,
-				{
-					bookView: $author$project$BookSelector$Details(index),
-					bookdetails: bookdetails1
-				});
-		} else {
-			return model;
-		}
-	});
-var $author$project$BookSelector$DoLibraryBookInsert = {$: 'DoLibraryBookInsert'};
-var $author$project$BookSelector$UpdateAuthors = function (a) {
-	return {$: 'UpdateAuthors', a: a};
-};
-var $author$project$BookSelector$UpdateDescription = function (a) {
-	return {$: 'UpdateDescription', a: a};
-};
-var $author$project$BookSelector$UpdateLanguage = function (a) {
-	return {$: 'UpdateLanguage', a: a};
-};
-var $author$project$BookSelector$UpdateLocation = function (a) {
-	return {$: 'UpdateLocation', a: a};
-};
-var $author$project$BookSelector$UpdateOwner = function (a) {
-	return {$: 'UpdateOwner', a: a};
-};
-var $author$project$BookSelector$UpdatePublishedDate = function (a) {
-	return {$: 'UpdatePublishedDate', a: a};
-};
-var $author$project$BookSelector$UpdateTitle = function (a) {
-	return {$: 'UpdateTitle', a: a};
-};
-var $author$project$Domain$LibraryBook$emptyLibrarybook = {authors: '', description: '', id: 0, language: '', location: '', owner: '', publishedDate: '', smallThumbnail: '', thumbnail: '', title: ''};
-var $author$project$Domain$LibraryBook$searchbook2librarybook = function (searchbook) {
-	return {authors: searchbook.authors, description: searchbook.description, id: 0, language: searchbook.language, location: '', owner: '', publishedDate: searchbook.publishedDate, smallThumbnail: searchbook.smallThumbnail, thumbnail: searchbook.thumbnail, title: searchbook.title};
-};
-var $author$project$Domain$LibraryBook$setOwner = F2(
-	function (owner, libraryBook) {
-		return _Utils_update(
-			libraryBook,
-			{owner: owner});
-	});
-var $author$project$BookSelector$initialBookDetailsEdit = F2(
-	function (searchBook, user) {
-		return {
-			book: function () {
-				if (searchBook.$ === 'Just') {
-					var actualSearchBook = searchBook.a;
-					return A2(
-						$author$project$Domain$LibraryBook$setOwner,
-						user,
-						$author$project$Domain$LibraryBook$searchbook2librarybook(actualSearchBook));
-				} else {
-					return $author$project$Domain$LibraryBook$emptyLibrarybook;
-				}
-			}(),
-			doAction: $author$project$BookSelector$DoLibraryBookInsert,
-			doActionDisabled: true,
-			doCancel: $author$project$BookSelector$DoCancel,
-			textAction: 'Add to library',
-			updateAuthors: $author$project$BookSelector$UpdateAuthors,
-			updateDescription: $author$project$BookSelector$UpdateDescription,
-			updateLanguage: $author$project$BookSelector$UpdateLanguage,
-			updateLocation: $author$project$BookSelector$UpdateLocation,
-			updateOwner: $author$project$BookSelector$UpdateOwner,
-			updatePublishedDate: $author$project$BookSelector$UpdatePublishedDate,
-			updateTitle: $author$project$BookSelector$UpdateTitle
-		};
-	});
-var $author$project$BookSelector$updateDetails = F4(
-	function (msg, model, session, index) {
-		switch (msg.$) {
-			case 'DoPrevious':
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2($author$project$BookSelector$doIndex, model, index - 1),
-					session: session
-				};
-			case 'DoNext':
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2($author$project$BookSelector$doIndex, model, index + 1),
-					session: session
-				};
-			case 'DoCancel':
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: _Utils_update(
-						model,
-						{bookView: $author$project$BookSelector$Tiles}),
-					session: session
-				};
-			case 'DoAddToLibrary':
-				var searchBook = model.bookdetails.maybeBook;
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: _Utils_update(
-						model,
-						{
-							bookDetailsEdit: $elm$core$Maybe$Just(
-								A2(
-									$author$project$BookSelector$initialBookDetailsEdit,
-									searchBook,
-									$author$project$Session$getUser(session))),
-							bookView: $author$project$BookSelector$DetailsEdit(index)
-						}),
-					session: session
-				};
-			default:
-				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
-		}
-	});
-var $author$project$BookSelector$LibraryBookInserted = function (a) {
-	return {$: 'LibraryBookInserted', a: a};
-};
-var $author$project$Utils$buildErrorMessage = function (httpError) {
-	switch (httpError.$) {
-		case 'BadUrl':
-			var message = httpError.a;
-			return message;
-		case 'Timeout':
-			return 'Server is taking too long to respond. Please try again later.';
-		case 'NetworkError':
-			return 'Unable to reach server.';
-		case 'BadStatus':
-			var statusCode = httpError.a;
-			return 'Request failed with status code: ' + $elm$core$String$fromInt(statusCode);
-		default:
-			var message = httpError.a;
-			return message;
-	}
-};
-var $author$project$Session$Error = function (a) {
-	return {$: 'Error', a: a};
-};
-var $author$project$Session$fail = F2(
-	function (session, message) {
-		return _Utils_update(
-			session,
-			{
-				message: $author$project$Session$Error(message),
-				page: $author$project$Session$WelcomePage
-			});
-	});
-var $elm$http$Http$jsonBody = function (value) {
-	return A2(
-		_Http_pair,
-		'application/json',
-		A2($elm$json$Json$Encode$encode, 0, value));
-};
-var $elm$json$Json$Encode$object = function (pairs) {
-	return _Json_wrap(
-		A3(
-			$elm$core$List$foldl,
-			F2(
-				function (_v0, obj) {
-					var k = _v0.a;
-					var v = _v0.b;
-					return A3(_Json_addField, k, v, obj);
-				}),
-			_Json_emptyObject(_Utils_Tuple0),
-			pairs));
-};
-var $elm$json$Json$Encode$string = _Json_wrap;
-var $author$project$Domain$LibraryBook$newLibraryBookEncoder = function (libraryBook) {
-	var a = A2($elm$core$Debug$log, 'libraryBookEncoder', libraryBook);
-	return $elm$json$Json$Encode$object(
-		_List_fromArray(
-			[
-				_Utils_Tuple2(
-				'title',
-				$elm$json$Json$Encode$string(libraryBook.title)),
-				_Utils_Tuple2(
-				'authors',
-				$elm$json$Json$Encode$string(libraryBook.authors)),
-				_Utils_Tuple2(
-				'description',
-				$elm$json$Json$Encode$string(libraryBook.description)),
-				_Utils_Tuple2(
-				'publishedDate',
-				$elm$json$Json$Encode$string(libraryBook.publishedDate)),
-				_Utils_Tuple2(
-				'language',
-				$elm$json$Json$Encode$string(libraryBook.language)),
-				_Utils_Tuple2(
-				'smallThumbnail',
-				$elm$json$Json$Encode$string(libraryBook.smallThumbnail)),
-				_Utils_Tuple2(
-				'thumbnail',
-				$elm$json$Json$Encode$string(libraryBook.thumbnail)),
-				_Utils_Tuple2(
-				'owner',
-				$elm$json$Json$Encode$string(libraryBook.owner)),
-				_Utils_Tuple2(
-				'location',
-				$elm$json$Json$Encode$string(libraryBook.location))
-			]));
-};
-var $elm$http$Http$post = function (r) {
-	return $elm$http$Http$request(
-		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
-};
-var $elm$http$Http$Header = F2(
-	function (a, b) {
-		return {$: 'Header', a: a, b: b};
-	});
-var $elm$http$Http$header = $elm$http$Http$Header;
-var $truqu$elm_oauth2$OAuth$useToken = function (token) {
-	return $elm$core$List$cons(
-		A2(
-			$elm$http$Http$header,
-			'Authorization',
-			$truqu$elm_oauth2$OAuth$tokenToString(token)));
-};
-var $author$project$Domain$LibraryBook$insertBook = F4(
-	function (msg, session, token, libraryBook) {
-		var puretoken = A2(
-			$elm$core$String$dropLeft,
-			7,
-			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var requestUrl = A2(
-			$elm$core$Debug$log,
-			'requestUrl',
-			$author$project$Domain$LibraryBook$libraryApiBooksUrl(session)) + ('?access_token=' + puretoken);
-		var printheaders = A2(
-			$elm$core$Debug$log,
-			'token',
-			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var jsonBody = A2(
-			$elm$core$Debug$log,
-			'jsonBody',
-			$author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook));
-		var headers = A2($truqu$elm_oauth2$OAuth$useToken, token, _List_Nil);
-		return $elm$http$Http$post(
-			{
-				body: $elm$http$Http$jsonBody(
-					$author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook)),
-				expect: A2($elm$http$Http$expectJson, msg, $author$project$Domain$LibraryBook$libraryBookDecoder),
-				url: requestUrl
-			});
-	});
-var $author$project$Domain$LibraryBook$setAuthors = F2(
-	function (authors, libraryBook) {
-		return _Utils_update(
-			libraryBook,
-			{authors: authors});
-	});
-var $author$project$Domain$LibraryBook$setDescription = F2(
-	function (description, libraryBook) {
-		return _Utils_update(
-			libraryBook,
-			{description: description});
-	});
-var $author$project$Domain$LibraryBook$setLanguage = F2(
-	function (language, libraryBook) {
-		return _Utils_update(
-			libraryBook,
-			{language: language});
-	});
-var $author$project$Domain$LibraryBook$setLocation = F2(
-	function (location, libraryBook) {
-		return _Utils_update(
-			libraryBook,
-			{location: location});
-	});
-var $author$project$Domain$LibraryBook$setPublishedDate = F2(
-	function (publishedDate, libraryBook) {
-		return _Utils_update(
-			libraryBook,
-			{publishedDate: publishedDate});
-	});
-var $author$project$Domain$LibraryBook$setTitle = F2(
-	function (title, libraryBook) {
-		return _Utils_update(
-			libraryBook,
-			{title: title});
-	});
-var $author$project$Session$Succeeded = function (a) {
-	return {$: 'Succeeded', a: a};
-};
-var $author$project$Session$succeed = F2(
-	function (session, message) {
-		return _Utils_update(
-			session,
-			{
-				message: $author$project$Session$Succeeded(message),
-				page: $author$project$Session$WelcomePage
-			});
-	});
-var $author$project$BookSelector$updateDetailsEdit = F4(
-	function (msg, model, session, index) {
-		var _v0 = _Utils_Tuple2(msg, model.bookDetailsEdit);
-		_v0$11:
-		while (true) {
-			switch (_v0.a.$) {
-				case 'DoCancel':
-					var _v1 = _v0.a;
-					return {
-						cmd: $elm$core$Platform$Cmd$none,
-						model: _Utils_update(
-							model,
-							{
-								bookView: $author$project$BookSelector$Details(index)
-							}),
-						session: session
-					};
-				case 'UpdateTitle':
-					if (_v0.b.$ === 'Just') {
-						var title = _v0.a.a;
-						var bookDetailsEdit = _v0.b.a;
-						var book = A2($author$project$Domain$LibraryBook$setTitle, title, bookDetailsEdit.book);
-						var bookDetailsEdit1 = _Utils_update(
-							bookDetailsEdit,
-							{book: book});
-						return {
-							cmd: $elm$core$Platform$Cmd$none,
-							model: _Utils_update(
-								model,
-								{
-									bookDetailsEdit: $elm$core$Maybe$Just(bookDetailsEdit1)
-								}),
-							session: session
-						};
-					} else {
-						break _v0$11;
-					}
-				case 'UpdateAuthors':
-					if (_v0.b.$ === 'Just') {
-						var authors = _v0.a.a;
-						var bookDetailsEdit = _v0.b.a;
-						var book = A2($author$project$Domain$LibraryBook$setAuthors, authors, bookDetailsEdit.book);
-						var bookDetailsEdit1 = _Utils_update(
-							bookDetailsEdit,
-							{book: book});
-						return {
-							cmd: $elm$core$Platform$Cmd$none,
-							model: _Utils_update(
-								model,
-								{
-									bookDetailsEdit: $elm$core$Maybe$Just(bookDetailsEdit1)
-								}),
-							session: session
-						};
-					} else {
-						break _v0$11;
-					}
-				case 'UpdateDescription':
-					if (_v0.b.$ === 'Just') {
-						var description = _v0.a.a;
-						var bookDetailsEdit = _v0.b.a;
-						var book = A2($author$project$Domain$LibraryBook$setDescription, description, bookDetailsEdit.book);
-						var bookDetailsEdit1 = _Utils_update(
-							bookDetailsEdit,
-							{book: book});
-						return {
-							cmd: $elm$core$Platform$Cmd$none,
-							model: _Utils_update(
-								model,
-								{
-									bookDetailsEdit: $elm$core$Maybe$Just(bookDetailsEdit1)
-								}),
-							session: session
-						};
-					} else {
-						break _v0$11;
-					}
-				case 'UpdateLanguage':
-					if (_v0.b.$ === 'Just') {
-						var language = _v0.a.a;
-						var bookDetailsEdit = _v0.b.a;
-						var book = A2($author$project$Domain$LibraryBook$setLanguage, language, bookDetailsEdit.book);
-						var bookDetailsEdit1 = _Utils_update(
-							bookDetailsEdit,
-							{book: book});
-						return {
-							cmd: $elm$core$Platform$Cmd$none,
-							model: _Utils_update(
-								model,
-								{
-									bookDetailsEdit: $elm$core$Maybe$Just(bookDetailsEdit1)
-								}),
-							session: session
-						};
-					} else {
-						break _v0$11;
-					}
-				case 'UpdatePublishedDate':
-					if (_v0.b.$ === 'Just') {
-						var publishedDate = _v0.a.a;
-						var bookDetailsEdit = _v0.b.a;
-						var book = A2($author$project$Domain$LibraryBook$setPublishedDate, publishedDate, bookDetailsEdit.book);
-						var bookDetailsEdit1 = _Utils_update(
-							bookDetailsEdit,
-							{book: book});
-						return {
-							cmd: $elm$core$Platform$Cmd$none,
-							model: _Utils_update(
-								model,
-								{
-									bookDetailsEdit: $elm$core$Maybe$Just(bookDetailsEdit1)
-								}),
-							session: session
-						};
-					} else {
-						break _v0$11;
-					}
-				case 'UpdateOwner':
-					if (_v0.b.$ === 'Just') {
-						var owner = _v0.a.a;
-						var bookDetailsEdit = _v0.b.a;
-						var book = A2($author$project$Domain$LibraryBook$setOwner, owner, bookDetailsEdit.book);
-						var bookDetailsEdit1 = _Utils_update(
-							bookDetailsEdit,
-							{book: book});
-						return {
-							cmd: $elm$core$Platform$Cmd$none,
-							model: _Utils_update(
-								model,
-								{
-									bookDetailsEdit: $elm$core$Maybe$Just(bookDetailsEdit1)
-								}),
-							session: session
-						};
-					} else {
-						break _v0$11;
-					}
-				case 'UpdateLocation':
-					if (_v0.b.$ === 'Just') {
-						var location = _v0.a.a;
-						var bookDetailsEdit = _v0.b.a;
-						var book = A2($author$project$Domain$LibraryBook$setLocation, location, bookDetailsEdit.book);
-						var bookDetailsEdit1 = _Utils_update(
-							bookDetailsEdit,
-							{book: book});
-						return {
-							cmd: $elm$core$Platform$Cmd$none,
-							model: _Utils_update(
-								model,
-								{
-									bookDetailsEdit: $elm$core$Maybe$Just(bookDetailsEdit1)
-								}),
-							session: session
-						};
-					} else {
-						break _v0$11;
-					}
-				case 'DoLibraryBookInsert':
-					if (_v0.b.$ === 'Just') {
-						var _v2 = _v0.a;
-						var bookDetailsEdit = _v0.b.a;
-						var _v3 = session.token;
-						if (_v3.$ === 'Just') {
-							var token = _v3.a;
-							var libraryAppApiCmd = A6($elm$core$Debug$log, ' oLibraryBookInsert -> ', $author$project$Domain$LibraryBook$insertBook, $author$project$BookSelector$LibraryBookInserted, session, token, bookDetailsEdit.book);
-							return {cmd: libraryAppApiCmd, model: model, session: session};
-						} else {
-							return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
-						}
-					} else {
-						break _v0$11;
-					}
-				case 'LibraryBookInserted':
-					if (_v0.a.a.$ === 'Err') {
-						if (_v0.b.$ === 'Just') {
-							var err = _v0.a.a.a;
-							var bookDetailsEdit = _v0.b.a;
-							return {
-								cmd: $elm$core$Platform$Cmd$none,
-								model: model,
-								session: A2(
-									$author$project$Session$fail,
-									session,
-									'LibraryBookInserted Result.Err error : ' + $author$project$Utils$buildErrorMessage(err))
-							};
-						} else {
-							break _v0$11;
-						}
-					} else {
-						if (_v0.b.$ === 'Just') {
-							var libraryBookInserted = _v0.a.a.a;
-							var bookDetailsEdit = _v0.b.a;
-							return {
-								cmd: $elm$core$Platform$Cmd$none,
-								model: model,
-								session: A2($author$project$Session$succeed, session, 'The book \"' + (bookDetailsEdit.book.title + '\" has been added to the library!'))
-							};
-						} else {
-							break _v0$11;
-						}
-					}
-				default:
-					break _v0$11;
-			}
-		}
-		return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
-	});
-var $author$project$BookSelector$DoBooksReceived = function (a) {
-	return {$: 'DoBooksReceived', a: a};
-};
-var $author$project$Domain$SearchBook$baseUrl = 'https://www.googleapis.com/books/v1/volumes';
-var $author$project$Domain$SearchBook$SearchBook = F7(
-	function (title, authors, description, publishedDate, language, smallThumbnail, thumbnail) {
-		return {authors: authors, description: description, language: language, publishedDate: publishedDate, smallThumbnail: smallThumbnail, thumbnail: thumbnail, title: title};
-	});
-var $elm$json$Json$Decode$list = _Json_decodeList;
-var $author$project$Domain$SearchBook$authorListDecoder = A2(
-	$elm$json$Json$Decode$map,
-	$elm$core$String$join(', '),
-	$elm$json$Json$Decode$list($elm$json$Json$Decode$string));
-var $elm$json$Json$Decode$at = F2(
-	function (fields, decoder) {
-		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
-	});
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt = F4(
-	function (path, valDecoder, fallback, decoder) {
-		return A2(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
-			A3(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder,
-				A2($elm$json$Json$Decode$at, path, $elm$json$Json$Decode$value),
-				valDecoder,
-				fallback),
-			decoder);
-	});
-var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$requiredAt = F3(
-	function (path, valDecoder, decoder) {
-		return A2(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
-			A2($elm$json$Json$Decode$at, path, valDecoder),
-			decoder);
-	});
-var $author$project$Domain$SearchBook$searchbookDecoder = A4(
-	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
-	_List_fromArray(
-		['volumeInfo', 'imageLinks', 'thumbnail']),
-	$elm$json$Json$Decode$string,
-	'',
-	A4(
-		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
-		_List_fromArray(
-			['volumeInfo', 'imageLinks', 'smallThumbnail']),
-		$elm$json$Json$Decode$string,
-		'',
-		A4(
-			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
-			_List_fromArray(
-				['volumeInfo', 'language']),
-			$elm$json$Json$Decode$string,
-			'',
-			A4(
-				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
-				_List_fromArray(
-					['volumeInfo', 'publishedDate']),
-				$elm$json$Json$Decode$string,
-				'',
-				A4(
-					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
-					_List_fromArray(
-						['volumeInfo', 'description']),
-					$elm$json$Json$Decode$string,
-					'',
-					A4(
-						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
-						_List_fromArray(
-							['volumeInfo', 'authors']),
-						$author$project$Domain$SearchBook$authorListDecoder,
-						'',
-						A3(
-							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$requiredAt,
-							_List_fromArray(
-								['volumeInfo', 'title']),
-							$elm$json$Json$Decode$string,
-							$elm$json$Json$Decode$succeed($author$project$Domain$SearchBook$SearchBook))))))));
-var $author$project$Domain$SearchBook$searchbooksDecoder = A2(
-	$elm$json$Json$Decode$field,
-	'items',
-	$elm$json$Json$Decode$array($author$project$Domain$SearchBook$searchbookDecoder));
-var $author$project$Domain$SearchBook$getBooks = F2(
-	function (msg, _v0) {
-		var searchString = _v0.searchString;
-		var searchAuthors = _v0.searchAuthors;
-		var searchTitle = _v0.searchTitle;
-		var query = _Utils_ap(
-			searchString,
-			_Utils_ap(
-				(searchTitle === '') ? '' : ('+intitle:' + searchTitle),
-				(searchAuthors === '') ? '' : ('+inauthor:' + searchAuthors)));
-		var a = A2($elm$core$Debug$log, 'getBooks searchAuthors', searchAuthors);
-		return $elm$http$Http$get(
-			{
-				expect: A2(
-					$elm$http$Http$expectJson,
-					A2($elm$core$Basics$composeR, $krisajenkins$remotedata$RemoteData$fromResult, msg),
-					$author$project$Domain$SearchBook$searchbooksDecoder),
-				url: A2($elm$core$Debug$log, 'getBooks', $author$project$Domain$SearchBook$baseUrl + ('?q=' + query))
-			});
-	});
-var $author$project$BookSelector$setBookTiles = F2(
-	function (model, booktiles) {
-		return _Utils_update(
-			model,
-			{booktiles: booktiles});
-	});
-var $author$project$View$SelectorTiles$setSearchAuthors = F2(
-	function (authors, config) {
-		return _Utils_update(
-			config,
-			{searchAuthors: authors});
-	});
-var $author$project$View$SelectorTiles$setSearchString = F2(
-	function (string, config) {
-		return _Utils_update(
-			config,
-			{searchString: string});
-	});
-var $author$project$View$SelectorTiles$setSearchTitle = F2(
-	function (title, config) {
-		return _Utils_update(
-			config,
-			{searchTitle: title});
-	});
-var $author$project$BookSelector$updateTiles = F3(
-	function (msg, model, session) {
-		switch (msg.$) {
-			case 'UpdateSearchTitle':
-				var title = msg.a;
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2(
-						$author$project$BookSelector$setBookTiles,
-						model,
-						A2($author$project$View$SelectorTiles$setSearchTitle, title, model.booktiles)),
-					session: session
-				};
-			case 'UpdateSearchAuthor':
-				var authors = msg.a;
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2(
-						$author$project$BookSelector$setBookTiles,
-						model,
-						A2($author$project$View$SelectorTiles$setSearchAuthors, authors, model.booktiles)),
-					session: session
-				};
-			case 'UpdateSearchString':
-				var string = msg.a;
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2(
-						$author$project$BookSelector$setBookTiles,
-						model,
-						A2($author$project$View$SelectorTiles$setSearchString, string, model.booktiles)),
-					session: session
-				};
-			case 'DoSearch':
-				return {
-					cmd: A2(
-						$author$project$Domain$SearchBook$getBooks,
-						$author$project$BookSelector$DoBooksReceived,
-						{searchAuthors: model.booktiles.searchAuthors, searchString: model.booktiles.searchString, searchTitle: model.booktiles.searchTitle}),
-					model: _Utils_update(
-						model,
-						{searchbooks: $krisajenkins$remotedata$RemoteData$Loading}),
-					session: session
-				};
-			case 'DoBooksReceived':
-				var response = msg.a;
-				var booktiles = model.booktiles;
-				var booktiles1 = _Utils_update(
-					booktiles,
-					{books: response});
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: _Utils_update(
-						model,
-						{booktiles: booktiles1}),
-					session: session
-				};
-			case 'DoDetail':
-				var index = msg.a;
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2($author$project$BookSelector$doIndex, model, index),
-					session: session
-				};
-			case 'DoCancel':
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: _Utils_update(
-						model,
-						{bookView: $author$project$BookSelector$Tiles}),
-					session: session
-				};
-			default:
-				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
-		}
-	});
-var $author$project$BookSelector$update = F3(
-	function (msg, model, session) {
-		var a = A2($elm$core$Debug$log, 'update msg = ', msg);
-		var _v0 = model.bookView;
-		switch (_v0.$) {
-			case 'Tiles':
-				return A3($author$project$BookSelector$updateTiles, msg, model, session);
-			case 'Details':
-				var index = _v0.a;
-				return A4($author$project$BookSelector$updateDetails, msg, model, session, index);
-			default:
-				var index = _v0.a;
-				return A4($author$project$BookSelector$updateDetailsEdit, msg, model, session, index);
-		}
-	});
-var $author$project$Library$DoAction = function (a) {
-	return {$: 'DoAction', a: a};
-};
-var $author$project$Library$doAction = F2(
-	function (model, index) {
-		var bookdetails = model.bookdetails;
-		var bookdetails1 = _Utils_update(
-			bookdetails,
-			{doActionPrepare: true, hasNext: false, hasPrevious: false});
-		return _Utils_update(
-			model,
-			{
-				bookView: $author$project$Library$DoAction(index),
-				bookdetails: bookdetails1
-			});
-	});
-var $author$project$Library$Details = function (a) {
-	return {$: 'Details', a: a};
 };
 var $krisajenkins$remotedata$RemoteData$andMap = F2(
 	function (wrappedValue, wrappedFunction) {
@@ -9358,9 +8675,9 @@ var $author$project$View$LibraryTiles$merge2RemoteDatas = F2(
 					}),
 				a));
 	});
-var $author$project$Library$doIndex = F2(
+var $author$project$BookEditor$doIndex = F2(
 	function (model, index) {
-		var books_checkouts = A2($author$project$View$LibraryTiles$merge2RemoteDatas, model.booktiles.books, model.booktiles.checkouts);
+		var books_checkouts = A2($author$project$View$LibraryTiles$merge2RemoteDatas, model.booktiles.books, model.booktiles.checkoutsDistributed);
 		if (books_checkouts.$ === 'Success') {
 			var _v1 = books_checkouts.a;
 			var actualBooks = _v1.a;
@@ -9374,7 +8691,10 @@ var $author$project$Library$doIndex = F2(
 					return checkout;
 				}
 			}();
-			var maybeBook = A2($elm$core$Array$get, index, actualBooks);
+			var libraryBook = A2(
+				$elm$core$Maybe$withDefault,
+				$author$project$Domain$LibraryBook$emptyLibrarybook,
+				A2($elm$core$Array$get, index, actualBooks));
 			var bookdetails = model.bookdetails;
 			var bookdetails1 = _Utils_update(
 				bookdetails,
@@ -9383,32 +8703,746 @@ var $author$project$Library$doIndex = F2(
 						index + 1,
 						$elm$core$Array$length(actualBooks)) < 0,
 					hasPrevious: index > 0,
-					maybeBook: maybeBook,
+					libraryBook: libraryBook,
 					maybeCheckout: maybeCheckout1
 				});
 			return _Utils_update(
 				model,
 				{
-					bookView: $author$project$Library$Details(index),
+					bookView: $author$project$BookEditor$Details(index),
 					bookdetails: bookdetails1
 				});
 		} else {
 			return model;
 		}
 	});
-var $author$project$Library$updateDetails = F4(
+var $author$project$View$LibraryEdit$DoInserted = function (a) {
+	return {$: 'DoInserted', a: a};
+};
+var $author$project$View$LibraryEdit$DoUpdated = function (a) {
+	return {$: 'DoUpdated', a: a};
+};
+var $author$project$Utils$buildErrorMessage = function (httpError) {
+	switch (httpError.$) {
+		case 'BadUrl':
+			var message = httpError.a;
+			return message;
+		case 'Timeout':
+			return 'Server is taking too long to respond. Please try again later.';
+		case 'NetworkError':
+			return 'Unable to reach server.';
+		case 'BadStatus':
+			var statusCode = httpError.a;
+			return 'Request failed with status code: ' + $elm$core$String$fromInt(statusCode);
+		default:
+			var message = httpError.a;
+			return message;
+	}
+};
+var $author$project$Session$Error = function (a) {
+	return {$: 'Error', a: a};
+};
+var $author$project$Session$fail = F2(
+	function (session, message) {
+		return _Utils_update(
+			session,
+			{
+				message: $author$project$Session$Error(message),
+				page: $author$project$Session$WelcomePage
+			});
+	});
+var $elm$http$Http$jsonBody = function (value) {
+	return A2(
+		_Http_pair,
+		'application/json',
+		A2($elm$json$Json$Encode$encode, 0, value));
+};
+var $elm$json$Json$Encode$object = function (pairs) {
+	return _Json_wrap(
+		A3(
+			$elm$core$List$foldl,
+			F2(
+				function (_v0, obj) {
+					var k = _v0.a;
+					var v = _v0.b;
+					return A3(_Json_addField, k, v, obj);
+				}),
+			_Json_emptyObject(_Utils_Tuple0),
+			pairs));
+};
+var $elm$json$Json$Encode$string = _Json_wrap;
+var $author$project$Domain$LibraryBook$newLibraryBookEncoder = function (libraryBook) {
+	var a = A2($elm$core$Debug$log, 'newLibraryBookEncoder', libraryBook);
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'title',
+				$elm$json$Json$Encode$string(libraryBook.title)),
+				_Utils_Tuple2(
+				'authors',
+				$elm$json$Json$Encode$string(libraryBook.authors)),
+				_Utils_Tuple2(
+				'description',
+				$elm$json$Json$Encode$string(libraryBook.description)),
+				_Utils_Tuple2(
+				'publishedDate',
+				$elm$json$Json$Encode$string(libraryBook.publishedDate)),
+				_Utils_Tuple2(
+				'language',
+				$elm$json$Json$Encode$string(libraryBook.language)),
+				_Utils_Tuple2(
+				'smallThumbnail',
+				$elm$json$Json$Encode$string(libraryBook.smallThumbnail)),
+				_Utils_Tuple2(
+				'thumbnail',
+				$elm$json$Json$Encode$string(libraryBook.thumbnail)),
+				_Utils_Tuple2(
+				'owner',
+				$elm$json$Json$Encode$string(libraryBook.owner)),
+				_Utils_Tuple2(
+				'location',
+				$elm$json$Json$Encode$string(libraryBook.location))
+			]));
+};
+var $elm$http$Http$post = function (r) {
+	return $elm$http$Http$request(
+		{body: r.body, expect: r.expect, headers: _List_Nil, method: 'POST', timeout: $elm$core$Maybe$Nothing, tracker: $elm$core$Maybe$Nothing, url: r.url});
+};
+var $elm$http$Http$Header = F2(
+	function (a, b) {
+		return {$: 'Header', a: a, b: b};
+	});
+var $elm$http$Http$header = $elm$http$Http$Header;
+var $truqu$elm_oauth2$OAuth$useToken = function (token) {
+	return $elm$core$List$cons(
+		A2(
+			$elm$http$Http$header,
+			'Authorization',
+			$truqu$elm_oauth2$OAuth$tokenToString(token)));
+};
+var $author$project$Domain$LibraryBook$insert = F4(
+	function (msg, session, token, libraryBook) {
+		var puretoken = A2(
+			$elm$core$String$dropLeft,
+			7,
+			$truqu$elm_oauth2$OAuth$tokenToString(token));
+		var requestUrl = A2(
+			$elm$core$Debug$log,
+			'requestUrl',
+			$author$project$Domain$LibraryBook$libraryApiBooksUrl(session)) + ('?access_token=' + puretoken);
+		var printheaders = A2(
+			$elm$core$Debug$log,
+			'token',
+			$truqu$elm_oauth2$OAuth$tokenToString(token));
+		var jsonBody = A2(
+			$elm$core$Debug$log,
+			'jsonBody',
+			$author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook));
+		var headers = A2($truqu$elm_oauth2$OAuth$useToken, token, _List_Nil);
+		return $elm$http$Http$post(
+			{
+				body: $elm$http$Http$jsonBody(
+					$author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook)),
+				expect: A2($elm$http$Http$expectJson, msg, $author$project$Domain$LibraryBook$libraryBookDecoder),
+				url: requestUrl
+			});
+	});
+var $author$project$Domain$LibraryBook$setAuthors = F2(
+	function (authors, libraryBook) {
+		return _Utils_update(
+			libraryBook,
+			{authors: authors});
+	});
+var $author$project$Domain$LibraryBook$setDescription = F2(
+	function (description, libraryBook) {
+		return _Utils_update(
+			libraryBook,
+			{description: description});
+	});
+var $author$project$Domain$LibraryBook$setLanguage = F2(
+	function (language, libraryBook) {
+		return _Utils_update(
+			libraryBook,
+			{language: language});
+	});
+var $author$project$Domain$LibraryBook$setLocation = F2(
+	function (location, libraryBook) {
+		return _Utils_update(
+			libraryBook,
+			{location: location});
+	});
+var $author$project$Domain$LibraryBook$setOwner = F2(
+	function (owner, libraryBook) {
+		return _Utils_update(
+			libraryBook,
+			{owner: owner});
+	});
+var $author$project$Domain$LibraryBook$setPublishedDate = F2(
+	function (publishedDate, libraryBook) {
+		return _Utils_update(
+			libraryBook,
+			{publishedDate: publishedDate});
+	});
+var $author$project$Domain$LibraryBook$setTitle = F2(
+	function (title, libraryBook) {
+		return _Utils_update(
+			libraryBook,
+			{title: title});
+	});
+var $author$project$Session$Succeeded = function (a) {
+	return {$: 'Succeeded', a: a};
+};
+var $author$project$Session$succeed = F2(
+	function (session, message) {
+		return _Utils_update(
+			session,
+			{
+				message: $author$project$Session$Succeeded(message),
+				page: $author$project$Session$WelcomePage
+			});
+	});
+var $elm$http$Http$expectString = function (toMsg) {
+	return A2(
+		$elm$http$Http$expectStringResponse,
+		toMsg,
+		$elm$http$Http$resolve($elm$core$Result$Ok));
+};
+var $elm$json$Json$Encode$int = _Json_wrap;
+var $author$project$Domain$LibraryBook$libraryBookEncoder = function (libraryBook) {
+	var a = A2($elm$core$Debug$log, 'libraryBookEncoder', libraryBook);
+	return $elm$json$Json$Encode$object(
+		_List_fromArray(
+			[
+				_Utils_Tuple2(
+				'id',
+				$elm$json$Json$Encode$int(libraryBook.id)),
+				_Utils_Tuple2(
+				'title',
+				$elm$json$Json$Encode$string(libraryBook.title)),
+				_Utils_Tuple2(
+				'authors',
+				$elm$json$Json$Encode$string(libraryBook.authors)),
+				_Utils_Tuple2(
+				'description',
+				$elm$json$Json$Encode$string(libraryBook.description)),
+				_Utils_Tuple2(
+				'publishedDate',
+				$elm$json$Json$Encode$string(libraryBook.publishedDate)),
+				_Utils_Tuple2(
+				'language',
+				$elm$json$Json$Encode$string(libraryBook.language)),
+				_Utils_Tuple2(
+				'smallThumbnail',
+				$elm$json$Json$Encode$string(libraryBook.smallThumbnail)),
+				_Utils_Tuple2(
+				'thumbnail',
+				$elm$json$Json$Encode$string(libraryBook.thumbnail)),
+				_Utils_Tuple2(
+				'owner',
+				$elm$json$Json$Encode$string(libraryBook.owner)),
+				_Utils_Tuple2(
+				'location',
+				$elm$json$Json$Encode$string(libraryBook.location))
+			]));
+};
+var $author$project$Domain$LibraryBook$update = F4(
+	function (msg, session, token, libraryBook) {
+		var puretoken = A2(
+			$elm$core$String$dropLeft,
+			7,
+			$truqu$elm_oauth2$OAuth$tokenToString(token));
+		var requestUrl = A2(
+			$elm$core$Debug$log,
+			'requestUrl',
+			$author$project$Domain$LibraryBook$libraryApiBooksUrl(session) + ('/' + ($elm$core$String$fromInt(libraryBook.id) + ('?access_token=' + puretoken))));
+		var printheaders = A2(
+			$elm$core$Debug$log,
+			'token',
+			$truqu$elm_oauth2$OAuth$tokenToString(token));
+		var jsonBody = A2(
+			$elm$core$Debug$log,
+			'jsonBody',
+			$author$project$Domain$LibraryBook$libraryBookEncoder(libraryBook));
+		var headers = A2($truqu$elm_oauth2$OAuth$useToken, token, _List_Nil);
+		return $elm$http$Http$request(
+			{
+				body: $elm$http$Http$jsonBody(jsonBody),
+				expect: $elm$http$Http$expectString(msg),
+				headers: headers,
+				method: 'put',
+				timeout: $elm$core$Maybe$Nothing,
+				tracker: $elm$core$Maybe$Nothing,
+				url: requestUrl
+			});
+	});
+var $author$project$View$LibraryEdit$update = F3(
+	function (msg, model, session) {
+		switch (msg.$) {
+			case 'UpdateTitle':
+				var title = msg.a;
+				var book = model.book;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							book: A2($author$project$Domain$LibraryBook$setTitle, title, book)
+						}),
+					session: session
+				};
+			case 'UpdateAuthors':
+				var authors = msg.a;
+				var book = model.book;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							book: A2($author$project$Domain$LibraryBook$setAuthors, authors, book)
+						}),
+					session: session
+				};
+			case 'UpdateDescription':
+				var description = msg.a;
+				var book = model.book;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							book: A2($author$project$Domain$LibraryBook$setDescription, description, book)
+						}),
+					session: session
+				};
+			case 'UpdateLanguage':
+				var language = msg.a;
+				var book = model.book;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							book: A2($author$project$Domain$LibraryBook$setLanguage, language, book)
+						}),
+					session: session
+				};
+			case 'UpdatePublishedDate':
+				var publishedDate = msg.a;
+				var book = model.book;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							book: A2($author$project$Domain$LibraryBook$setPublishedDate, publishedDate, book)
+						}),
+					session: session
+				};
+			case 'UpdateOwner':
+				var owner = msg.a;
+				var book = model.book;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							book: A2($author$project$Domain$LibraryBook$setOwner, owner, book)
+						}),
+					session: session
+				};
+			case 'UpdateLocation':
+				var location = msg.a;
+				var book = model.book;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							book: A2($author$project$Domain$LibraryBook$setLocation, location, book)
+						}),
+					session: session
+				};
+			case 'DoInsert':
+				var _v1 = session.token;
+				if (_v1.$ === 'Just') {
+					var token = _v1.a;
+					var libraryAppApiCmd = A6($elm$core$Debug$log, ' oLibraryBookInsert -> ', $author$project$Domain$LibraryBook$insert, $author$project$View$LibraryEdit$DoInserted, session, token, model.book);
+					return {cmd: libraryAppApiCmd, model: model, session: session};
+				} else {
+					return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+				}
+			case 'DoUpdate':
+				var _v2 = session.token;
+				if (_v2.$ === 'Just') {
+					var token = _v2.a;
+					var libraryAppApiCmd = A6($elm$core$Debug$log, ' oLibraryBookUpdate -> ', $author$project$Domain$LibraryBook$update, $author$project$View$LibraryEdit$DoUpdated, session, token, model.book);
+					return {cmd: libraryAppApiCmd, model: model, session: session};
+				} else {
+					return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+				}
+			case 'DoInserted':
+				if (msg.a.$ === 'Ok') {
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2($author$project$Session$succeed, session, 'The book \"' + (model.book.title + '\" has been added to the library!'))
+					};
+				} else {
+					var err = msg.a.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2(
+							$author$project$Session$fail,
+							session,
+							'The book \"' + (model.book.title + ('\" has NOT been added to the library : ' + $author$project$Utils$buildErrorMessage(err))))
+					};
+				}
+			case 'DoUpdated':
+				if (msg.a.$ === 'Ok') {
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2($author$project$Session$succeed, session, 'The book \"' + (model.book.title + '\" has been updated in the library!'))
+					};
+				} else {
+					var err = msg.a.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2(
+							$author$project$Session$fail,
+							session,
+							'The book \"' + (model.book.title + ('\" has NOT been updated in the library : ' + $author$project$Utils$buildErrorMessage(err))))
+					};
+				}
+			default:
+				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+		}
+	});
+var $elm$core$List$filter = F2(
+	function (isGood, list) {
+		return A3(
+			$elm$core$List$foldr,
+			F2(
+				function (x, xs) {
+					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
+				}),
+			_List_Nil,
+			list);
+	});
+var $elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return $elm$core$Maybe$Just(x);
+	} else {
+		return $elm$core$Maybe$Nothing;
+	}
+};
+var $author$project$View$LibraryTiles$distributeCheckoutsLibrarybook = F2(
+	function (actualCheckouts, librarybook) {
+		return $elm$core$List$head(
+			A2(
+				$elm$core$List$filter,
+				function (checkout) {
+					return _Utils_eq(checkout.bookId, librarybook.id);
+				},
+				actualCheckouts));
+	});
+var $elm$core$Array$fromListHelp = F3(
+	function (list, nodeList, nodeListSize) {
+		fromListHelp:
+		while (true) {
+			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, list);
+			var jsArray = _v0.a;
+			var remainingItems = _v0.b;
+			if (_Utils_cmp(
+				$elm$core$Elm$JsArray$length(jsArray),
+				$elm$core$Array$branchFactor) < 0) {
+				return A2(
+					$elm$core$Array$builderToArray,
+					true,
+					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
+			} else {
+				var $temp$list = remainingItems,
+					$temp$nodeList = A2(
+					$elm$core$List$cons,
+					$elm$core$Array$Leaf(jsArray),
+					nodeList),
+					$temp$nodeListSize = nodeListSize + 1;
+				list = $temp$list;
+				nodeList = $temp$nodeList;
+				nodeListSize = $temp$nodeListSize;
+				continue fromListHelp;
+			}
+		}
+	});
+var $elm$core$Array$fromList = function (list) {
+	if (!list.b) {
+		return $elm$core$Array$empty;
+	} else {
+		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
+	}
+};
+var $author$project$View$LibraryTiles$distributeCheckouts = F2(
+	function (librarybooks, checkouts) {
+		var _v0 = _Utils_Tuple2(librarybooks, checkouts);
+		if ((_v0.a.$ === 'Success') && (_v0.b.$ === 'Success')) {
+			var actualLibraryBooks = _v0.a.a;
+			var actualCheckouts = _v0.b.a;
+			var actualCheckoutsList = $elm$core$Array$toList(actualCheckouts);
+			return $krisajenkins$remotedata$RemoteData$Success(
+				$elm$core$Array$fromList(
+					A2(
+						$elm$core$List$map,
+						$author$project$View$LibraryTiles$distributeCheckoutsLibrarybook(actualCheckoutsList),
+						$elm$core$Array$toList(actualLibraryBooks))));
+		} else {
+			return $krisajenkins$remotedata$RemoteData$NotAsked;
+		}
+	});
+var $author$project$View$LibraryTiles$setCheckStatus = F2(
+	function (status, config) {
+		return _Utils_update(
+			config,
+			{searchCheckStatus: status});
+	});
+var $author$project$View$LibraryTiles$setCheckoutUser = F2(
+	function (user, config) {
+		return _Utils_update(
+			config,
+			{searchCheckoutUser: user});
+	});
+var $author$project$View$LibraryTiles$setSearchAuthors = F2(
+	function (authors, config) {
+		return _Utils_update(
+			config,
+			{searchAuthors: authors});
+	});
+var $author$project$View$LibraryTiles$setSearchLocation = F2(
+	function (location, config) {
+		return _Utils_update(
+			config,
+			{searchLocation: location});
+	});
+var $author$project$View$LibraryTiles$setSearchOwner = F2(
+	function (owner, config) {
+		return _Utils_update(
+			config,
+			{searchOwner: owner});
+	});
+var $author$project$View$LibraryTiles$setSearchTitle = F2(
+	function (title, config) {
+		return _Utils_update(
+			config,
+			{searchTitle: title});
+	});
+var $author$project$View$LibraryTiles$update = F3(
+	function (msg, model, session) {
+		var waarzijnwe = A2($elm$core$Debug$log, 'Library.elm updateTiles msg ', msg);
+		switch (msg.$) {
+			case 'UpdateSearchTitle':
+				var title = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$View$LibraryTiles$setSearchTitle, title, model),
+					session: session
+				};
+			case 'UpdateSearchAuthors':
+				var authors = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$View$LibraryTiles$setSearchAuthors, authors, model),
+					session: session
+				};
+			case 'UpdateSearchLocation':
+				var location = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$View$LibraryTiles$setSearchLocation, location, model),
+					session: session
+				};
+			case 'UpdateSearchOwner':
+				var owner = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$View$LibraryTiles$setSearchOwner, owner, model),
+					session: session
+				};
+			case 'UpdateSearchCheckStatus':
+				var status = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$View$LibraryTiles$setCheckStatus, status, model),
+					session: session
+				};
+			case 'UpdateSearchCheckoutUser':
+				var user = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$View$LibraryTiles$setCheckoutUser, user, model),
+					session: session
+				};
+			case 'DoSearch':
+				return A2($author$project$View$LibraryTiles$doSearch, model, session);
+			case 'DoBooksReceived':
+				var response = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							books: response,
+							checkoutsDistributed: A2($author$project$View$LibraryTiles$distributeCheckouts, response, model.checkouts)
+						}),
+					session: session
+				};
+			case 'DoCheckoutsReceived':
+				var response = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							checkouts: response,
+							checkoutsDistributed: A2($author$project$View$LibraryTiles$distributeCheckouts, model.books, response)
+						}),
+					session: session
+				};
+			default:
+				var index = msg.a;
+				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+		}
+	});
+var $author$project$BookEditor$DoDeleted = function (a) {
+	return {$: 'DoDeleted', a: a};
+};
+var $author$project$Domain$LibraryBook$delete = F4(
+	function (msg, session, token, libraryBook) {
+		var puretoken = A2(
+			$elm$core$String$dropLeft,
+			7,
+			$truqu$elm_oauth2$OAuth$tokenToString(token));
+		var requestUrl = A2(
+			$elm$core$Debug$log,
+			'requestUrl',
+			$author$project$Domain$LibraryBook$libraryApiBooksUrl(session)) + ('/' + ($elm$core$String$fromInt(libraryBook.id) + ('?access_token=' + puretoken)));
+		var printheaders = A2(
+			$elm$core$Debug$log,
+			'token',
+			$truqu$elm_oauth2$OAuth$tokenToString(token));
+		var jsonBody = A2(
+			$elm$core$Debug$log,
+			'jsonBody',
+			$author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook));
+		var headers = A2($truqu$elm_oauth2$OAuth$useToken, token, _List_Nil);
+		return $elm$http$Http$request(
+			{
+				body: $elm$http$Http$jsonBody(
+					$author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook)),
+				expect: $elm$http$Http$expectString(msg),
+				headers: headers,
+				method: 'delete',
+				timeout: $elm$core$Maybe$Nothing,
+				tracker: $elm$core$Maybe$Nothing,
+				url: requestUrl
+			});
+	});
+var $author$project$BookEditor$doActionCancel = F2(
+	function (model, index) {
+		return _Utils_update(
+			model,
+			{
+				bookView: $author$project$BookEditor$Details(index)
+			});
+	});
+var $author$project$BookEditor$DoActionDone = function (a) {
+	return {$: 'DoActionDone', a: a};
+};
+var $author$project$BookEditor$doActionDone = F2(
+	function (model, index) {
+		return _Utils_update(
+			model,
+			{
+				bookView: $author$project$BookEditor$DoActionDone(index)
+			});
+	});
+var $author$project$BookEditor$updateConfirm = F4(
+	function (msg, model, session, index) {
+		switch (msg.$) {
+			case 'DoCancel':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2(
+						$author$project$BookEditor$doActionCancel,
+						A2($author$project$BookEditor$doIndex, model, index),
+						index),
+					session: session
+				};
+			case 'DoDeleteConfirm':
+				var _v1 = session.token;
+				if (_v1.$ === 'Just') {
+					var token = _v1.a;
+					return {
+						cmd: A4($author$project$Domain$LibraryBook$delete, $author$project$BookEditor$DoDeleted, session, token, model.bookdetails.libraryBook),
+						model: A2($author$project$BookEditor$doActionDone, model, index),
+						session: session
+					};
+				} else {
+					return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+				}
+			default:
+				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+		}
+	});
+var $author$project$BookEditor$ConfirmDelete = function (a) {
+	return {$: 'ConfirmDelete', a: a};
+};
+var $author$project$BookEditor$Update = function (a) {
+	return {$: 'Update', a: a};
+};
+var $author$project$BookEditor$doAction = F2(
+	function (model, index) {
+		var bookdetails = model.bookdetails;
+		var bookdetails1 = _Utils_update(
+			bookdetails,
+			{hasNext: false, hasPrevious: false});
+		return _Utils_update(
+			model,
+			{bookdetails: bookdetails1});
+	});
+var $author$project$BookEditor$setBookView = F2(
+	function (bookView, model) {
+		return _Utils_update(
+			model,
+			{bookView: bookView});
+	});
+var $author$project$BookEditor$setEditBook = F2(
+	function (book, model) {
+		var bookedit = model.bookedit;
+		return _Utils_update(
+			model,
+			{
+				bookedit: _Utils_update(
+					bookedit,
+					{book: book})
+			});
+	});
+var $author$project$BookEditor$updateDetails = F4(
 	function (msg, model, session, index) {
 		switch (msg.$) {
 			case 'DoPrevious':
 				return {
 					cmd: $elm$core$Platform$Cmd$none,
-					model: A2($author$project$Library$doIndex, model, index - 1),
+					model: A2($author$project$BookEditor$doIndex, model, index - 1),
 					session: session
 				};
 			case 'DoNext':
 				return {
 					cmd: $elm$core$Platform$Cmd$none,
-					model: A2($author$project$Library$doIndex, model, index + 1),
+					model: A2($author$project$BookEditor$doIndex, model, index + 1),
 					session: session
 				};
 			case 'DoCancel':
@@ -9416,53 +9450,592 @@ var $author$project$Library$updateDetails = F4(
 					cmd: $elm$core$Platform$Cmd$none,
 					model: _Utils_update(
 						model,
-						{bookView: $author$project$Library$Tiles}),
+						{bookView: $author$project$BookEditor$Tiles}),
 					session: session
 				};
-			case 'DoCheckout':
+			case 'DoDelete':
 				return {
 					cmd: $elm$core$Platform$Cmd$none,
-					model: A2($author$project$Library$doAction, model, index),
+					model: A2(
+						$author$project$BookEditor$setBookView,
+						$author$project$BookEditor$ConfirmDelete(index),
+						A2($author$project$BookEditor$doAction, model, index)),
 					session: session
 				};
-			case 'DoCheckin':
+			case 'DoUpdate':
 				return {
 					cmd: $elm$core$Platform$Cmd$none,
-					model: A2($author$project$Library$doAction, model, index),
+					model: A2(
+						$author$project$BookEditor$setEditBook,
+						model.bookdetails.libraryBook,
+						A2(
+							$author$project$BookEditor$setBookView,
+							$author$project$BookEditor$Update(index),
+							A2($author$project$BookEditor$doAction, model, index))),
 					session: session
 				};
 			default:
 				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
 		}
 	});
-var $author$project$Library$DoCheckinDone = function (a) {
-	return {$: 'DoCheckinDone', a: a};
+var $author$project$BookEditor$updateDoActionDone = F4(
+	function (msg, model, session, index) {
+		switch (msg.$) {
+			case 'DoDeleted':
+				if (msg.a.$ === 'Ok') {
+					var result = msg.a.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2($author$project$Session$succeed, session, 'The book \"' + (model.bookdetails.libraryBook.title + '\" has been deleted from the library!'))
+					};
+				} else {
+					var error = msg.a.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2(
+							$author$project$Session$fail,
+							session,
+							'The book has NOT been deleted : ' + $author$project$Utils$buildErrorMessage(error))
+					};
+				}
+			case 'DoUpdated':
+				if (msg.a.$ === 'Ok') {
+					var result = msg.a.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2($author$project$Session$succeed, session, 'The book \"' + (model.bookdetails.libraryBook.title + '\" has been updated!'))
+					};
+				} else {
+					var error = msg.a.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2(
+							$author$project$Session$fail,
+							session,
+							'The book has NOT been updated : ' + $author$project$Utils$buildErrorMessage(error))
+					};
+				}
+			default:
+				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+		}
+	});
+var $author$project$BookEditor$update = F3(
+	function (msg1, model1, session1) {
+		var a = A2($elm$core$Debug$log, 'update msg = ', msg1);
+		var _v0 = model1.bookView;
+		switch (_v0.$) {
+			case 'Tiles':
+				if (msg1.$ === 'LibraryTilesMsg') {
+					if (msg1.a.$ === 'DoDetail') {
+						var index = msg1.a.a;
+						return {
+							cmd: $elm$core$Platform$Cmd$none,
+							model: A2($author$project$BookEditor$doIndex, model1, index),
+							session: session1
+						};
+					} else {
+						var subMsg = msg1.a;
+						var _v2 = A3($author$project$View$LibraryTiles$update, subMsg, model1.booktiles, session1);
+						var model = _v2.model;
+						var session = _v2.session;
+						var cmd = _v2.cmd;
+						var model2 = _Utils_update(
+							model1,
+							{booktiles: model});
+						return {
+							cmd: A2($elm$core$Platform$Cmd$map, $author$project$BookEditor$LibraryTilesMsg, cmd),
+							model: model2,
+							session: session
+						};
+					}
+				} else {
+					return {cmd: $elm$core$Platform$Cmd$none, model: model1, session: session1};
+				}
+			case 'Details':
+				var index = _v0.a;
+				return A4($author$project$BookEditor$updateDetails, msg1, model1, session1, index);
+			case 'Update':
+				var index = _v0.a;
+				if (msg1.$ === 'LibraryEditMsg') {
+					if (msg1.a.$ === 'DoCancel') {
+						var _v4 = msg1.a;
+						return {
+							cmd: $elm$core$Platform$Cmd$none,
+							model: A2($author$project$BookEditor$doIndex, model1, index),
+							session: session1
+						};
+					} else {
+						var subMsg = msg1.a;
+						var _v5 = A3($author$project$View$LibraryEdit$update, subMsg, model1.bookedit, session1);
+						var model = _v5.model;
+						var session = _v5.session;
+						var cmd = _v5.cmd;
+						var model2 = _Utils_update(
+							model1,
+							{bookedit: model});
+						return {
+							cmd: A2($elm$core$Platform$Cmd$map, $author$project$BookEditor$LibraryEditMsg, cmd),
+							model: model2,
+							session: session
+						};
+					}
+				} else {
+					return {cmd: $elm$core$Platform$Cmd$none, model: model1, session: session1};
+				}
+			case 'ConfirmDelete':
+				var index = _v0.a;
+				return A4($author$project$BookEditor$updateConfirm, msg1, model1, session1, index);
+			case 'ConfirmUpdate':
+				var index = _v0.a;
+				return A4($author$project$BookEditor$updateConfirm, msg1, model1, session1, index);
+			default:
+				var index = _v0.a;
+				return A4($author$project$BookEditor$updateDoActionDone, msg1, model1, session1, index);
+		}
+	});
+var $author$project$BookSelector$Details = function (a) {
+	return {$: 'Details', a: a};
 };
-var $author$project$Library$DoCheckoutDone = function (a) {
-	return {$: 'DoCheckoutDone', a: a};
+var $author$project$BookSelector$LibraryEditMsg = function (a) {
+	return {$: 'LibraryEditMsg', a: a};
 };
-var $author$project$Library$doActionCancel = F2(
+var $author$project$BookSelector$DetailsEdit = function (a) {
+	return {$: 'DetailsEdit', a: a};
+};
+var $author$project$BookSelector$doIndex = F2(
 	function (model, index) {
-		var bookdetails = model.bookdetails;
-		var bookdetails1 = _Utils_update(
-			bookdetails,
-			{doActionPrepare: false});
-		return _Utils_update(
-			model,
+		var _v0 = model.booktiles.books;
+		if (_v0.$ === 'Success') {
+			var actualBooks = _v0.a;
+			var maybeBook = A2($elm$core$Array$get, index, actualBooks);
+			var doActionDisabled = false;
+			var bookdetails = model.bookdetails;
+			var actionHtml = _List_Nil;
+			var bookdetails1 = _Utils_update(
+				bookdetails,
+				{
+					actionHtml: actionHtml,
+					doActionDisabled: doActionDisabled,
+					hasNext: _Utils_cmp(
+						index + 1,
+						$elm$core$Array$length(actualBooks)) < 0,
+					hasPrevious: index > 0,
+					maybeBook: maybeBook
+				});
+			return _Utils_update(
+				model,
+				{
+					bookView: $author$project$BookSelector$Details(index),
+					bookdetails: bookdetails1
+				});
+		} else {
+			return model;
+		}
+	});
+var $author$project$Domain$LibraryBook$searchbook2librarybook = function (searchbook) {
+	return {authors: searchbook.authors, description: searchbook.description, id: 0, language: searchbook.language, location: '', owner: '', publishedDate: searchbook.publishedDate, smallThumbnail: searchbook.smallThumbnail, thumbnail: searchbook.thumbnail, title: searchbook.title};
+};
+var $author$project$BookSelector$initialBookDetailsEdit = F2(
+	function (searchBook, user) {
+		return {
+			book: function () {
+				if (searchBook.$ === 'Just') {
+					var actualSearchBook = searchBook.a;
+					return A2(
+						$author$project$Domain$LibraryBook$setOwner,
+						user,
+						$author$project$Domain$LibraryBook$searchbook2librarybook(actualSearchBook));
+				} else {
+					return $author$project$Domain$LibraryBook$emptyLibrarybook;
+				}
+			}(),
+			doInsert: {visible: true},
+			doUpdate: {visible: false}
+		};
+	});
+var $author$project$BookSelector$updateDetails = F4(
+	function (msg, model, session, index) {
+		switch (msg.$) {
+			case 'DoPrevious':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$BookSelector$doIndex, model, index - 1),
+					session: session
+				};
+			case 'DoNext':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$BookSelector$doIndex, model, index + 1),
+					session: session
+				};
+			case 'DoCancel':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{bookView: $author$project$BookSelector$Tiles}),
+					session: session
+				};
+			case 'DoAddToLibrary':
+				var searchBook = model.bookdetails.maybeBook;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{
+							bookDetailsEdit: A2(
+								$author$project$BookSelector$initialBookDetailsEdit,
+								searchBook,
+								$author$project$Session$getUser(session)),
+							bookView: $author$project$BookSelector$DetailsEdit(index)
+						}),
+					session: session
+				};
+			default:
+				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+		}
+	});
+var $author$project$BookSelector$DoBooksReceived = function (a) {
+	return {$: 'DoBooksReceived', a: a};
+};
+var $author$project$Domain$SearchBook$baseUrl = 'https://www.googleapis.com/books/v1/volumes';
+var $author$project$Domain$SearchBook$SearchBook = F7(
+	function (title, authors, description, publishedDate, language, smallThumbnail, thumbnail) {
+		return {authors: authors, description: description, language: language, publishedDate: publishedDate, smallThumbnail: smallThumbnail, thumbnail: thumbnail, title: title};
+	});
+var $elm$json$Json$Decode$list = _Json_decodeList;
+var $author$project$Domain$SearchBook$authorListDecoder = A2(
+	$elm$json$Json$Decode$map,
+	$elm$core$String$join(', '),
+	$elm$json$Json$Decode$list($elm$json$Json$Decode$string));
+var $elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3($elm$core$List$foldr, $elm$json$Json$Decode$field, decoder, fields);
+	});
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt = F4(
+	function (path, valDecoder, fallback, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A3(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalDecoder,
+				A2($elm$json$Json$Decode$at, path, $elm$json$Json$Decode$value),
+				valDecoder,
+				fallback),
+			decoder);
+	});
+var $NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$requiredAt = F3(
+	function (path, valDecoder, decoder) {
+		return A2(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$custom,
+			A2($elm$json$Json$Decode$at, path, valDecoder),
+			decoder);
+	});
+var $author$project$Domain$SearchBook$searchbookDecoder = A4(
+	$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+	_List_fromArray(
+		['volumeInfo', 'imageLinks', 'thumbnail']),
+	$elm$json$Json$Decode$string,
+	'',
+	A4(
+		$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+		_List_fromArray(
+			['volumeInfo', 'imageLinks', 'smallThumbnail']),
+		$elm$json$Json$Decode$string,
+		'',
+		A4(
+			$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+			_List_fromArray(
+				['volumeInfo', 'language']),
+			$elm$json$Json$Decode$string,
+			'',
+			A4(
+				$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+				_List_fromArray(
+					['volumeInfo', 'publishedDate']),
+				$elm$json$Json$Decode$string,
+				'',
+				A4(
+					$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+					_List_fromArray(
+						['volumeInfo', 'description']),
+					$elm$json$Json$Decode$string,
+					'',
+					A4(
+						$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$optionalAt,
+						_List_fromArray(
+							['volumeInfo', 'authors']),
+						$author$project$Domain$SearchBook$authorListDecoder,
+						'',
+						A3(
+							$NoRedInk$elm_json_decode_pipeline$Json$Decode$Pipeline$requiredAt,
+							_List_fromArray(
+								['volumeInfo', 'title']),
+							$elm$json$Json$Decode$string,
+							$elm$json$Json$Decode$succeed($author$project$Domain$SearchBook$SearchBook))))))));
+var $author$project$Domain$SearchBook$searchbooksDecoder = A2(
+	$elm$json$Json$Decode$field,
+	'items',
+	$elm$json$Json$Decode$array($author$project$Domain$SearchBook$searchbookDecoder));
+var $author$project$Domain$SearchBook$getBooks = F2(
+	function (msg, _v0) {
+		var searchString = _v0.searchString;
+		var searchAuthors = _v0.searchAuthors;
+		var searchTitle = _v0.searchTitle;
+		var searchIsbn = _v0.searchIsbn;
+		var query = _Utils_ap(
+			searchString,
+			_Utils_ap(
+				(searchTitle === '') ? '' : ('+intitle:' + searchTitle),
+				_Utils_ap(
+					(searchAuthors === '') ? '' : ('+inauthor:' + searchAuthors),
+					(!searchIsbn) ? '' : ('+isbn:' + $elm$core$String$fromInt(searchIsbn)))));
+		var a = A2($elm$core$Debug$log, 'getBooks searchAuthors', searchAuthors);
+		return $elm$http$Http$get(
 			{
-				bookView: $author$project$Library$Details(index),
-				bookdetails: bookdetails1
+				expect: A2(
+					$elm$http$Http$expectJson,
+					A2($elm$core$Basics$composeR, $krisajenkins$remotedata$RemoteData$fromResult, msg),
+					$author$project$Domain$SearchBook$searchbooksDecoder),
+				url: A2($elm$core$Debug$log, 'getBooks', $author$project$Domain$SearchBook$baseUrl + ('?q=' + query))
 			});
 	});
-var $author$project$Library$DoActionDone = function (a) {
-	return {$: 'DoActionDone', a: a};
+var $author$project$BookSelector$setBookTiles = F2(
+	function (model, booktiles) {
+		return _Utils_update(
+			model,
+			{booktiles: booktiles});
+	});
+var $author$project$View$SelectorTiles$setSearchAuthors = F2(
+	function (authors, config) {
+		return _Utils_update(
+			config,
+			{searchAuthors: authors});
+	});
+var $author$project$View$SelectorTiles$setSearchIsbn = F2(
+	function (isbn, config) {
+		return _Utils_update(
+			config,
+			{searchIsbn: isbn});
+	});
+var $author$project$View$SelectorTiles$setSearchString = F2(
+	function (string, config) {
+		return _Utils_update(
+			config,
+			{searchString: string});
+	});
+var $author$project$View$SelectorTiles$setSearchTitle = F2(
+	function (title, config) {
+		return _Utils_update(
+			config,
+			{searchTitle: title});
+	});
+var $author$project$BookSelector$updateTiles = F3(
+	function (msg, model, session) {
+		switch (msg.$) {
+			case 'UpdateSearchTitle':
+				var title = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2(
+						$author$project$BookSelector$setBookTiles,
+						model,
+						A2($author$project$View$SelectorTiles$setSearchTitle, title, model.booktiles)),
+					session: session
+				};
+			case 'UpdateSearchAuthor':
+				var authors = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2(
+						$author$project$BookSelector$setBookTiles,
+						model,
+						A2($author$project$View$SelectorTiles$setSearchAuthors, authors, model.booktiles)),
+					session: session
+				};
+			case 'UpdateSearchIsbn':
+				var isbn = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2(
+						$author$project$BookSelector$setBookTiles,
+						model,
+						A2(
+							$author$project$View$SelectorTiles$setSearchIsbn,
+							A2(
+								$elm$core$Maybe$withDefault,
+								0,
+								$elm$core$String$toInt(isbn)),
+							model.booktiles)),
+					session: session
+				};
+			case 'UpdateSearchString':
+				var string = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2(
+						$author$project$BookSelector$setBookTiles,
+						model,
+						A2($author$project$View$SelectorTiles$setSearchString, string, model.booktiles)),
+					session: session
+				};
+			case 'DoSearch':
+				return {
+					cmd: A2(
+						$author$project$Domain$SearchBook$getBooks,
+						$author$project$BookSelector$DoBooksReceived,
+						{searchAuthors: model.booktiles.searchAuthors, searchIsbn: model.booktiles.searchIsbn, searchString: model.booktiles.searchString, searchTitle: model.booktiles.searchTitle}),
+					model: _Utils_update(
+						model,
+						{searchbooks: $krisajenkins$remotedata$RemoteData$Loading}),
+					session: session
+				};
+			case 'DoBooksReceived':
+				var response = msg.a;
+				var booktiles = model.booktiles;
+				var booktiles1 = _Utils_update(
+					booktiles,
+					{books: response});
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{booktiles: booktiles1}),
+					session: session
+				};
+			case 'DoDetail':
+				var index = msg.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$BookSelector$doIndex, model, index),
+					session: session
+				};
+			case 'DoCancel':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{bookView: $author$project$BookSelector$Tiles}),
+					session: session
+				};
+			default:
+				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+		}
+	});
+var $author$project$BookSelector$update = F3(
+	function (msg1, model1, session1) {
+		var a = A2($elm$core$Debug$log, 'update msg = ', msg1);
+		var _v0 = model1.bookView;
+		switch (_v0.$) {
+			case 'Tiles':
+				return A3($author$project$BookSelector$updateTiles, msg1, model1, session1);
+			case 'Details':
+				var index = _v0.a;
+				return A4($author$project$BookSelector$updateDetails, msg1, model1, session1, index);
+			default:
+				var index = _v0.a;
+				if (msg1.$ === 'LibraryEditMsg') {
+					if (msg1.a.$ === 'DoCancel') {
+						var _v2 = msg1.a;
+						return {
+							cmd: $elm$core$Platform$Cmd$none,
+							model: _Utils_update(
+								model1,
+								{
+									bookView: $author$project$BookSelector$Details(index)
+								}),
+							session: session1
+						};
+					} else {
+						var subMsg = msg1.a;
+						var _v3 = A3($author$project$View$LibraryEdit$update, subMsg, model1.bookDetailsEdit, session1);
+						var model = _v3.model;
+						var session = _v3.session;
+						var cmd = _v3.cmd;
+						var model2 = _Utils_update(
+							model1,
+							{bookDetailsEdit: model});
+						return {
+							cmd: A2($elm$core$Platform$Cmd$map, $author$project$BookSelector$LibraryEditMsg, cmd),
+							model: model2,
+							session: session
+						};
+					}
+				} else {
+					return {cmd: $elm$core$Platform$Cmd$none, model: model1, session: session1};
+				}
+		}
+	});
+var $author$project$Checkin$Details = function (a) {
+	return {$: 'Details', a: a};
 };
-var $author$project$Library$doActionDone = F2(
+var $author$project$Checkin$doIndex = F2(
+	function (model, index) {
+		var books_checkouts = A2($author$project$View$LibraryTiles$merge2RemoteDatas, model.booktiles.books, model.booktiles.checkoutsDistributed);
+		if (books_checkouts.$ === 'Success') {
+			var _v1 = books_checkouts.a;
+			var actualBooks = _v1.a;
+			var actualCheckouts = _v1.b;
+			var maybeCheckout = A2($elm$core$Array$get, index, actualCheckouts);
+			var maybeCheckout1 = function () {
+				if (maybeCheckout.$ === 'Nothing') {
+					return $elm$core$Maybe$Nothing;
+				} else {
+					var checkout = maybeCheckout.a;
+					return checkout;
+				}
+			}();
+			var libraryBook = A2(
+				$elm$core$Maybe$withDefault,
+				$author$project$Domain$LibraryBook$emptyLibrarybook,
+				A2($elm$core$Array$get, index, actualBooks));
+			var bookdetails = model.bookdetails;
+			var bookdetails1 = _Utils_update(
+				bookdetails,
+				{
+					hasNext: _Utils_cmp(
+						index + 1,
+						$elm$core$Array$length(actualBooks)) < 0,
+					hasPrevious: index > 0,
+					libraryBook: libraryBook,
+					maybeCheckout: maybeCheckout1
+				});
+			return _Utils_update(
+				model,
+				{
+					bookView: $author$project$Checkin$Details(index),
+					bookdetails: bookdetails1
+				});
+		} else {
+			return model;
+		}
+	});
+var $author$project$Checkin$DoCheckinDone = function (a) {
+	return {$: 'DoCheckinDone', a: a};
+};
+var $author$project$Checkin$DoCheckoutDone = function (a) {
+	return {$: 'DoCheckoutDone', a: a};
+};
+var $author$project$Checkin$doActionCancel = F2(
 	function (model, index) {
 		return _Utils_update(
 			model,
 			{
-				bookView: $author$project$Library$DoActionDone(index)
+				bookView: $author$project$Checkin$Details(index)
+			});
+	});
+var $author$project$Checkin$DoActionDone = function (a) {
+	return {$: 'DoActionDone', a: a};
+};
+var $author$project$Checkin$doActionDone = F2(
+	function (model, index) {
+		return _Utils_update(
+			model,
+			{
+				bookView: $author$project$Checkin$DoActionDone(index)
 			});
 	});
 var $elm$http$Http$expectBytesResponse = F2(
@@ -9532,39 +10105,37 @@ var $author$project$Domain$Checkout$doCheckout = F4(
 				url: requestUrl
 			});
 	});
-var $author$project$Library$updateDoAction = F4(
+var $author$project$Checkin$updateConfirm = F4(
 	function (msg, model, session, index) {
 		switch (msg.$) {
 			case 'DoCancel':
 				return {
 					cmd: $elm$core$Platform$Cmd$none,
 					model: A2(
-						$author$project$Library$doActionCancel,
-						A2($author$project$Library$doIndex, model, index),
+						$author$project$Checkin$doActionCancel,
+						A2($author$project$Checkin$doIndex, model, index),
 						index),
 					session: session
 				};
 			case 'DoCheckout':
-				var _v1 = _Utils_Tuple2(model.bookdetails.maybeBook, session.token);
-				if ((_v1.a.$ === 'Just') && (_v1.b.$ === 'Just')) {
-					var book = _v1.a.a;
-					var token = _v1.b.a;
+				var _v1 = session.token;
+				if (_v1.$ === 'Just') {
+					var token = _v1.a;
 					return {
-						cmd: A4($author$project$Domain$Checkout$doCheckout, $author$project$Library$DoCheckoutDone, session, token, book.id),
-						model: A2($author$project$Library$doActionDone, model, index),
+						cmd: A4($author$project$Domain$Checkout$doCheckout, $author$project$Checkin$DoCheckoutDone, session, token, model.bookdetails.libraryBook.id),
+						model: A2($author$project$Checkin$doActionDone, model, index),
 						session: session
 					};
 				} else {
 					return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
 				}
 			case 'DoCheckin':
-				var _v2 = _Utils_Tuple2(model.bookdetails.maybeBook, session.token);
-				if ((_v2.a.$ === 'Just') && (_v2.b.$ === 'Just')) {
-					var book = _v2.a.a;
-					var token = _v2.b.a;
+				var _v2 = session.token;
+				if (_v2.$ === 'Just') {
+					var token = _v2.a;
 					return {
-						cmd: A4($author$project$Domain$Checkout$doCheckin, $author$project$Library$DoCheckinDone, session, token, book.id),
-						model: A2($author$project$Library$doActionDone, model, index),
+						cmd: A4($author$project$Domain$Checkout$doCheckin, $author$project$Checkin$DoCheckinDone, session, token, model.bookdetails.libraryBook.id),
+						model: A2($author$project$Checkin$doActionDone, model, index),
 						session: session
 					};
 				} else {
@@ -9574,26 +10145,75 @@ var $author$project$Library$updateDoAction = F4(
 				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
 		}
 	});
-var $author$project$Library$updateDoActionDone = F4(
+var $author$project$Checkin$Confirm = function (a) {
+	return {$: 'Confirm', a: a};
+};
+var $author$project$Checkin$doAction = F2(
+	function (model, index) {
+		var bookdetails = model.bookdetails;
+		var bookdetails1 = _Utils_update(
+			bookdetails,
+			{hasNext: false, hasPrevious: false});
+		return _Utils_update(
+			model,
+			{
+				bookView: $author$project$Checkin$Confirm(index),
+				bookdetails: bookdetails1
+			});
+	});
+var $author$project$Checkin$updateDetails = F4(
+	function (msg, model, session, index) {
+		switch (msg.$) {
+			case 'DoPrevious':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$Checkin$doIndex, model, index - 1),
+					session: session
+				};
+			case 'DoNext':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$Checkin$doIndex, model, index + 1),
+					session: session
+				};
+			case 'DoCancel':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: _Utils_update(
+						model,
+						{bookView: $author$project$Checkin$Tiles}),
+					session: session
+				};
+			case 'DoCheckout':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$Checkin$doAction, model, index),
+					session: session
+				};
+			case 'DoCheckin':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$Checkin$doAction, model, index),
+					session: session
+				};
+			default:
+				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+		}
+	});
+var $author$project$Checkin$updateDoActionDone = F4(
 	function (msg, model, session, index) {
 		switch (msg.$) {
 			case 'DoCheckoutDone':
 				var checkout = msg.a;
-				var _v1 = _Utils_Tuple2(model.bookdetails.maybeBook, checkout);
-				if (_v1.b.$ === 'Ok') {
-					if (_v1.a.$ === 'Just') {
-						var book = _v1.a.a;
-						var result = _v1.b.a;
-						return {
-							cmd: $elm$core$Platform$Cmd$none,
-							model: model,
-							session: A2($author$project$Session$succeed, session, 'The book \"' + (book.title + '\" has been checked out!'))
-						};
-					} else {
-						return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
-					}
+				if (checkout.$ === 'Ok') {
+					var result = checkout.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2($author$project$Session$succeed, session, 'The book \"' + (model.bookdetails.libraryBook.title + '\" has been checked out!'))
+					};
 				} else {
-					var error = _v1.b.a;
+					var error = checkout.a;
 					return {
 						cmd: $elm$core$Platform$Cmd$none,
 						model: model,
@@ -9605,21 +10225,15 @@ var $author$project$Library$updateDoActionDone = F4(
 				}
 			case 'DoCheckinDone':
 				var checkout = msg.a;
-				var _v2 = _Utils_Tuple2(model.bookdetails.maybeBook, checkout);
-				if (_v2.b.$ === 'Ok') {
-					if (_v2.a.$ === 'Just') {
-						var book = _v2.a.a;
-						var result = _v2.b.a;
-						return {
-							cmd: $elm$core$Platform$Cmd$none,
-							model: model,
-							session: A2($author$project$Session$succeed, session, 'The book \"' + (book.title + '\" has been checked in!'))
-						};
-					} else {
-						return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
-					}
+				if (checkout.$ === 'Ok') {
+					var result = checkout.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2($author$project$Session$succeed, session, 'The book \"' + (model.bookdetails.libraryBook.title + '\" has been checked in!'))
+					};
 				} else {
-					var error = _v2.b.a;
+					var error = checkout.a;
 					return {
 						cmd: $elm$core$Platform$Cmd$none,
 						model: model,
@@ -9633,232 +10247,187 @@ var $author$project$Library$updateDoActionDone = F4(
 				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
 		}
 	});
-var $elm$core$List$filter = F2(
-	function (isGood, list) {
-		return A3(
-			$elm$core$List$foldr,
-			F2(
-				function (x, xs) {
-					return isGood(x) ? A2($elm$core$List$cons, x, xs) : xs;
-				}),
-			_List_Nil,
-			list);
-	});
-var $elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return $elm$core$Maybe$Just(x);
-	} else {
-		return $elm$core$Maybe$Nothing;
-	}
-};
-var $author$project$Library$distributeCheckoutsLibrarybook = F2(
-	function (actualCheckouts, librarybook) {
-		return $elm$core$List$head(
-			A2(
-				$elm$core$List$filter,
-				function (checkout) {
-					return _Utils_eq(checkout.bookId, librarybook.id);
-				},
-				actualCheckouts));
-	});
-var $elm$core$Array$fromListHelp = F3(
-	function (list, nodeList, nodeListSize) {
-		fromListHelp:
-		while (true) {
-			var _v0 = A2($elm$core$Elm$JsArray$initializeFromList, $elm$core$Array$branchFactor, list);
-			var jsArray = _v0.a;
-			var remainingItems = _v0.b;
-			if (_Utils_cmp(
-				$elm$core$Elm$JsArray$length(jsArray),
-				$elm$core$Array$branchFactor) < 0) {
-				return A2(
-					$elm$core$Array$builderToArray,
-					true,
-					{nodeList: nodeList, nodeListSize: nodeListSize, tail: jsArray});
+var $author$project$Checkin$update = F3(
+	function (msg1, model1, session1) {
+		var a = A2($elm$core$Debug$log, 'update msg = ', msg1);
+		if (msg1.$ === 'LibraryTilesMsg') {
+			if (msg1.a.$ === 'DoDetail') {
+				var index = msg1.a.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$Checkin$doIndex, model1, index),
+					session: session1
+				};
 			} else {
-				var $temp$list = remainingItems,
-					$temp$nodeList = A2(
-					$elm$core$List$cons,
-					$elm$core$Array$Leaf(jsArray),
-					nodeList),
-					$temp$nodeListSize = nodeListSize + 1;
-				list = $temp$list;
-				nodeList = $temp$nodeList;
-				nodeListSize = $temp$nodeListSize;
-				continue fromListHelp;
+				var subMsg = msg1.a;
+				var _v1 = A3($author$project$View$LibraryTiles$update, subMsg, model1.booktiles, session1);
+				var model = _v1.model;
+				var session = _v1.session;
+				var cmd = _v1.cmd;
+				var model2 = _Utils_update(
+					model1,
+					{booktiles: model});
+				return {
+					cmd: A2($elm$core$Platform$Cmd$map, $author$project$Checkin$LibraryTilesMsg, cmd),
+					model: model2,
+					session: session
+				};
+			}
+		} else {
+			var _v2 = model1.bookView;
+			switch (_v2.$) {
+				case 'Details':
+					var index = _v2.a;
+					return A4($author$project$Checkin$updateDetails, msg1, model1, session1, index);
+				case 'Confirm':
+					var index = _v2.a;
+					return A4($author$project$Checkin$updateConfirm, msg1, model1, session1, index);
+				case 'DoActionDone':
+					var index = _v2.a;
+					return A4($author$project$Checkin$updateDoActionDone, msg1, model1, session1, index);
+				default:
+					return {cmd: $elm$core$Platform$Cmd$none, model: model1, session: session1};
 			}
 		}
 	});
-var $elm$core$Array$fromList = function (list) {
-	if (!list.b) {
-		return $elm$core$Array$empty;
-	} else {
-		return A3($elm$core$Array$fromListHelp, list, _List_Nil, 0);
-	}
+var $author$project$Library$Details = function (a) {
+	return {$: 'Details', a: a};
 };
-var $author$project$Library$distributeCheckouts = F2(
-	function (librarybooks, checkouts) {
-		var _v0 = _Utils_Tuple2(librarybooks, checkouts);
-		if ((_v0.a.$ === 'Success') && (_v0.b.$ === 'Success')) {
-			var actualLibraryBooks = _v0.a.a;
-			var actualCheckouts = _v0.b.a;
-			var actualCheckoutsList = $elm$core$Array$toList(actualCheckouts);
-			return $krisajenkins$remotedata$RemoteData$Success(
-				$elm$core$Array$fromList(
-					A2(
-						$elm$core$List$map,
-						$author$project$Library$distributeCheckoutsLibrarybook(actualCheckoutsList),
-						$elm$core$Array$toList(actualLibraryBooks))));
+var $author$project$Library$doIndex = F2(
+	function (model, index) {
+		var books_checkouts = A2($author$project$View$LibraryTiles$merge2RemoteDatas, model.booktiles.books, model.booktiles.checkoutsDistributed);
+		if (books_checkouts.$ === 'Success') {
+			var _v1 = books_checkouts.a;
+			var actualBooks = _v1.a;
+			var actualCheckouts = _v1.b;
+			var maybeCheckout = A2($elm$core$Array$get, index, actualCheckouts);
+			var maybeCheckout1 = function () {
+				if (maybeCheckout.$ === 'Nothing') {
+					return $elm$core$Maybe$Nothing;
+				} else {
+					var checkout = maybeCheckout.a;
+					return checkout;
+				}
+			}();
+			var libraryBook = A2(
+				$elm$core$Maybe$withDefault,
+				$author$project$Domain$LibraryBook$emptyLibrarybook,
+				A2($elm$core$Array$get, index, actualBooks));
+			var bookdetails = model.bookdetails;
+			var bookdetails1 = _Utils_update(
+				bookdetails,
+				{
+					hasNext: _Utils_cmp(
+						index + 1,
+						$elm$core$Array$length(actualBooks)) < 0,
+					hasPrevious: index > 0,
+					libraryBook: libraryBook,
+					maybeCheckout: maybeCheckout1
+				});
+			return _Utils_update(
+				model,
+				{
+					bookView: $author$project$Library$Details(index),
+					bookdetails: bookdetails1
+				});
 		} else {
-			return $krisajenkins$remotedata$RemoteData$NotAsked;
+			return model;
 		}
 	});
-var $author$project$Library$setBookTiles = F2(
-	function (model, booktiles) {
+var $author$project$Library$DoCheckinDone = function (a) {
+	return {$: 'DoCheckinDone', a: a};
+};
+var $author$project$Library$DoCheckoutDone = function (a) {
+	return {$: 'DoCheckoutDone', a: a};
+};
+var $author$project$Library$doActionCancel = F2(
+	function (model, index) {
 		return _Utils_update(
 			model,
-			{booktiles: booktiles});
+			{
+				bookView: $author$project$Library$Details(index)
+			});
 	});
-var $author$project$View$LibraryTiles$setCheckStatus = F2(
-	function (status, config) {
+var $author$project$Library$DoActionDone = function (a) {
+	return {$: 'DoActionDone', a: a};
+};
+var $author$project$Library$doActionDone = F2(
+	function (model, index) {
 		return _Utils_update(
-			config,
-			{searchCheckStatus: status});
+			model,
+			{
+				bookView: $author$project$Library$DoActionDone(index)
+			});
 	});
-var $author$project$View$LibraryTiles$setCheckoutUser = F2(
-	function (user, config) {
-		return _Utils_update(
-			config,
-			{searchCheckoutUser: user});
-	});
-var $author$project$View$LibraryTiles$setSearchAuthors = F2(
-	function (authors, config) {
-		return _Utils_update(
-			config,
-			{searchAuthors: authors});
-	});
-var $author$project$View$LibraryTiles$setSearchLocation = F2(
-	function (location, config) {
-		return _Utils_update(
-			config,
-			{searchLocation: location});
-	});
-var $author$project$View$LibraryTiles$setSearchOwner = F2(
-	function (owner, config) {
-		return _Utils_update(
-			config,
-			{searchOwner: owner});
-	});
-var $author$project$View$LibraryTiles$setSearchTitle = F2(
-	function (title, config) {
-		return _Utils_update(
-			config,
-			{searchTitle: title});
-	});
-var $author$project$Library$updateTiles = F3(
-	function (msg, model, session) {
-		var waarzijnwe = A2($elm$core$Debug$log, 'Library.elm updateTiles msg ', msg);
+var $author$project$Library$updateConfirm = F4(
+	function (msg, model, session, index) {
 		switch (msg.$) {
-			case 'UpdateSearchTitle':
-				var title = msg.a;
+			case 'DoCancel':
 				return {
 					cmd: $elm$core$Platform$Cmd$none,
 					model: A2(
-						$author$project$Library$setBookTiles,
-						model,
-						A2($author$project$View$LibraryTiles$setSearchTitle, title, model.booktiles)),
+						$author$project$Library$doActionCancel,
+						A2($author$project$Library$doIndex, model, index),
+						index),
 					session: session
 				};
-			case 'UpdateSearchAuthors':
-				var authors = msg.a;
+			case 'DoCheckout':
+				var _v1 = session.token;
+				if (_v1.$ === 'Just') {
+					var token = _v1.a;
+					return {
+						cmd: A4($author$project$Domain$Checkout$doCheckout, $author$project$Library$DoCheckoutDone, session, token, model.bookdetails.libraryBook.id),
+						model: A2($author$project$Library$doActionDone, model, index),
+						session: session
+					};
+				} else {
+					return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+				}
+			case 'DoCheckin':
+				var _v2 = session.token;
+				if (_v2.$ === 'Just') {
+					var token = _v2.a;
+					return {
+						cmd: A4($author$project$Domain$Checkout$doCheckin, $author$project$Library$DoCheckinDone, session, token, model.bookdetails.libraryBook.id),
+						model: A2($author$project$Library$doActionDone, model, index),
+						session: session
+					};
+				} else {
+					return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+				}
+			default:
+				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+		}
+	});
+var $author$project$Library$Confirm = function (a) {
+	return {$: 'Confirm', a: a};
+};
+var $author$project$Library$doAction = F2(
+	function (model, index) {
+		var bookdetails = model.bookdetails;
+		var bookdetails1 = _Utils_update(
+			bookdetails,
+			{hasNext: false, hasPrevious: false});
+		return _Utils_update(
+			model,
+			{
+				bookView: $author$project$Library$Confirm(index),
+				bookdetails: bookdetails1
+			});
+	});
+var $author$project$Library$updateDetails = F4(
+	function (msg, model, session, index) {
+		switch (msg.$) {
+			case 'DoPrevious':
 				return {
 					cmd: $elm$core$Platform$Cmd$none,
-					model: A2(
-						$author$project$Library$setBookTiles,
-						model,
-						A2($author$project$View$LibraryTiles$setSearchAuthors, authors, model.booktiles)),
+					model: A2($author$project$Library$doIndex, model, index - 1),
 					session: session
 				};
-			case 'UpdateSearchLocation':
-				var location = msg.a;
+			case 'DoNext':
 				return {
 					cmd: $elm$core$Platform$Cmd$none,
-					model: A2(
-						$author$project$Library$setBookTiles,
-						model,
-						A2($author$project$View$LibraryTiles$setSearchLocation, location, model.booktiles)),
-					session: session
-				};
-			case 'UpdateSearchOwner':
-				var owner = msg.a;
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2(
-						$author$project$Library$setBookTiles,
-						model,
-						A2($author$project$View$LibraryTiles$setSearchOwner, owner, model.booktiles)),
-					session: session
-				};
-			case 'UpdateSearchCheckStatus':
-				var status = msg.a;
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2(
-						$author$project$Library$setBookTiles,
-						model,
-						A2($author$project$View$LibraryTiles$setCheckStatus, status, model.booktiles)),
-					session: session
-				};
-			case 'UpdateSearchCheckoutUser':
-				var user = msg.a;
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2(
-						$author$project$Library$setBookTiles,
-						model,
-						A2($author$project$View$LibraryTiles$setCheckoutUser, user, model.booktiles)),
-					session: session
-				};
-			case 'DoSearch':
-				return A2($author$project$Library$doSearch, model, session);
-			case 'DoBooksReceived':
-				var response = msg.a;
-				var booktiles = model.booktiles;
-				var booktiles1 = _Utils_update(
-					booktiles,
-					{
-						books: response,
-						checkouts: A2($author$project$Library$distributeCheckouts, response, model.checkouts)
-					});
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: _Utils_update(
-						model,
-						{booktiles: booktiles1, librarybooks: response}),
-					session: session
-				};
-			case 'DoCheckoutsReceived':
-				var response = msg.a;
-				var booktiles = model.booktiles;
-				var booktiles1 = _Utils_update(
-					booktiles,
-					{
-						checkouts: A2($author$project$Library$distributeCheckouts, model.librarybooks, response)
-					});
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: _Utils_update(
-						model,
-						{booktiles: booktiles1, checkouts: response}),
-					session: session
-				};
-			case 'DoDetail':
-				var index = msg.a;
-				return {
-					cmd: $elm$core$Platform$Cmd$none,
-					model: A2($author$project$Library$doIndex, model, index),
+					model: A2($author$project$Library$doIndex, model, index + 1),
 					session: session
 				};
 			case 'DoCancel':
@@ -9869,51 +10438,111 @@ var $author$project$Library$updateTiles = F3(
 						{bookView: $author$project$Library$Tiles}),
 					session: session
 				};
+			case 'DoCheckout':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$Library$doAction, model, index),
+					session: session
+				};
+			case 'DoCheckin':
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$Library$doAction, model, index),
+					session: session
+				};
+			default:
+				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
+		}
+	});
+var $author$project$Library$updateDoActionDone = F4(
+	function (msg, model, session, index) {
+		switch (msg.$) {
+			case 'DoCheckoutDone':
+				var checkout = msg.a;
+				if (checkout.$ === 'Ok') {
+					var result = checkout.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2($author$project$Session$succeed, session, 'The book \"' + (model.bookdetails.libraryBook.title + '\" has been checked out!'))
+					};
+				} else {
+					var error = checkout.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2(
+							$author$project$Session$fail,
+							session,
+							'The book has NOT been checked out : ' + $author$project$Utils$buildErrorMessage(error))
+					};
+				}
+			case 'DoCheckinDone':
+				var checkout = msg.a;
+				if (checkout.$ === 'Ok') {
+					var result = checkout.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2($author$project$Session$succeed, session, 'The book \"' + (model.bookdetails.libraryBook.title + '\" has been checked in!'))
+					};
+				} else {
+					var error = checkout.a;
+					return {
+						cmd: $elm$core$Platform$Cmd$none,
+						model: model,
+						session: A2(
+							$author$project$Session$fail,
+							session,
+							'The book has NOT been checked in : ' + $author$project$Utils$buildErrorMessage(error))
+					};
+				}
 			default:
 				return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
 		}
 	});
 var $author$project$Library$update = F3(
-	function (msg, model, session) {
-		var a = A2($elm$core$Debug$log, 'update msg = ', msg);
-		var _v0 = model.bookView;
-		switch (_v0.$) {
-			case 'Tiles':
-				return A3($author$project$Library$updateTiles, msg, model, session);
-			case 'Details':
-				var index = _v0.a;
-				return A4($author$project$Library$updateDetails, msg, model, session, index);
-			case 'DoAction':
-				var index = _v0.a;
-				return A4($author$project$Library$updateDoAction, msg, model, session, index);
-			default:
-				var index = _v0.a;
-				return A4($author$project$Library$updateDoActionDone, msg, model, session, index);
+	function (msg1, model1, session1) {
+		var a = A2($elm$core$Debug$log, 'update msg = ', msg1);
+		if (msg1.$ === 'LibraryTilesMsg') {
+			if (msg1.a.$ === 'DoDetail') {
+				var index = msg1.a.a;
+				return {
+					cmd: $elm$core$Platform$Cmd$none,
+					model: A2($author$project$Library$doIndex, model1, index),
+					session: session1
+				};
+			} else {
+				var subMsg = msg1.a;
+				var _v1 = A3($author$project$View$LibraryTiles$update, subMsg, model1.booktiles, session1);
+				var model = _v1.model;
+				var session = _v1.session;
+				var cmd = _v1.cmd;
+				var model2 = _Utils_update(
+					model1,
+					{booktiles: model});
+				return {
+					cmd: A2($elm$core$Platform$Cmd$map, $author$project$Library$LibraryTilesMsg, cmd),
+					model: model2,
+					session: session
+				};
+			}
+		} else {
+			var _v2 = model1.bookView;
+			switch (_v2.$) {
+				case 'Details':
+					var index = _v2.a;
+					return A4($author$project$Library$updateDetails, msg1, model1, session1, index);
+				case 'Confirm':
+					var index = _v2.a;
+					return A4($author$project$Library$updateConfirm, msg1, model1, session1, index);
+				case 'DoActionDone':
+					var index = _v2.a;
+					return A4($author$project$Library$updateDoActionDone, msg1, model1, session1, index);
+				default:
+					return {cmd: $elm$core$Platform$Cmd$none, model: model1, session: session1};
+			}
 		}
-	});
-var $author$project$BooksEditor$update = F3(
-	function (msg, model, session) {
-		var _v0 = _Utils_Tuple2(msg, model);
-		var subMsg = _v0.a.a;
-		var libraryModel = _v0.b.a;
-		var libraryUpdated = A3($author$project$Library$update, subMsg, libraryModel, session);
-		return {
-			cmd: A2($elm$core$Platform$Cmd$map, $author$project$BooksEditor$LibraryMsg, libraryUpdated.cmd),
-			model: $author$project$BooksEditor$Library(libraryUpdated.model),
-			session: libraryUpdated.session
-		};
-	});
-var $author$project$Checkin$update = F3(
-	function (msg, model, session) {
-		var _v0 = _Utils_Tuple2(msg, model);
-		var subMsg = _v0.a.a;
-		var libraryModel = _v0.b.a;
-		var libraryUpdated = A3($author$project$Library$update, subMsg, libraryModel, session);
-		return {
-			cmd: A2($elm$core$Platform$Cmd$map, $author$project$Checkin$LibraryMsg, libraryUpdated.cmd),
-			model: $author$project$Checkin$Library(libraryUpdated.model),
-			session: libraryUpdated.session
-		};
 	});
 var $author$project$Login$Profile = F2(
 	function (name, picture) {
@@ -10166,28 +10795,35 @@ var $elm$url$Url$toString = function (url) {
 };
 var $author$project$Login$update = F2(
 	function (msg, session) {
-		if (msg.$ === 'SignInRequested') {
-			var config = $author$project$Login$configurationFor(session);
-			var auth = {
-				clientId: config.clientId,
-				redirectUri: $author$project$Login$redirectUrl(session),
-				scope: config.scope,
-				state: $elm$core$Maybe$Just(''),
-				url: config.authorizationEndpoint
-			};
-			return _Utils_Tuple2(
-				session,
-				$elm$browser$Browser$Navigation$load(
-					$elm$url$Url$toString(
-						$truqu$elm_oauth2$OAuth$Implicit$makeAuthorizationUrl(auth))));
-		} else {
-			var response = msg.a;
-			var respons1 = A2($elm$core$Debug$log, 'Login.update DoUserReceived', response);
-			return _Utils_Tuple2(
-				_Utils_update(
+		switch (msg.$) {
+			case 'SignInRequested':
+				var config = $author$project$Login$configurationFor(session);
+				var auth = {
+					clientId: config.clientId,
+					redirectUri: $author$project$Login$redirectUrl(session),
+					scope: config.scope,
+					state: $elm$core$Maybe$Just(''),
+					url: config.authorizationEndpoint
+				};
+				return _Utils_Tuple2(
 					session,
-					{user: response}),
-				$elm$core$Platform$Cmd$none);
+					$elm$browser$Browser$Navigation$load(
+						$elm$url$Url$toString(
+							$truqu$elm_oauth2$OAuth$Implicit$makeAuthorizationUrl(auth))));
+			case 'DoUserReceived':
+				var response = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						session,
+						{user: response}),
+					$elm$core$Platform$Cmd$none);
+			default:
+				var response = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						session,
+						{userInfo: response}),
+					$elm$core$Platform$Cmd$none);
 		}
 	});
 var $author$project$Logout$logoutUri = function (session) {
@@ -10335,18 +10971,18 @@ var $author$project$Main$update = F2(
 					} else {
 						break _v0$10;
 					}
-				case 'BooksEditorMsg':
-					if (_v0.b.$ === 'BooksEditor') {
+				case 'BookEditorMsg':
+					if (_v0.b.$ === 'BookEditor') {
 						var subMsg = _v0.a.a;
 						var _v8 = _v0.b;
-						var booksEditorModel = _v8.a;
+						var bookEditorModel = _v8.a;
 						var session = _v8.b;
-						var booksEditorUpdated = A3($author$project$BooksEditor$update, subMsg, booksEditorModel, session);
+						var bookEditorUpdated = A3($author$project$BookEditor$update, subMsg, bookEditorModel, session);
 						return A3(
 							$author$project$Main$toModel,
-							A2($author$project$Main$BooksEditor, booksEditorUpdated.model, booksEditorUpdated.session),
-							A2($elm$core$Platform$Cmd$map, $author$project$Main$BooksEditorMsg, booksEditorUpdated.cmd),
-							booksEditorUpdated.session);
+							A2($author$project$Main$BookEditor, bookEditorUpdated.model, bookEditorUpdated.session),
+							A2($elm$core$Platform$Cmd$map, $author$project$Main$BookEditorMsg, bookEditorUpdated.cmd),
+							bookEditorUpdated.session);
 					} else {
 						break _v0$10;
 					}
@@ -10397,189 +11033,16 @@ var $author$project$LibraryAppCDN$stylesheet = A3(
 			$elm$html$Html$Attributes$href('src/resources/library-app.css')
 		]),
 	_List_Nil);
-var $elm$html$Html$div = _VirtualDom_node('div');
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Attrs = function (a) {
-	return {$: 'Attrs', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Button$attrs = function (attrs_) {
-	return $rundis$elm_bootstrap$Bootstrap$Internal$Button$Attrs(attrs_);
-};
-var $elm$html$Html$button = _VirtualDom_node('button');
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$applyModifier = F2(
-	function (modifier, options) {
-		switch (modifier.$) {
-			case 'Size':
-				var size = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						size: $elm$core$Maybe$Just(size)
-					});
-			case 'Coloring':
-				var coloring = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						coloring: $elm$core$Maybe$Just(coloring)
-					});
-			case 'Block':
-				return _Utils_update(
-					options,
-					{block: true});
-			case 'Disabled':
-				var val = modifier.a;
-				return _Utils_update(
-					options,
-					{disabled: val});
-			default:
-				var attrs = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						attributes: _Utils_ap(options.attributes, attrs)
-					});
-		}
-	});
 var $elm$html$Html$Attributes$class = $elm$html$Html$Attributes$stringProperty('className');
-var $elm$core$Tuple$second = function (_v0) {
-	var y = _v0.b;
-	return y;
-};
-var $elm$html$Html$Attributes$classList = function (classes) {
-	return $elm$html$Html$Attributes$class(
-		A2(
-			$elm$core$String$join,
-			' ',
-			A2(
-				$elm$core$List$map,
-				$elm$core$Tuple$first,
-				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
-};
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$defaultOptions = {attributes: _List_Nil, block: false, coloring: $elm$core$Maybe$Nothing, disabled: false, size: $elm$core$Maybe$Nothing};
-var $elm$json$Json$Encode$bool = _Json_wrap;
-var $elm$html$Html$Attributes$boolProperty = F2(
-	function (key, bool) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			$elm$json$Json$Encode$bool(bool));
-	});
-var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$roleClass = function (role) {
-	switch (role.$) {
-		case 'Primary':
-			return 'primary';
-		case 'Secondary':
-			return 'secondary';
-		case 'Success':
-			return 'success';
-		case 'Info':
-			return 'info';
-		case 'Warning':
-			return 'warning';
-		case 'Danger':
-			return 'danger';
-		case 'Dark':
-			return 'dark';
-		case 'Light':
-			return 'light';
-		default:
-			return 'link';
-	}
-};
-var $rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption = function (size) {
-	switch (size.$) {
-		case 'XS':
-			return $elm$core$Maybe$Nothing;
-		case 'SM':
-			return $elm$core$Maybe$Just('sm');
-		case 'MD':
-			return $elm$core$Maybe$Just('md');
-		case 'LG':
-			return $elm$core$Maybe$Just('lg');
-		default:
-			return $elm$core$Maybe$Just('xl');
-	}
-};
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$buttonAttributes = function (modifiers) {
-	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Internal$Button$applyModifier, $rundis$elm_bootstrap$Bootstrap$Internal$Button$defaultOptions, modifiers);
-	return _Utils_ap(
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$classList(
-				_List_fromArray(
-					[
-						_Utils_Tuple2('btn', true),
-						_Utils_Tuple2('btn-block', options.block),
-						_Utils_Tuple2('disabled', options.disabled)
-					])),
-				$elm$html$Html$Attributes$disabled(options.disabled)
-			]),
-		_Utils_ap(
-			function () {
-				var _v0 = A2($elm$core$Maybe$andThen, $rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption, options.size);
-				if (_v0.$ === 'Just') {
-					var s = _v0.a;
-					return _List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('btn-' + s)
-						]);
-				} else {
-					return _List_Nil;
-				}
-			}(),
-			_Utils_ap(
-				function () {
-					var _v1 = options.coloring;
-					if (_v1.$ === 'Just') {
-						if (_v1.a.$ === 'Roled') {
-							var role = _v1.a.a;
-							return _List_fromArray(
-								[
-									$elm$html$Html$Attributes$class(
-									'btn-' + $rundis$elm_bootstrap$Bootstrap$Internal$Button$roleClass(role))
-								]);
-						} else {
-							var role = _v1.a.a;
-							return _List_fromArray(
-								[
-									$elm$html$Html$Attributes$class(
-									'btn-outline-' + $rundis$elm_bootstrap$Bootstrap$Internal$Button$roleClass(role))
-								]);
-						}
-					} else {
-						return _List_Nil;
-					}
-				}(),
-				options.attributes)));
-};
-var $rundis$elm_bootstrap$Bootstrap$Button$button = F2(
-	function (options, children) {
-		return A2(
-			$elm$html$Html$button,
-			$rundis$elm_bootstrap$Bootstrap$Internal$Button$buttonAttributes(options),
-			children);
-	});
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Disabled = function (a) {
-	return {$: 'Disabled', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Button$disabled = function (disabled_) {
-	return $rundis$elm_bootstrap$Bootstrap$Internal$Button$Disabled(disabled_);
-};
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$Disabled = function (a) {
 	return {$: 'Disabled', a: a};
 };
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$disabled = function (disabled_) {
 	return $rundis$elm_bootstrap$Bootstrap$Form$Input$Disabled(disabled_);
 };
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$Disabled = function (a) {
-	return {$: 'Disabled', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$disabled = function (disabled_) {
-	return $rundis$elm_bootstrap$Bootstrap$Form$Select$Disabled(disabled_);
-};
 var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Disabled = {$: 'Disabled'};
 var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$disabled = $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Disabled;
+var $elm$html$Html$div = _VirtualDom_node('div');
 var $elm$html$Html$form = _VirtualDom_node('form');
 var $rundis$elm_bootstrap$Bootstrap$Form$form = F2(
 	function (attributes, children) {
@@ -10611,24 +11074,6 @@ var $rundis$elm_bootstrap$Bootstrap$Form$group = F2(
 			$rundis$elm_bootstrap$Bootstrap$Form$toAttributes(options),
 			children);
 	});
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$Id = function (a) {
-	return {$: 'Id', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$id = function (id_) {
-	return $rundis$elm_bootstrap$Bootstrap$Form$Input$Id(id_);
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$Id = function (a) {
-	return {$: 'Id', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$id = function (id_) {
-	return $rundis$elm_bootstrap$Bootstrap$Form$Select$Id(id_);
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Id = function (a) {
-	return {$: 'Id', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$id = function (id_) {
-	return $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Id(id_);
-};
 var $elm$html$Html$img = _VirtualDom_node('img');
 var $elm$html$Html$label = _VirtualDom_node('label');
 var $rundis$elm_bootstrap$Bootstrap$Form$label = F2(
@@ -10648,243 +11093,43 @@ var $author$project$Utils$languages = _List_fromArray(
 		_Utils_Tuple2('nl', 'Nederlands'),
 		_Utils_Tuple2('fr', 'Français')
 	]);
-var $elm$virtual_dom$VirtualDom$MayPreventDefault = function (a) {
-	return {$: 'MayPreventDefault', a: a};
+var $author$project$Utils$locations = _List_fromArray(
+	[
+		_Utils_Tuple2('', ''),
+		_Utils_Tuple2('am', 'Amsterdam'),
+		_Utils_Tuple2('ro', 'Rotterdam'),
+		_Utils_Tuple2('br', 'Bruxelles'),
+		_Utils_Tuple2('ch', 'Chessy'),
+		_Utils_Tuple2('home', 'At home')
+	]);
+var $elm$core$Tuple$second = function (_v0) {
+	var y = _v0.b;
+	return y;
 };
-var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var $elm$html$Html$Events$preventDefaultOn = F2(
-	function (event, decoder) {
+var $author$project$Utils$lookup = F2(
+	function (key, list) {
 		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$MayPreventDefault(decoder));
+			$elm$core$Maybe$withDefault,
+			key,
+			A2(
+				$elm$core$Maybe$map,
+				$elm$core$Tuple$second,
+				$elm$core$List$head(
+					A2(
+						$elm$core$List$filter,
+						function (_v0) {
+							var key1 = _v0.a;
+							var value = _v0.b;
+							return _Utils_eq(key1, key);
+						},
+						list))));
 	});
-var $rundis$elm_bootstrap$Bootstrap$Button$onClick = function (message) {
-	return $rundis$elm_bootstrap$Bootstrap$Button$attrs(
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$Events$preventDefaultOn,
-				'click',
-				$elm$json$Json$Decode$succeed(
-					_Utils_Tuple2(message, true)))
-			]));
-};
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring = function (a) {
-	return {$: 'Coloring', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Info = {$: 'Info'};
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Outlined = function (a) {
-	return {$: 'Outlined', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Button$outlineInfo = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
-	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Outlined($rundis$elm_bootstrap$Bootstrap$Internal$Button$Info));
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary = {$: 'Primary'};
-var $rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
-	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Outlined($rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary));
-var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Secondary = {$: 'Secondary'};
-var $rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
-	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Outlined($rundis$elm_bootstrap$Bootstrap$Internal$Button$Secondary));
 var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Rows = function (a) {
 	return {$: 'Rows', a: a};
 };
 var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$rows = function (rows_) {
 	return $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Rows(rows_);
 };
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$Select = function (a) {
-	return {$: 'Select', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$create = F2(
-	function (options, items) {
-		return $rundis$elm_bootstrap$Bootstrap$Form$Select$Select(
-			{items: items, options: options});
-	});
-var $elm$html$Html$select = _VirtualDom_node('select');
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$applyModifier = F2(
-	function (modifier, options) {
-		switch (modifier.$) {
-			case 'Size':
-				var size_ = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						size: $elm$core$Maybe$Just(size_)
-					});
-			case 'Id':
-				var id_ = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						id: $elm$core$Maybe$Just(id_)
-					});
-			case 'Custom':
-				return _Utils_update(
-					options,
-					{custom: true});
-			case 'Disabled':
-				var val = modifier.a;
-				return _Utils_update(
-					options,
-					{disabled: val});
-			case 'OnChange':
-				var onChange_ = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						onChange: $elm$core$Maybe$Just(onChange_)
-					});
-			case 'Validation':
-				var validation_ = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						validation: $elm$core$Maybe$Just(validation_)
-					});
-			default:
-				var attrs_ = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						attributes: _Utils_ap(options.attributes, attrs_)
-					});
-		}
-	});
-var $elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var $elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			$elm$virtual_dom$VirtualDom$on,
-			event,
-			$elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var $elm$html$Html$Events$targetValue = A2(
-	$elm$json$Json$Decode$at,
-	_List_fromArray(
-		['target', 'value']),
-	$elm$json$Json$Decode$string);
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$customEventOnChange = function (tagger) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'change',
-		A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue));
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$defaultOptions = {attributes: _List_Nil, custom: false, disabled: false, id: $elm$core$Maybe$Nothing, onChange: $elm$core$Maybe$Nothing, size: $elm$core$Maybe$Nothing, validation: $elm$core$Maybe$Nothing};
-var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$sizeAttribute = F2(
-	function (isCustom, size_) {
-		var prefix = isCustom ? 'custom-select-' : 'form-control-';
-		return A2(
-			$elm$core$Maybe$map,
-			function (s) {
-				return $elm$html$Html$Attributes$class(
-					_Utils_ap(prefix, s));
-			},
-			$rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption(size_));
-	});
-var $rundis$elm_bootstrap$Bootstrap$Form$FormInternal$validationToString = function (validation) {
-	if (validation.$ === 'Success') {
-		return 'is-valid';
-	} else {
-		return 'is-invalid';
-	}
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$validationAttribute = function (validation_) {
-	return $elm$html$Html$Attributes$class(
-		$rundis$elm_bootstrap$Bootstrap$Form$FormInternal$validationToString(validation_));
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$toAttributes = function (modifiers) {
-	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Form$Select$applyModifier, $rundis$elm_bootstrap$Bootstrap$Form$Select$defaultOptions, modifiers);
-	return _Utils_ap(
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$classList(
-				_List_fromArray(
-					[
-						_Utils_Tuple2('form-control', !options.custom),
-						_Utils_Tuple2('custom-select', options.custom)
-					])),
-				$elm$html$Html$Attributes$disabled(options.disabled)
-			]),
-		_Utils_ap(
-			A2(
-				$elm$core$List$filterMap,
-				$elm$core$Basics$identity,
-				_List_fromArray(
-					[
-						A2($elm$core$Maybe$map, $elm$html$Html$Attributes$id, options.id),
-						A2(
-						$elm$core$Maybe$andThen,
-						$rundis$elm_bootstrap$Bootstrap$Form$Select$sizeAttribute(options.custom),
-						options.size),
-						A2($elm$core$Maybe$map, $rundis$elm_bootstrap$Bootstrap$Form$Select$customEventOnChange, options.onChange),
-						A2($elm$core$Maybe$map, $rundis$elm_bootstrap$Bootstrap$Form$Select$validationAttribute, options.validation)
-					])),
-			options.attributes));
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$view = function (_v0) {
-	var options = _v0.a.options;
-	var items = _v0.a.items;
-	return A2(
-		$elm$html$Html$select,
-		$rundis$elm_bootstrap$Bootstrap$Form$Select$toAttributes(options),
-		A2(
-			$elm$core$List$map,
-			function (_v1) {
-				var e = _v1.a;
-				return e;
-			},
-			items));
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$select = F2(
-	function (options, items) {
-		return $rundis$elm_bootstrap$Bootstrap$Form$Select$view(
-			A2($rundis$elm_bootstrap$Bootstrap$Form$Select$create, options, items));
-	});
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$Item = function (a) {
-	return {$: 'Item', a: a};
-};
-var $elm$html$Html$option = _VirtualDom_node('option');
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$item = F2(
-	function (attributes, children) {
-		return $rundis$elm_bootstrap$Bootstrap$Form$Select$Item(
-			A2($elm$html$Html$option, attributes, children));
-	});
-var $elm$html$Html$Attributes$selected = $elm$html$Html$Attributes$boolProperty('selected');
-var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
-var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
-var $author$project$View$SelectorDetails$selectitem = F2(
-	function (valueSelected, _v0) {
-		var value1 = _v0.a;
-		var text1 = _v0.b;
-		var _v1 = _Utils_eq(valueSelected, value1);
-		if (_v1) {
-			return A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$selected(true),
-						$elm$html$Html$Attributes$value(value1)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(text1)
-					]));
-		} else {
-			return A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$value(value1)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(text1)
-					]));
-		}
-	});
 var $rundis$elm_bootstrap$Bootstrap$Table$Inversed = {$: 'Inversed'};
 var $elm$core$List$any = F2(
 	function (isOkay, list) {
@@ -11065,6 +11310,20 @@ var $rundis$elm_bootstrap$Bootstrap$Table$maybeMapInversedTHead = F2(
 					rows: A2($elm$core$List$map, $rundis$elm_bootstrap$Bootstrap$Table$mapInversedRow, thead_.rows)
 				}) : thead_);
 	});
+var $rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption = function (size) {
+	switch (size.$) {
+		case 'XS':
+			return $elm$core$Maybe$Nothing;
+		case 'SM':
+			return $elm$core$Maybe$Just('sm');
+		case 'MD':
+			return $elm$core$Maybe$Just('md');
+		case 'LG':
+			return $elm$core$Maybe$Just('lg');
+		default:
+			return $elm$core$Maybe$Just('xl');
+	}
+};
 var $rundis$elm_bootstrap$Bootstrap$Table$maybeWrapResponsive = F2(
 	function (options, table_) {
 		var responsiveClass = $elm$html$Html$Attributes$class(
@@ -11528,12 +11787,23 @@ var $rundis$elm_bootstrap$Bootstrap$Form$Input$applyModifier = F2(
 		}
 	});
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$defaultOptions = {attributes: _List_Nil, disabled: false, id: $elm$core$Maybe$Nothing, onInput: $elm$core$Maybe$Nothing, placeholder: $elm$core$Maybe$Nothing, plainText: false, readonly: false, size: $elm$core$Maybe$Nothing, tipe: $rundis$elm_bootstrap$Bootstrap$Form$Input$Text, validation: $elm$core$Maybe$Nothing, value: $elm$core$Maybe$Nothing};
+var $elm$json$Json$Encode$bool = _Json_wrap;
+var $elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			$elm$json$Json$Encode$bool(bool));
+	});
+var $elm$html$Html$Attributes$disabled = $elm$html$Html$Attributes$boolProperty('disabled');
+var $elm$html$Html$Attributes$id = $elm$html$Html$Attributes$stringProperty('id');
 var $elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
 var $elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
 	return {$: 'MayStopPropagation', a: a};
 };
+var $elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
 var $elm$html$Html$Events$stopPropagationOn = F2(
 	function (event, decoder) {
 		return A2(
@@ -11541,6 +11811,11 @@ var $elm$html$Html$Events$stopPropagationOn = F2(
 			event,
 			$elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
 	});
+var $elm$html$Html$Events$targetValue = A2(
+	$elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	$elm$json$Json$Decode$string);
 var $elm$html$Html$Events$onInput = function (tagger) {
 	return A2(
 		$elm$html$Html$Events$stopPropagationOn,
@@ -11594,10 +11869,18 @@ var $rundis$elm_bootstrap$Bootstrap$Form$Input$typeAttribute = function (inputTy
 			}
 		}());
 };
+var $rundis$elm_bootstrap$Bootstrap$Form$FormInternal$validationToString = function (validation) {
+	if (validation.$ === 'Success') {
+		return 'is-valid';
+	} else {
+		return 'is-invalid';
+	}
+};
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$validationAttribute = function (validation) {
 	return $elm$html$Html$Attributes$class(
 		$rundis$elm_bootstrap$Bootstrap$Form$FormInternal$validationToString(validation));
 };
+var $elm$html$Html$Attributes$value = $elm$html$Html$Attributes$stringProperty('value');
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$toAttributes = function (modifiers) {
 	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Form$Input$applyModifier, $rundis$elm_bootstrap$Bootstrap$Form$Input$defaultOptions, modifiers);
 	return _Utils_ap(
@@ -11637,6 +11920,8 @@ var $rundis$elm_bootstrap$Bootstrap$Form$Input$input = F2(
 			A2($rundis$elm_bootstrap$Bootstrap$Form$Input$create, tipe, options));
 	});
 var $rundis$elm_bootstrap$Bootstrap$Form$Input$text = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Text);
+var $elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var $elm$html$Html$text = $elm$virtual_dom$VirtualDom$text;
 var $elm$core$Basics$composeL = F3(
 	function (g, f, x) {
 		return g(
@@ -11764,6 +12049,2955 @@ var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Value = function (a) {
 var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$value = function (value_) {
 	return $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Value(value_);
 };
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Attrs = function (a) {
+	return {$: 'Attrs', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Button$attrs = function (attrs_) {
+	return $rundis$elm_bootstrap$Bootstrap$Internal$Button$Attrs(attrs_);
+};
+var $elm$html$Html$button = _VirtualDom_node('button');
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$applyModifier = F2(
+	function (modifier, options) {
+		switch (modifier.$) {
+			case 'Size':
+				var size = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						size: $elm$core$Maybe$Just(size)
+					});
+			case 'Coloring':
+				var coloring = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						coloring: $elm$core$Maybe$Just(coloring)
+					});
+			case 'Block':
+				return _Utils_update(
+					options,
+					{block: true});
+			case 'Disabled':
+				var val = modifier.a;
+				return _Utils_update(
+					options,
+					{disabled: val});
+			default:
+				var attrs = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						attributes: _Utils_ap(options.attributes, attrs)
+					});
+		}
+	});
+var $elm$html$Html$Attributes$classList = function (classes) {
+	return $elm$html$Html$Attributes$class(
+		A2(
+			$elm$core$String$join,
+			' ',
+			A2(
+				$elm$core$List$map,
+				$elm$core$Tuple$first,
+				A2($elm$core$List$filter, $elm$core$Tuple$second, classes))));
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$defaultOptions = {attributes: _List_Nil, block: false, coloring: $elm$core$Maybe$Nothing, disabled: false, size: $elm$core$Maybe$Nothing};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$roleClass = function (role) {
+	switch (role.$) {
+		case 'Primary':
+			return 'primary';
+		case 'Secondary':
+			return 'secondary';
+		case 'Success':
+			return 'success';
+		case 'Info':
+			return 'info';
+		case 'Warning':
+			return 'warning';
+		case 'Danger':
+			return 'danger';
+		case 'Dark':
+			return 'dark';
+		case 'Light':
+			return 'light';
+		default:
+			return 'link';
+	}
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$buttonAttributes = function (modifiers) {
+	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Internal$Button$applyModifier, $rundis$elm_bootstrap$Bootstrap$Internal$Button$defaultOptions, modifiers);
+	return _Utils_ap(
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$classList(
+				_List_fromArray(
+					[
+						_Utils_Tuple2('btn', true),
+						_Utils_Tuple2('btn-block', options.block),
+						_Utils_Tuple2('disabled', options.disabled)
+					])),
+				$elm$html$Html$Attributes$disabled(options.disabled)
+			]),
+		_Utils_ap(
+			function () {
+				var _v0 = A2($elm$core$Maybe$andThen, $rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption, options.size);
+				if (_v0.$ === 'Just') {
+					var s = _v0.a;
+					return _List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('btn-' + s)
+						]);
+				} else {
+					return _List_Nil;
+				}
+			}(),
+			_Utils_ap(
+				function () {
+					var _v1 = options.coloring;
+					if (_v1.$ === 'Just') {
+						if (_v1.a.$ === 'Roled') {
+							var role = _v1.a.a;
+							return _List_fromArray(
+								[
+									$elm$html$Html$Attributes$class(
+									'btn-' + $rundis$elm_bootstrap$Bootstrap$Internal$Button$roleClass(role))
+								]);
+						} else {
+							var role = _v1.a.a;
+							return _List_fromArray(
+								[
+									$elm$html$Html$Attributes$class(
+									'btn-outline-' + $rundis$elm_bootstrap$Bootstrap$Internal$Button$roleClass(role))
+								]);
+						}
+					} else {
+						return _List_Nil;
+					}
+				}(),
+				options.attributes)));
+};
+var $rundis$elm_bootstrap$Bootstrap$Button$button = F2(
+	function (options, children) {
+		return A2(
+			$elm$html$Html$button,
+			$rundis$elm_bootstrap$Bootstrap$Internal$Button$buttonAttributes(options),
+			children);
+	});
+var $elm$html$Html$Attributes$colspan = function (n) {
+	return A2(
+		_VirtualDom_attribute,
+		'colspan',
+		$elm$core$String$fromInt(n));
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Disabled = function (a) {
+	return {$: 'Disabled', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Button$disabled = function (disabled_) {
+	return $rundis$elm_bootstrap$Bootstrap$Internal$Button$Disabled(disabled_);
+};
+var $elm$html$Html$Attributes$hidden = $elm$html$Html$Attributes$boolProperty('hidden');
+var $elm$virtual_dom$VirtualDom$MayPreventDefault = function (a) {
+	return {$: 'MayPreventDefault', a: a};
+};
+var $elm$html$Html$Events$preventDefaultOn = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$MayPreventDefault(decoder));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Button$onClick = function (message) {
+	return $rundis$elm_bootstrap$Bootstrap$Button$attrs(
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$Events$preventDefaultOn,
+				'click',
+				$elm$json$Json$Decode$succeed(
+					_Utils_Tuple2(message, true)))
+			]));
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring = function (a) {
+	return {$: 'Coloring', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Info = {$: 'Info'};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Outlined = function (a) {
+	return {$: 'Outlined', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Button$outlineInfo = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
+	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Outlined($rundis$elm_bootstrap$Bootstrap$Internal$Button$Info));
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary = {$: 'Primary'};
+var $rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
+	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Outlined($rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary));
+var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Secondary = {$: 'Secondary'};
+var $rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
+	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Outlined($rundis$elm_bootstrap$Bootstrap$Internal$Button$Secondary));
+var $author$project$View$LibraryDetails$viewBookDetailButtons = function (config) {
+	return A2(
+		$rundis$elm_bootstrap$Bootstrap$Form$group,
+		_List_Nil,
+		_List_fromArray(
+			[
+				$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
+				_Utils_Tuple2(
+					A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
+					A2(
+						$rundis$elm_bootstrap$Bootstrap$Table$tbody,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Table$tr,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Table$td,
+										_List_Nil,
+										_List_fromArray(
+											[
+												A2(
+												$rundis$elm_bootstrap$Bootstrap$Button$button,
+												_List_fromArray(
+													[
+														$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
+														$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+														$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doPrevious),
+														$rundis$elm_bootstrap$Bootstrap$Button$disabled(!config.hasPrevious)
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('<')
+													]))
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Table$td,
+										_List_Nil,
+										_List_fromArray(
+											[
+												A2(
+												$rundis$elm_bootstrap$Bootstrap$Button$button,
+												_List_fromArray(
+													[
+														$rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary,
+														$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+														$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCancel)
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Cancel')
+													]))
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Table$td,
+										_List_fromArray(
+											[
+												$rundis$elm_bootstrap$Bootstrap$Table$cellAttr(
+												$elm$html$Html$Attributes$hidden(!config.doAction1.visible))
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$rundis$elm_bootstrap$Bootstrap$Button$button,
+												_List_fromArray(
+													[
+														$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
+														$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+														$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doAction1.msg),
+														$rundis$elm_bootstrap$Bootstrap$Button$disabled(config.doAction1.disabled)
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(config.doAction1.text)
+													]))
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Table$td,
+										_List_fromArray(
+											[
+												$rundis$elm_bootstrap$Bootstrap$Table$cellAttr(
+												$elm$html$Html$Attributes$hidden(!config.doAction2.visible))
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$rundis$elm_bootstrap$Bootstrap$Button$button,
+												_List_fromArray(
+													[
+														$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
+														$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+														$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doAction2.msg),
+														$rundis$elm_bootstrap$Bootstrap$Button$disabled(config.doAction2.disabled)
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(config.doAction2.text)
+													]))
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Table$td,
+										_List_Nil,
+										_List_fromArray(
+											[
+												A2(
+												$rundis$elm_bootstrap$Bootstrap$Button$button,
+												_List_fromArray(
+													[
+														$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
+														$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+														$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doNext),
+														$rundis$elm_bootstrap$Bootstrap$Button$disabled(!config.hasNext)
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text('>')
+													]))
+											]))
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Table$tr,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Table$td,
+										_List_fromArray(
+											[
+												$rundis$elm_bootstrap$Bootstrap$Table$cellAttr(
+												$elm$html$Html$Attributes$colspan(4))
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$rundis$elm_bootstrap$Bootstrap$Form$group,
+												_List_Nil,
+												_List_fromArray(
+													[
+														A2(
+														$rundis$elm_bootstrap$Bootstrap$Form$label,
+														_List_Nil,
+														_List_fromArray(
+															[
+																$elm$html$Html$text(config.remarks)
+															]))
+													]))
+											]))
+									]))
+							]))))
+			]));
+};
+var $author$project$View$LibraryDetails$viewBookDetail = function (config) {
+	var _v0 = config;
+	var libraryBook = _v0.libraryBook;
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('container')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$rundis$elm_bootstrap$Bootstrap$Form$form,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Title')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(libraryBook.title),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Author(s)')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(libraryBook.authors),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Description')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Textarea$textarea(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$rows(5),
+										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$value(libraryBook.description),
+										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$disabled
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Published date')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(libraryBook.publishedDate),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Language')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(
+										A2($author$project$Utils$lookup, libraryBook.language, $author$project$Utils$languages)),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Location')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(
+										A2($author$project$Utils$lookup, libraryBook.location, $author$project$Utils$locations)),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Owner')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(libraryBook.owner),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Image of the book')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
+								_Utils_Tuple2(
+									A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
+									A2(
+										$rundis$elm_bootstrap$Bootstrap$Table$tbody,
+										_List_Nil,
+										_List_fromArray(
+											[
+												A2(
+												$rundis$elm_bootstrap$Bootstrap$Table$tr,
+												_List_Nil,
+												_List_fromArray(
+													[
+														A2(
+														$rundis$elm_bootstrap$Bootstrap$Table$td,
+														_List_Nil,
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$img,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$src(libraryBook.thumbnail)
+																	]),
+																_List_Nil)
+															]))
+													]))
+											]))))
+							])),
+						$author$project$View$LibraryDetails$viewBookDetailButtons(config)
+					]))
+			]));
+};
+var $author$project$View$LibraryDetails$view = function (config) {
+	return $author$project$View$LibraryDetails$viewBookDetail(config);
+};
+var $author$project$View$LibraryEdit$DoCancel = {$: 'DoCancel'};
+var $author$project$View$LibraryEdit$DoInsert = {$: 'DoInsert'};
+var $author$project$View$LibraryEdit$DoUpdate = {$: 'DoUpdate'};
+var $author$project$View$LibraryEdit$UpdateAuthors = function (a) {
+	return {$: 'UpdateAuthors', a: a};
+};
+var $author$project$View$LibraryEdit$UpdateDescription = function (a) {
+	return {$: 'UpdateDescription', a: a};
+};
+var $author$project$View$LibraryEdit$UpdateLanguage = function (a) {
+	return {$: 'UpdateLanguage', a: a};
+};
+var $author$project$View$LibraryEdit$UpdateLocation = function (a) {
+	return {$: 'UpdateLocation', a: a};
+};
+var $author$project$View$LibraryEdit$UpdateOwner = function (a) {
+	return {$: 'UpdateOwner', a: a};
+};
+var $author$project$View$LibraryEdit$UpdatePublishedDate = function (a) {
+	return {$: 'UpdatePublishedDate', a: a};
+};
+var $author$project$View$LibraryEdit$UpdateTitle = function (a) {
+	return {$: 'UpdateTitle', a: a};
+};
+var $author$project$View$LibraryEdit$isObligatory = F2(
+	function (label, value) {
+		if (value === '') {
+			return 'Field \"' + (label + '\" needs a value here.');
+		} else {
+			return '';
+		}
+	});
+var $author$project$View$LibraryEdit$checkAuthors = F2(
+	function (label, value) {
+		return A2($author$project$View$LibraryEdit$isObligatory, label, value);
+	});
+var $author$project$View$LibraryEdit$checkDescription = F2(
+	function (label, value) {
+		return A2($author$project$View$LibraryEdit$isObligatory, label, value);
+	});
+var $author$project$View$LibraryEdit$checkLanguage = F2(
+	function (label, value) {
+		return A2($author$project$View$LibraryEdit$isObligatory, label, value);
+	});
+var $author$project$View$LibraryEdit$checkLocation = F2(
+	function (label, value) {
+		return A2($author$project$View$LibraryEdit$isObligatory, label, value);
+	});
+var $elm$regex$Regex$Match = F4(
+	function (match, index, number, submatches) {
+		return {index: index, match: match, number: number, submatches: submatches};
+	});
+var $elm$regex$Regex$contains = _Regex_contains;
+var $author$project$View$LibraryEdit$emailRegex = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|\"' + ('(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*' + ('\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' + '\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])'));
+var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
+var $elm$regex$Regex$fromString = function (string) {
+	return A2(
+		$elm$regex$Regex$fromStringWith,
+		{caseInsensitive: false, multiline: false},
+		string);
+};
+var $author$project$View$LibraryEdit$checkOwner = F2(
+	function (label, value) {
+		var _v0 = $elm$regex$Regex$fromString($author$project$View$LibraryEdit$emailRegex);
+		if (_v0.$ === 'Just') {
+			var regex = _v0.a;
+			return A2($elm$regex$Regex$contains, regex, value) ? '' : 'Please enter a valid email address.';
+		} else {
+			return '';
+		}
+	});
+var $author$project$View$LibraryEdit$checkPublishedDate = F2(
+	function (label, value) {
+		return A2($author$project$View$LibraryEdit$isObligatory, label, value);
+	});
+var $author$project$View$LibraryEdit$checkTitle = F2(
+	function (label, value) {
+		return A2($author$project$View$LibraryEdit$isObligatory, label, value);
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Danger = {$: 'Danger'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Validation = function (a) {
+	return {$: 'Validation', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$danger = $rundis$elm_bootstrap$Bootstrap$Form$Input$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Danger);
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$Validation = function (a) {
+	return {$: 'Validation', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$danger = $rundis$elm_bootstrap$Bootstrap$Form$Select$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Danger);
+var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Validation = function (a) {
+	return {$: 'Validation', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$danger = $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Danger);
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Email = {$: 'Email'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$email = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Email);
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Id = function (a) {
+	return {$: 'Id', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$id = function (id_) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Input$Id(id_);
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$Id = function (a) {
+	return {$: 'Id', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$id = function (id_) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Select$Id(id_);
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Id = function (a) {
+	return {$: 'Id', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$id = function (id_) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Id(id_);
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback = F2(
+	function (attributes, children) {
+		return A2(
+			$elm$html$Html$div,
+			A2(
+				$elm$core$List$cons,
+				$elm$html$Html$Attributes$class('invalid-feedback'),
+				attributes),
+			children);
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$OnChange = function (a) {
+	return {$: 'OnChange', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$onChange = function (toMsg) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Select$OnChange(toMsg);
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$OnInput = function (a) {
+	return {$: 'OnInput', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$onInput = function (toMsg) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Input$OnInput(toMsg);
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$OnInput = function (a) {
+	return {$: 'OnInput', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$onInput = function (toMsg) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Textarea$OnInput(toMsg);
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$Select = function (a) {
+	return {$: 'Select', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$create = F2(
+	function (options, items) {
+		return $rundis$elm_bootstrap$Bootstrap$Form$Select$Select(
+			{items: items, options: options});
+	});
+var $elm$html$Html$select = _VirtualDom_node('select');
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$applyModifier = F2(
+	function (modifier, options) {
+		switch (modifier.$) {
+			case 'Size':
+				var size_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						size: $elm$core$Maybe$Just(size_)
+					});
+			case 'Id':
+				var id_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						id: $elm$core$Maybe$Just(id_)
+					});
+			case 'Custom':
+				return _Utils_update(
+					options,
+					{custom: true});
+			case 'Disabled':
+				var val = modifier.a;
+				return _Utils_update(
+					options,
+					{disabled: val});
+			case 'OnChange':
+				var onChange_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						onChange: $elm$core$Maybe$Just(onChange_)
+					});
+			case 'Validation':
+				var validation_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						validation: $elm$core$Maybe$Just(validation_)
+					});
+			default:
+				var attrs_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						attributes: _Utils_ap(options.attributes, attrs_)
+					});
+		}
+	});
+var $elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var $elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			$elm$virtual_dom$VirtualDom$on,
+			event,
+			$elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$customEventOnChange = function (tagger) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'change',
+		A2($elm$json$Json$Decode$map, tagger, $elm$html$Html$Events$targetValue));
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$defaultOptions = {attributes: _List_Nil, custom: false, disabled: false, id: $elm$core$Maybe$Nothing, onChange: $elm$core$Maybe$Nothing, size: $elm$core$Maybe$Nothing, validation: $elm$core$Maybe$Nothing};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$sizeAttribute = F2(
+	function (isCustom, size_) {
+		var prefix = isCustom ? 'custom-select-' : 'form-control-';
+		return A2(
+			$elm$core$Maybe$map,
+			function (s) {
+				return $elm$html$Html$Attributes$class(
+					_Utils_ap(prefix, s));
+			},
+			$rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption(size_));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$validationAttribute = function (validation_) {
+	return $elm$html$Html$Attributes$class(
+		$rundis$elm_bootstrap$Bootstrap$Form$FormInternal$validationToString(validation_));
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$toAttributes = function (modifiers) {
+	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Form$Select$applyModifier, $rundis$elm_bootstrap$Bootstrap$Form$Select$defaultOptions, modifiers);
+	return _Utils_ap(
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$classList(
+				_List_fromArray(
+					[
+						_Utils_Tuple2('form-control', !options.custom),
+						_Utils_Tuple2('custom-select', options.custom)
+					])),
+				$elm$html$Html$Attributes$disabled(options.disabled)
+			]),
+		_Utils_ap(
+			A2(
+				$elm$core$List$filterMap,
+				$elm$core$Basics$identity,
+				_List_fromArray(
+					[
+						A2($elm$core$Maybe$map, $elm$html$Html$Attributes$id, options.id),
+						A2(
+						$elm$core$Maybe$andThen,
+						$rundis$elm_bootstrap$Bootstrap$Form$Select$sizeAttribute(options.custom),
+						options.size),
+						A2($elm$core$Maybe$map, $rundis$elm_bootstrap$Bootstrap$Form$Select$customEventOnChange, options.onChange),
+						A2($elm$core$Maybe$map, $rundis$elm_bootstrap$Bootstrap$Form$Select$validationAttribute, options.validation)
+					])),
+			options.attributes));
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$view = function (_v0) {
+	var options = _v0.a.options;
+	var items = _v0.a.items;
+	return A2(
+		$elm$html$Html$select,
+		$rundis$elm_bootstrap$Bootstrap$Form$Select$toAttributes(options),
+		A2(
+			$elm$core$List$map,
+			function (_v1) {
+				var e = _v1.a;
+				return e;
+			},
+			items));
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$select = F2(
+	function (options, items) {
+		return $rundis$elm_bootstrap$Bootstrap$Form$Select$view(
+			A2($rundis$elm_bootstrap$Bootstrap$Form$Select$create, options, items));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$Item = function (a) {
+	return {$: 'Item', a: a};
+};
+var $elm$html$Html$option = _VirtualDom_node('option');
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$item = F2(
+	function (attributes, children) {
+		return $rundis$elm_bootstrap$Bootstrap$Form$Select$Item(
+			A2($elm$html$Html$option, attributes, children));
+	});
+var $elm$html$Html$Attributes$selected = $elm$html$Html$Attributes$boolProperty('selected');
+var $author$project$View$LibraryEdit$selectitem = F2(
+	function (valueSelected, _v0) {
+		var value1 = _v0.a;
+		var text1 = _v0.b;
+		return _Utils_eq(valueSelected, value1) ? A2(
+			$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$selected(true),
+					$elm$html$Html$Attributes$value(value1)
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(text1)
+				])) : A2(
+			$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$value(value1)
+				]),
+			_List_fromArray(
+				[
+					$elm$html$Html$text(text1)
+				]));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Success = {$: 'Success'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$success = $rundis$elm_bootstrap$Bootstrap$Form$Input$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Success);
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$success = $rundis$elm_bootstrap$Bootstrap$Form$Select$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Success);
+var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$success = $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Success);
+var $author$project$View$LibraryEdit$viewBookDetail = function (config) {
+	var _v0 = config;
+	var book = _v0.book;
+	var titleInputFeedback = A2($author$project$View$LibraryEdit$checkTitle, 'title', book.title);
+	var publishedDateInputFeedback = A2($author$project$View$LibraryEdit$checkPublishedDate, 'publishedDate', book.publishedDate);
+	var ownerInputFeedback = A2($author$project$View$LibraryEdit$checkOwner, 'owner', book.owner);
+	var locationInputFeedback = A2($author$project$View$LibraryEdit$checkLocation, 'location', book.location);
+	var languageInputFeedback = A2($author$project$View$LibraryEdit$checkLanguage, 'language', book.language);
+	var descriptionInputFeedback = A2($author$project$View$LibraryEdit$checkDescription, 'description', book.description);
+	var authorsInputFeedback = A2($author$project$View$LibraryEdit$checkAuthors, 'author(s)', book.authors);
+	var allOk = (titleInputFeedback === '') && ((authorsInputFeedback === '') && ((descriptionInputFeedback === '') && ((publishedDateInputFeedback === '') && ((languageInputFeedback === '') && ((ownerInputFeedback === '') && (locationInputFeedback === ''))))));
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('container')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$rundis$elm_bootstrap$Bootstrap$Form$form,
+				_List_Nil,
+				_List_fromArray(
+					[
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Title')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$id('title'),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$View$LibraryEdit$UpdateTitle),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.title),
+										(titleInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Input$success : $rundis$elm_bootstrap$Bootstrap$Form$Input$danger
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(titleInputFeedback)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Author(s)')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$id('authors'),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$View$LibraryEdit$UpdateAuthors),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.authors),
+										(authorsInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Input$success : $rundis$elm_bootstrap$Bootstrap$Form$Input$danger
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(authorsInputFeedback)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Description')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Textarea$textarea(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$id('description'),
+										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$rows(5),
+										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$onInput($author$project$View$LibraryEdit$UpdateDescription),
+										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$value(book.description),
+										(descriptionInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Textarea$success : $rundis$elm_bootstrap$Bootstrap$Form$Textarea$danger
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(descriptionInputFeedback)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Published date')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$id('publishedDate'),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$View$LibraryEdit$UpdatePublishedDate),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.publishedDate),
+										(publishedDateInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Input$success : $rundis$elm_bootstrap$Bootstrap$Form$Input$danger
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(publishedDateInputFeedback)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Language')
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Select$id('language'),
+										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange($author$project$View$LibraryEdit$UpdateLanguage),
+										(languageInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Select$success : $rundis$elm_bootstrap$Bootstrap$Form$Select$danger
+									]),
+								A2(
+									$elm$core$List$map,
+									$author$project$View$LibraryEdit$selectitem(book.language),
+									$author$project$Utils$languages)),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(languageInputFeedback)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Owner of the book')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$email(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$id('owner'),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$View$LibraryEdit$UpdateOwner),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.owner),
+										(ownerInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Input$success : $rundis$elm_bootstrap$Bootstrap$Form$Input$danger
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(ownerInputFeedback)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Location of the book')
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Select$id('location'),
+										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange($author$project$View$LibraryEdit$UpdateLocation),
+										(locationInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Select$success : $rundis$elm_bootstrap$Bootstrap$Form$Select$danger
+									]),
+								A2(
+									$elm$core$List$map,
+									$author$project$View$LibraryEdit$selectitem(book.location),
+									$author$project$Utils$locations)),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text(locationInputFeedback)
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Image of the book')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
+								_Utils_Tuple2(
+									A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
+									A2(
+										$rundis$elm_bootstrap$Bootstrap$Table$tbody,
+										_List_Nil,
+										_List_fromArray(
+											[
+												A2(
+												$rundis$elm_bootstrap$Bootstrap$Table$tr,
+												_List_Nil,
+												_List_fromArray(
+													[
+														A2(
+														$rundis$elm_bootstrap$Bootstrap$Table$td,
+														_List_Nil,
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$img,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$Attributes$src(book.thumbnail)
+																	]),
+																_List_Nil)
+															]))
+													]))
+											]))))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
+								_Utils_Tuple2(
+									A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
+									A2(
+										$rundis$elm_bootstrap$Bootstrap$Table$tbody,
+										_List_Nil,
+										_List_fromArray(
+											[
+												A2(
+												$rundis$elm_bootstrap$Bootstrap$Table$tr,
+												_List_Nil,
+												_List_fromArray(
+													[
+														A2(
+														$rundis$elm_bootstrap$Bootstrap$Table$td,
+														_List_Nil,
+														_List_fromArray(
+															[
+																A2(
+																$rundis$elm_bootstrap$Bootstrap$Button$button,
+																_List_fromArray(
+																	[
+																		$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
+																		$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+																		$rundis$elm_bootstrap$Bootstrap$Button$disabled(true)
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('<')
+																	]))
+															])),
+														A2(
+														$rundis$elm_bootstrap$Bootstrap$Table$td,
+														_List_Nil,
+														_List_fromArray(
+															[
+																A2(
+																$rundis$elm_bootstrap$Bootstrap$Button$button,
+																_List_fromArray(
+																	[
+																		$rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary,
+																		$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+																		$rundis$elm_bootstrap$Bootstrap$Button$onClick($author$project$View$LibraryEdit$DoCancel)
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('Cancel')
+																	]))
+															])),
+														A2(
+														$rundis$elm_bootstrap$Bootstrap$Table$td,
+														_List_fromArray(
+															[
+																$rundis$elm_bootstrap$Bootstrap$Table$cellAttr(
+																$elm$html$Html$Attributes$hidden(!config.doInsert.visible))
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$rundis$elm_bootstrap$Bootstrap$Button$button,
+																_List_fromArray(
+																	[
+																		$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
+																		$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+																		$rundis$elm_bootstrap$Bootstrap$Button$onClick($author$project$View$LibraryEdit$DoInsert),
+																		$rundis$elm_bootstrap$Bootstrap$Button$disabled(!allOk)
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('Insert')
+																	]))
+															])),
+														A2(
+														$rundis$elm_bootstrap$Bootstrap$Table$td,
+														_List_fromArray(
+															[
+																$rundis$elm_bootstrap$Bootstrap$Table$cellAttr(
+																$elm$html$Html$Attributes$hidden(!config.doUpdate.visible))
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$rundis$elm_bootstrap$Bootstrap$Button$button,
+																_List_fromArray(
+																	[
+																		$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
+																		$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+																		$rundis$elm_bootstrap$Bootstrap$Button$onClick($author$project$View$LibraryEdit$DoUpdate),
+																		$rundis$elm_bootstrap$Bootstrap$Button$disabled(!allOk)
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('Update')
+																	]))
+															])),
+														A2(
+														$rundis$elm_bootstrap$Bootstrap$Table$td,
+														_List_Nil,
+														_List_fromArray(
+															[
+																A2(
+																$rundis$elm_bootstrap$Bootstrap$Button$button,
+																_List_fromArray(
+																	[
+																		$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
+																		$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
+																		$rundis$elm_bootstrap$Bootstrap$Button$disabled(true)
+																	]),
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text('>')
+																	]))
+															]))
+													]))
+											]))))
+							]))
+					]))
+			]));
+};
+var $author$project$View$LibraryEdit$view = function (config) {
+	return $author$project$View$LibraryEdit$viewBookDetail(config);
+};
+var $author$project$View$LibraryTiles$UpdateSearchAuthors = function (a) {
+	return {$: 'UpdateSearchAuthors', a: a};
+};
+var $author$project$View$LibraryTiles$UpdateSearchCheckStatus = function (a) {
+	return {$: 'UpdateSearchCheckStatus', a: a};
+};
+var $author$project$View$LibraryTiles$UpdateSearchCheckoutUser = function (a) {
+	return {$: 'UpdateSearchCheckoutUser', a: a};
+};
+var $author$project$View$LibraryTiles$UpdateSearchLocation = function (a) {
+	return {$: 'UpdateSearchLocation', a: a};
+};
+var $author$project$View$LibraryTiles$UpdateSearchOwner = function (a) {
+	return {$: 'UpdateSearchOwner', a: a};
+};
+var $author$project$View$LibraryTiles$UpdateSearchTitle = function (a) {
+	return {$: 'UpdateSearchTitle', a: a};
+};
+var $elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		$elm$core$List$foldl,
+		F2(
+			function (_v0, dict) {
+				var key = _v0.a;
+				var value = _v0.b;
+				return A3($elm$core$Dict$insert, key, value, dict);
+			}),
+		$elm$core$Dict$empty,
+		assocs);
+};
+var $author$project$Utils$checkedStatusList = $elm$core$Dict$fromList(
+	_List_fromArray(
+		[
+			_Utils_Tuple2('available', 'Available books'),
+			_Utils_Tuple2('checkedout', 'Checked out books')
+		]));
+var $elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			$elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var $author$project$View$LibraryTiles$addCheckoutUser = F2(
+	function (maybeCheckout, users) {
+		if (maybeCheckout.$ === 'Just') {
+			var checkout = maybeCheckout.a;
+			return (checkout.userEmail === '') ? users : (A2(
+				$elm$core$List$member,
+				_Utils_Tuple2(checkout.userEmail, checkout.userEmail),
+				users) ? users : A2(
+				$elm$core$List$cons,
+				_Utils_Tuple2(checkout.userEmail, checkout.userEmail),
+				users));
+		} else {
+			return users;
+		}
+	});
+var $author$project$View$LibraryTiles$getCheckoutUsers = function (webDataCheckouts) {
+	if (webDataCheckouts.$ === 'Success') {
+		var actualCheckouts = webDataCheckouts.a;
+		return A3(
+			$elm$core$List$foldl,
+			$author$project$View$LibraryTiles$addCheckoutUser,
+			_List_Nil,
+			$elm$core$Array$toList(actualCheckouts));
+	} else {
+		return _List_Nil;
+	}
+};
+var $author$project$View$LibraryTiles$addLocation = F2(
+	function (book, locations) {
+		return (book.location === '') ? locations : (A2(
+			$elm$core$List$member,
+			_Utils_Tuple2(book.location, book.location),
+			locations) ? locations : A2(
+			$elm$core$List$cons,
+			_Utils_Tuple2(book.location, book.location),
+			locations));
+	});
+var $author$project$View$LibraryTiles$getLocations = function (webDataBooks) {
+	if (webDataBooks.$ === 'Success') {
+		var actualBooks = webDataBooks.a;
+		return A3(
+			$elm$core$List$foldl,
+			$author$project$View$LibraryTiles$addLocation,
+			_List_Nil,
+			$elm$core$Array$toList(actualBooks));
+	} else {
+		return _List_Nil;
+	}
+};
+var $author$project$View$LibraryTiles$addOwner = F2(
+	function (book, owners) {
+		return (book.owner === '') ? owners : (A2(
+			$elm$core$List$member,
+			_Utils_Tuple2(book.owner, book.owner),
+			owners) ? owners : A2(
+			$elm$core$List$cons,
+			_Utils_Tuple2(book.owner, book.owner),
+			owners));
+	});
+var $author$project$View$LibraryTiles$getOwners = function (webDataBooks) {
+	if (webDataBooks.$ === 'Success') {
+		var actualBooks = webDataBooks.a;
+		return A3(
+			$elm$core$List$foldl,
+			$author$project$View$LibraryTiles$addOwner,
+			_List_Nil,
+			$elm$core$Array$toList(actualBooks));
+	} else {
+		return _List_Nil;
+	}
+};
+var $author$project$View$LibraryTiles$selectitem = F2(
+	function (valueSelected, _v0) {
+		var value1 = _v0.a;
+		var text1 = _v0.b;
+		var _v1 = _Utils_eq(valueSelected, value1);
+		if (_v1) {
+			return A2(
+				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$selected(true),
+						$elm$html$Html$Attributes$value(value1)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(text1)
+					]));
+		} else {
+			return A2(
+				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$value(value1)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(text1)
+					]));
+		}
+	});
+var $rundis$elm_bootstrap$Bootstrap$General$Internal$SM = {$: 'SM'};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$Size = function (a) {
+	return {$: 'Size', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Input$small = $rundis$elm_bootstrap$Bootstrap$Form$Input$Size($rundis$elm_bootstrap$Bootstrap$General$Internal$SM);
+var $author$project$View$LibraryTiles$viewBookFilter = function (config) {
+	var _v0 = config;
+	var books = _v0.books;
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('container')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$rundis$elm_bootstrap$Bootstrap$Form$form,
+				_List_Nil,
+				_List_fromArray(
+					[
+						config.showSearchTitle ? A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Title')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$small,
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(config.searchTitle),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$View$LibraryTiles$UpdateSearchTitle)
+									]))
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchAuthors ? A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Author(s)')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$small,
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(config.searchAuthors),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput($author$project$View$LibraryTiles$UpdateSearchAuthors)
+									]))
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchLocation ? A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Location')
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange($author$project$View$LibraryTiles$UpdateSearchLocation)
+									]),
+								A2(
+									$elm$core$List$map,
+									$author$project$View$LibraryTiles$selectitem(config.searchLocation),
+									A2(
+										$elm$core$List$cons,
+										_Utils_Tuple2('', ''),
+										$author$project$View$LibraryTiles$getLocations(books))))
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchOwner ? A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Owner')
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange($author$project$View$LibraryTiles$UpdateSearchOwner)
+									]),
+								A2(
+									$elm$core$List$map,
+									$author$project$View$LibraryTiles$selectitem(config.searchOwner),
+									A2(
+										$elm$core$List$cons,
+										_Utils_Tuple2('', ''),
+										$author$project$View$LibraryTiles$getOwners(books))))
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchCheckStatus ? A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Availability')
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange($author$project$View$LibraryTiles$UpdateSearchCheckStatus)
+									]),
+								A2(
+									$elm$core$List$map,
+									$author$project$View$LibraryTiles$selectitem(config.searchCheckStatus),
+									A2(
+										$elm$core$List$cons,
+										_Utils_Tuple2('', ''),
+										$elm$core$Dict$toList($author$project$Utils$checkedStatusList))))
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
+						config.showSearchCheckoutUser ? A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('Checked out by')
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange($author$project$View$LibraryTiles$UpdateSearchCheckoutUser)
+									]),
+								A2(
+									$elm$core$List$map,
+									$author$project$View$LibraryTiles$selectitem(config.searchCheckoutUser),
+									A2(
+										$elm$core$List$cons,
+										_Utils_Tuple2('', ''),
+										$author$project$View$LibraryTiles$getCheckoutUsers(config.checkoutsDistributed))))
+							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil)
+					]))
+			]));
+};
+var $elm$html$Html$br = _VirtualDom_node('br');
+var $rundis$elm_bootstrap$Bootstrap$Spinner$Color = function (a) {
+	return {$: 'Color', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$color = function (color_) {
+	return $rundis$elm_bootstrap$Bootstrap$Spinner$Color(color_);
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$Large = {$: 'Large'};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$Size = function (a) {
+	return {$: 'Size', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$large = $rundis$elm_bootstrap$Bootstrap$Spinner$Size($rundis$elm_bootstrap$Bootstrap$Spinner$Large);
+var $elm$html$Html$p = _VirtualDom_node('p');
+var $rundis$elm_bootstrap$Bootstrap$Internal$Role$Primary = {$: 'Primary'};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Text$Role = function (a) {
+	return {$: 'Role', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Text$primary = $rundis$elm_bootstrap$Bootstrap$Internal$Text$Role($rundis$elm_bootstrap$Bootstrap$Internal$Role$Primary);
+var $rundis$elm_bootstrap$Bootstrap$Spinner$applyModifier = F2(
+	function (modifier, options) {
+		switch (modifier.$) {
+			case 'Kind':
+				var spinnerKind = modifier.a;
+				return _Utils_update(
+					options,
+					{kind: spinnerKind});
+			case 'Size':
+				var spinnerSize = modifier.a;
+				return _Utils_update(
+					options,
+					{size: spinnerSize});
+			case 'Color':
+				var color_ = modifier.a;
+				return _Utils_update(
+					options,
+					{
+						color: $elm$core$Maybe$Just(color_)
+					});
+			default:
+				var list = modifier.a;
+				return _Utils_update(
+					options,
+					{attributes: list});
+		}
+	});
+var $rundis$elm_bootstrap$Bootstrap$Spinner$Border = {$: 'Border'};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$Normal = {$: 'Normal'};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$defaultOptions = {attributes: _List_Nil, color: $elm$core$Maybe$Nothing, kind: $rundis$elm_bootstrap$Bootstrap$Spinner$Border, size: $rundis$elm_bootstrap$Bootstrap$Spinner$Normal};
+var $elm$virtual_dom$VirtualDom$attribute = F2(
+	function (key, value) {
+		return A2(
+			_VirtualDom_attribute,
+			_VirtualDom_noOnOrFormAction(key),
+			_VirtualDom_noJavaScriptOrHtmlUri(value));
+	});
+var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
+var $rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName = function (kind_) {
+	if (kind_.$ === 'Border') {
+		return 'spinner-border';
+	} else {
+		return 'spinner-grow';
+	}
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$kindClass = A2($elm$core$Basics$composeL, $elm$html$Html$Attributes$class, $rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName);
+var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
+var $rundis$elm_bootstrap$Bootstrap$Spinner$sizeAttributes = F2(
+	function (size_, kind_) {
+		switch (size_.$) {
+			case 'Normal':
+				return $elm$core$Maybe$Nothing;
+			case 'Small':
+				return $elm$core$Maybe$Just(
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class(
+							$rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName(kind_) + '-sm')
+						]));
+			default:
+				return $elm$core$Maybe$Just(
+					_List_fromArray(
+						[
+							A2($elm$html$Html$Attributes$style, 'width', '3rem'),
+							A2($elm$html$Html$Attributes$style, 'height', '3rem')
+						]));
+		}
+	});
+var $rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass = function (color) {
+	if (color.$ === 'White') {
+		return $elm$html$Html$Attributes$class('text-white');
+	} else {
+		var role = color.a;
+		return A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'text', role);
+	}
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$toAttributes = function (options) {
+	return _Utils_ap(
+		A2(
+			$elm$core$List$filterMap,
+			$elm$core$Basics$identity,
+			_List_fromArray(
+				[
+					$elm$core$Maybe$Just(
+					$rundis$elm_bootstrap$Bootstrap$Spinner$kindClass(options.kind)),
+					A2($elm$core$Maybe$map, $rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass, options.color)
+				])),
+		_Utils_ap(
+			A2(
+				$elm$core$Maybe$withDefault,
+				_List_Nil,
+				A2($rundis$elm_bootstrap$Bootstrap$Spinner$sizeAttributes, options.size, options.kind)),
+			_Utils_ap(
+				_List_fromArray(
+					[
+						A2($elm$html$Html$Attributes$attribute, 'role', 'status')
+					]),
+				options.attributes)));
+};
+var $rundis$elm_bootstrap$Bootstrap$Spinner$spinner = F2(
+	function (options, children) {
+		var opts = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Spinner$applyModifier, $rundis$elm_bootstrap$Bootstrap$Spinner$defaultOptions, options);
+		return A2(
+			$elm$html$Html$div,
+			$rundis$elm_bootstrap$Bootstrap$Spinner$toAttributes(opts),
+			children);
+	});
+var $elm$html$Html$span = _VirtualDom_node('span');
+var $rundis$elm_bootstrap$Bootstrap$Spinner$srMessage = function (msg) {
+	return A2(
+		$elm$html$Html$span,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('sr-only')
+			]),
+		_List_fromArray(
+			[
+				$elm$html$Html$text(msg)
+			]));
+};
+var $author$project$View$LibraryTiles$bookCheckoutIndex = F3(
+	function (book, checkout, index) {
+		return {book: book, checkout: checkout, index: index};
+	});
+var $elm$core$String$toUpper = _String_toUpper;
+var $author$project$View$LibraryTiles$booksFilter = F2(
+	function (_v0, _v1) {
+		var searchTitle = _v0.searchTitle;
+		var searchAuthors = _v0.searchAuthors;
+		var searchOwner = _v0.searchOwner;
+		var searchLocation = _v0.searchLocation;
+		var searchCheckStatus = _v0.searchCheckStatus;
+		var searchCheckoutUser = _v0.searchCheckoutUser;
+		var book = _v1.book;
+		var checkout = _v1.checkout;
+		var index = _v1.index;
+		return (($elm$core$String$isEmpty(searchTitle) || A2(
+			$elm$core$String$contains,
+			$elm$core$String$toUpper(searchTitle),
+			$elm$core$String$toUpper(book.title))) && (($elm$core$String$isEmpty(searchAuthors) || A2(
+			$elm$core$String$contains,
+			$elm$core$String$toUpper(searchAuthors),
+			$elm$core$String$toUpper(book.authors))) && (($elm$core$String$isEmpty(searchOwner) || _Utils_eq(searchOwner, book.owner)) && (($elm$core$String$isEmpty(searchLocation) || _Utils_eq(searchOwner, book.location)) && (($elm$core$String$isEmpty(searchCheckStatus) || (((searchCheckStatus === 'available') && _Utils_eq(checkout, $elm$core$Maybe$Nothing)) || ((searchCheckStatus === 'checkedout') && (!_Utils_eq(checkout, $elm$core$Maybe$Nothing))))) && ($elm$core$String$isEmpty(searchCheckoutUser) || function () {
+			if (checkout.$ === 'Just') {
+				var checkout1 = checkout.a;
+				return _Utils_eq(checkout1.userEmail, searchCheckoutUser);
+			} else {
+				return false;
+			}
+		}())))))) ? $elm$core$Maybe$Just(
+			{book: book, checkout: checkout, index: index}) : $elm$core$Maybe$Nothing;
+	});
+var $elm$core$List$map3 = _List_map3;
+var $author$project$View$LibraryTiles$DoDetail = function (a) {
+	return {$: 'DoDetail', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$Attrs = function (a) {
+	return {$: 'Attrs', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$attrs = function (attrs_) {
+	return $rundis$elm_bootstrap$Bootstrap$Card$Internal$Attrs(attrs_);
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$Config = function (a) {
+	return {$: 'Config', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$CardBlock = function (a) {
+	return {$: 'CardBlock', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$applyBlockModifier = F2(
+	function (option, options) {
+		switch (option.$) {
+			case 'AlignedBlock':
+				var align = option.a;
+				return _Utils_update(
+					options,
+					{
+						aligned: $elm$core$Maybe$Just(align)
+					});
+			case 'BlockColoring':
+				var role = option.a;
+				return _Utils_update(
+					options,
+					{
+						coloring: $elm$core$Maybe$Just(role)
+					});
+			case 'BlockTextColoring':
+				var color = option.a;
+				return _Utils_update(
+					options,
+					{
+						textColoring: $elm$core$Maybe$Just(color)
+					});
+			default:
+				var attrs = option.a;
+				return _Utils_update(
+					options,
+					{
+						attributes: _Utils_ap(options.attributes, attrs)
+					});
+		}
+	});
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$defaultBlockOptions = {aligned: $elm$core$Maybe$Nothing, attributes: _List_Nil, coloring: $elm$core$Maybe$Nothing, textColoring: $elm$core$Maybe$Nothing};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignDirOption = function (dir) {
+	switch (dir.$) {
+		case 'Center':
+			return 'center';
+		case 'Left':
+			return 'left';
+		default:
+			return 'right';
+	}
+};
+var $rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignClass = function (_v0) {
+	var dir = _v0.dir;
+	var size = _v0.size;
+	return $elm$html$Html$Attributes$class(
+		'text' + (A2(
+			$elm$core$Maybe$withDefault,
+			'-',
+			A2(
+				$elm$core$Maybe$map,
+				function (s) {
+					return '-' + (s + '-');
+				},
+				$rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption(size))) + $rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignDirOption(dir)));
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$blockAttributes = function (modifiers) {
+	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Card$Internal$applyBlockModifier, $rundis$elm_bootstrap$Bootstrap$Card$Internal$defaultBlockOptions, modifiers);
+	return _Utils_ap(
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('card-body')
+			]),
+		_Utils_ap(
+			function () {
+				var _v0 = options.aligned;
+				if (_v0.$ === 'Just') {
+					var align = _v0.a;
+					return _List_fromArray(
+						[
+							$rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignClass(align)
+						]);
+				} else {
+					return _List_Nil;
+				}
+			}(),
+			_Utils_ap(
+				function () {
+					var _v1 = options.coloring;
+					if (_v1.$ === 'Just') {
+						var role = _v1.a;
+						return _List_fromArray(
+							[
+								A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'bg', role)
+							]);
+					} else {
+						return _List_Nil;
+					}
+				}(),
+				_Utils_ap(
+					function () {
+						var _v2 = options.textColoring;
+						if (_v2.$ === 'Just') {
+							var color = _v2.a;
+							return _List_fromArray(
+								[
+									$rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass(color)
+								]);
+						} else {
+							return _List_Nil;
+						}
+					}(),
+					options.attributes))));
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$block = F2(
+	function (options, items) {
+		return $rundis$elm_bootstrap$Bootstrap$Card$Internal$CardBlock(
+			A2(
+				$elm$html$Html$div,
+				$rundis$elm_bootstrap$Bootstrap$Card$Internal$blockAttributes(options),
+				A2(
+					$elm$core$List$map,
+					function (_v0) {
+						var e = _v0.a;
+						return e;
+					},
+					items)));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Card$block = F3(
+	function (options, items, _v0) {
+		var conf = _v0.a;
+		return $rundis$elm_bootstrap$Bootstrap$Card$Config(
+			_Utils_update(
+				conf,
+				{
+					blocks: _Utils_ap(
+						conf.blocks,
+						_List_fromArray(
+							[
+								A2($rundis$elm_bootstrap$Bootstrap$Card$Internal$block, options, items)
+							]))
+				}));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Card$config = function (options) {
+	return $rundis$elm_bootstrap$Bootstrap$Card$Config(
+		{blocks: _List_Nil, footer: $elm$core$Maybe$Nothing, header: $elm$core$Maybe$Nothing, imgBottom: $elm$core$Maybe$Nothing, imgTop: $elm$core$Maybe$Nothing, options: options});
+};
+var $elm$time$Time$Zone = F2(
+	function (a, b) {
+		return {$: 'Zone', a: a, b: b};
+	});
+var $elm$time$Time$utc = A2($elm$time$Time$Zone, 0, _List_Nil);
+var $author$project$Utils$getTimeZone = $elm$time$Time$utc;
+var $elm$time$Time$flooredDiv = F2(
+	function (numerator, denominator) {
+		return $elm$core$Basics$floor(numerator / denominator);
+	});
+var $elm$time$Time$posixToMillis = function (_v0) {
+	var millis = _v0.a;
+	return millis;
+};
+var $elm$time$Time$toAdjustedMinutesHelp = F3(
+	function (defaultOffset, posixMinutes, eras) {
+		toAdjustedMinutesHelp:
+		while (true) {
+			if (!eras.b) {
+				return posixMinutes + defaultOffset;
+			} else {
+				var era = eras.a;
+				var olderEras = eras.b;
+				if (_Utils_cmp(era.start, posixMinutes) < 0) {
+					return posixMinutes + era.offset;
+				} else {
+					var $temp$defaultOffset = defaultOffset,
+						$temp$posixMinutes = posixMinutes,
+						$temp$eras = olderEras;
+					defaultOffset = $temp$defaultOffset;
+					posixMinutes = $temp$posixMinutes;
+					eras = $temp$eras;
+					continue toAdjustedMinutesHelp;
+				}
+			}
+		}
+	});
+var $elm$time$Time$toAdjustedMinutes = F2(
+	function (_v0, time) {
+		var defaultOffset = _v0.a;
+		var eras = _v0.b;
+		return A3(
+			$elm$time$Time$toAdjustedMinutesHelp,
+			defaultOffset,
+			A2(
+				$elm$time$Time$flooredDiv,
+				$elm$time$Time$posixToMillis(time),
+				60000),
+			eras);
+	});
+var $elm$time$Time$toCivil = function (minutes) {
+	var rawDay = A2($elm$time$Time$flooredDiv, minutes, 60 * 24) + 719468;
+	var era = (((rawDay >= 0) ? rawDay : (rawDay - 146096)) / 146097) | 0;
+	var dayOfEra = rawDay - (era * 146097);
+	var yearOfEra = ((((dayOfEra - ((dayOfEra / 1460) | 0)) + ((dayOfEra / 36524) | 0)) - ((dayOfEra / 146096) | 0)) / 365) | 0;
+	var dayOfYear = dayOfEra - (((365 * yearOfEra) + ((yearOfEra / 4) | 0)) - ((yearOfEra / 100) | 0));
+	var mp = (((5 * dayOfYear) + 2) / 153) | 0;
+	var month = mp + ((mp < 10) ? 3 : (-9));
+	var year = yearOfEra + (era * 400);
+	return {
+		day: (dayOfYear - ((((153 * mp) + 2) / 5) | 0)) + 1,
+		month: month,
+		year: year + ((month <= 2) ? 1 : 0)
+	};
+};
+var $elm$time$Time$toDay = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).day;
+	});
+var $elm$time$Time$Apr = {$: 'Apr'};
+var $elm$time$Time$Aug = {$: 'Aug'};
+var $elm$time$Time$Dec = {$: 'Dec'};
+var $elm$time$Time$Feb = {$: 'Feb'};
+var $elm$time$Time$Jan = {$: 'Jan'};
+var $elm$time$Time$Jul = {$: 'Jul'};
+var $elm$time$Time$Jun = {$: 'Jun'};
+var $elm$time$Time$Mar = {$: 'Mar'};
+var $elm$time$Time$May = {$: 'May'};
+var $elm$time$Time$Nov = {$: 'Nov'};
+var $elm$time$Time$Oct = {$: 'Oct'};
+var $elm$time$Time$Sep = {$: 'Sep'};
+var $elm$time$Time$toMonth = F2(
+	function (zone, time) {
+		var _v0 = $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).month;
+		switch (_v0) {
+			case 1:
+				return $elm$time$Time$Jan;
+			case 2:
+				return $elm$time$Time$Feb;
+			case 3:
+				return $elm$time$Time$Mar;
+			case 4:
+				return $elm$time$Time$Apr;
+			case 5:
+				return $elm$time$Time$May;
+			case 6:
+				return $elm$time$Time$Jun;
+			case 7:
+				return $elm$time$Time$Jul;
+			case 8:
+				return $elm$time$Time$Aug;
+			case 9:
+				return $elm$time$Time$Sep;
+			case 10:
+				return $elm$time$Time$Oct;
+			case 11:
+				return $elm$time$Time$Nov;
+			default:
+				return $elm$time$Time$Dec;
+		}
+	});
+var $author$project$Utils$toMonth = function (month) {
+	switch (month.$) {
+		case 'Jan':
+			return 'januari';
+		case 'Feb':
+			return 'februari';
+		case 'Mar':
+			return 'march';
+		case 'Apr':
+			return 'april';
+		case 'May':
+			return 'may';
+		case 'Jun':
+			return 'june';
+		case 'Jul':
+			return 'july';
+		case 'Aug':
+			return 'august';
+		case 'Sep':
+			return 'september';
+		case 'Oct':
+			return 'oktober';
+		case 'Nov':
+			return 'november';
+		default:
+			return 'december';
+	}
+};
+var $elm$time$Time$Fri = {$: 'Fri'};
+var $elm$time$Time$Mon = {$: 'Mon'};
+var $elm$time$Time$Sat = {$: 'Sat'};
+var $elm$time$Time$Sun = {$: 'Sun'};
+var $elm$time$Time$Thu = {$: 'Thu'};
+var $elm$time$Time$Tue = {$: 'Tue'};
+var $elm$time$Time$Wed = {$: 'Wed'};
+var $elm$time$Time$toWeekday = F2(
+	function (zone, time) {
+		var _v0 = A2(
+			$elm$core$Basics$modBy,
+			7,
+			A2(
+				$elm$time$Time$flooredDiv,
+				A2($elm$time$Time$toAdjustedMinutes, zone, time),
+				60 * 24));
+		switch (_v0) {
+			case 0:
+				return $elm$time$Time$Thu;
+			case 1:
+				return $elm$time$Time$Fri;
+			case 2:
+				return $elm$time$Time$Sat;
+			case 3:
+				return $elm$time$Time$Sun;
+			case 4:
+				return $elm$time$Time$Mon;
+			case 5:
+				return $elm$time$Time$Tue;
+			default:
+				return $elm$time$Time$Wed;
+		}
+	});
+var $author$project$Utils$toWeekday = function (weekday) {
+	switch (weekday.$) {
+		case 'Mon':
+			return 'Monday';
+		case 'Tue':
+			return 'Tuesday';
+		case 'Wed':
+			return 'Wednesday';
+		case 'Thu':
+			return 'Thursday';
+		case 'Fri':
+			return 'Friday';
+		case 'Sat':
+			return 'Saturday';
+		default:
+			return 'Sunday';
+	}
+};
+var $elm$time$Time$toYear = F2(
+	function (zone, time) {
+		return $elm$time$Time$toCivil(
+			A2($elm$time$Time$toAdjustedMinutes, zone, time)).year;
+	});
+var $author$project$Utils$getNiceTime = function (datetime) {
+	return $author$project$Utils$toWeekday(
+		A2($elm$time$Time$toWeekday, $author$project$Utils$getTimeZone, datetime)) + (' ' + ($elm$core$String$fromInt(
+		A2($elm$time$Time$toDay, $author$project$Utils$getTimeZone, datetime)) + (' ' + ($author$project$Utils$toMonth(
+		A2($elm$time$Time$toMonth, $author$project$Utils$getTimeZone, datetime)) + (' ' + $elm$core$String$fromInt(
+		A2($elm$time$Time$toYear, $author$project$Utils$getTimeZone, datetime)))))));
+};
+var $elm$core$String$replace = F3(
+	function (before, after, string) {
+		return A2(
+			$elm$core$String$join,
+			after,
+			A2($elm$core$String$split, before, string));
+	});
+var $author$project$View$LibraryTiles$getthumbnail = function (book) {
+	return A3($elm$core$String$replace, '&zoom=1&', '&zoom=7&', book.thumbnail);
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$ImageBottom = function (a) {
+	return {$: 'ImageBottom', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$imgBottom = F3(
+	function (attributes, children, _v0) {
+		var conf = _v0.a;
+		return $rundis$elm_bootstrap$Bootstrap$Card$Config(
+			_Utils_update(
+				conf,
+				{
+					imgBottom: $elm$core$Maybe$Just(
+						$rundis$elm_bootstrap$Bootstrap$Card$ImageBottom(
+							A2(
+								$elm$html$Html$img,
+								_Utils_ap(
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('card-img-bottom')
+										]),
+									attributes),
+								children)))
+				}));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Card$ImageTop = function (a) {
+	return {$: 'ImageTop', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$imgTop = F3(
+	function (attributes, children, _v0) {
+		var conf = _v0.a;
+		return $rundis$elm_bootstrap$Bootstrap$Card$Config(
+			_Utils_update(
+				conf,
+				{
+					imgTop: $elm$core$Maybe$Just(
+						$rundis$elm_bootstrap$Bootstrap$Card$ImageTop(
+							A2(
+								$elm$html$Html$img,
+								_Utils_ap(
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('card-img-top')
+										]),
+									attributes),
+								children)))
+				}));
+	});
+var $elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		$elm$html$Html$Events$on,
+		'click',
+		$elm$json$Json$Decode$succeed(msg));
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$BlockItem = function (a) {
+	return {$: 'BlockItem', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$Block$text = F2(
+	function (attributes, children) {
+		return $rundis$elm_bootstrap$Bootstrap$Card$Internal$BlockItem(
+			A2(
+				$elm$html$Html$p,
+				_Utils_ap(
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('card-text')
+						]),
+					attributes),
+				children));
+	});
+var $elm$html$Html$h4 = _VirtualDom_node('h4');
+var $rundis$elm_bootstrap$Bootstrap$Card$Block$title = F3(
+	function (elemFn, attributes, children) {
+		return $rundis$elm_bootstrap$Bootstrap$Card$Internal$BlockItem(
+			A2(
+				elemFn,
+				A2(
+					$elm$core$List$cons,
+					$elm$html$Html$Attributes$class('card-title'),
+					attributes),
+				children));
+	});
+var $rundis$elm_bootstrap$Bootstrap$Card$Block$titleH4 = $rundis$elm_bootstrap$Bootstrap$Card$Block$title($elm$html$Html$h4);
+var $elm$html$Html$h6 = _VirtualDom_node('h6');
+var $rundis$elm_bootstrap$Bootstrap$Card$Block$titleH6 = $rundis$elm_bootstrap$Bootstrap$Card$Block$title($elm$html$Html$h6);
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$applyModifier = F2(
+	function (option, options) {
+		switch (option.$) {
+			case 'Aligned':
+				var align = option.a;
+				return _Utils_update(
+					options,
+					{
+						aligned: $elm$core$Maybe$Just(align)
+					});
+			case 'Coloring':
+				var coloring = option.a;
+				return _Utils_update(
+					options,
+					{
+						coloring: $elm$core$Maybe$Just(coloring)
+					});
+			case 'TextColoring':
+				var coloring = option.a;
+				return _Utils_update(
+					options,
+					{
+						textColoring: $elm$core$Maybe$Just(coloring)
+					});
+			default:
+				var attrs = option.a;
+				return _Utils_update(
+					options,
+					{
+						attributes: _Utils_ap(options.attributes, attrs)
+					});
+		}
+	});
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$defaultOptions = {aligned: $elm$core$Maybe$Nothing, attributes: _List_Nil, coloring: $elm$core$Maybe$Nothing, textColoring: $elm$core$Maybe$Nothing};
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$cardAttributes = function (modifiers) {
+	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Card$Internal$applyModifier, $rundis$elm_bootstrap$Bootstrap$Card$Internal$defaultOptions, modifiers);
+	return _Utils_ap(
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('card')
+			]),
+		_Utils_ap(
+			function () {
+				var _v0 = options.coloring;
+				if (_v0.$ === 'Just') {
+					if (_v0.a.$ === 'Roled') {
+						var role = _v0.a.a;
+						return _List_fromArray(
+							[
+								A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'bg', role)
+							]);
+					} else {
+						var role = _v0.a.a;
+						return _List_fromArray(
+							[
+								A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'border', role)
+							]);
+					}
+				} else {
+					return _List_Nil;
+				}
+			}(),
+			_Utils_ap(
+				function () {
+					var _v1 = options.textColoring;
+					if (_v1.$ === 'Just') {
+						var color = _v1.a;
+						return _List_fromArray(
+							[
+								$rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass(color)
+							]);
+					} else {
+						return _List_Nil;
+					}
+				}(),
+				_Utils_ap(
+					function () {
+						var _v2 = options.aligned;
+						if (_v2.$ === 'Just') {
+							var align = _v2.a;
+							return _List_fromArray(
+								[
+									$rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignClass(align)
+								]);
+						} else {
+							return _List_Nil;
+						}
+					}(),
+					options.attributes))));
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$Internal$renderBlocks = function (blocks) {
+	return A2(
+		$elm$core$List$map,
+		function (block_) {
+			if (block_.$ === 'CardBlock') {
+				var e = block_.a;
+				return e;
+			} else {
+				var e = block_.a;
+				return e;
+			}
+		},
+		blocks);
+};
+var $rundis$elm_bootstrap$Bootstrap$Card$view = function (_v0) {
+	var conf = _v0.a;
+	return A2(
+		$elm$html$Html$div,
+		$rundis$elm_bootstrap$Bootstrap$Card$Internal$cardAttributes(conf.options),
+		_Utils_ap(
+			A2(
+				$elm$core$List$filterMap,
+				$elm$core$Basics$identity,
+				_List_fromArray(
+					[
+						A2(
+						$elm$core$Maybe$map,
+						function (_v1) {
+							var e = _v1.a;
+							return e;
+						},
+						conf.header),
+						A2(
+						$elm$core$Maybe$map,
+						function (_v2) {
+							var e = _v2.a;
+							return e;
+						},
+						conf.imgTop)
+					])),
+			_Utils_ap(
+				$rundis$elm_bootstrap$Bootstrap$Card$Internal$renderBlocks(conf.blocks),
+				A2(
+					$elm$core$List$filterMap,
+					$elm$core$Basics$identity,
+					_List_fromArray(
+						[
+							A2(
+							$elm$core$Maybe$map,
+							function (_v3) {
+								var e = _v3.a;
+								return e;
+							},
+							conf.footer),
+							A2(
+							$elm$core$Maybe$map,
+							function (_v4) {
+								var e = _v4.a;
+								return e;
+							},
+							conf.imgBottom)
+						])))));
+};
+var $author$project$View$LibraryTiles$viewBookTilesCard = F2(
+	function (_v0, _v1) {
+		var userEmail = _v0.userEmail;
+		var book = _v1.book;
+		var checkout = _v1.checkout;
+		var index = _v1.index;
+		if (checkout.$ === 'Just') {
+			var checkout1 = checkout.a;
+			return _Utils_eq(userEmail, checkout1.userEmail) ? A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('col-lg-3 col-md-4 mb-4'),
+						$elm$html$Html$Events$onClick(
+						$author$project$View$LibraryTiles$DoDetail(index))
+					]),
+				_List_fromArray(
+					[
+						$rundis$elm_bootstrap$Bootstrap$Card$view(
+						A3(
+							$rundis$elm_bootstrap$Bootstrap$Card$imgBottom,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$src(
+									$author$project$View$LibraryTiles$getthumbnail(book)),
+									$elm$html$Html$Attributes$class('bookselector-img-bottom')
+								]),
+							_List_Nil,
+							A3(
+								$rundis$elm_bootstrap$Bootstrap$Card$block,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH4,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('card-title text-truncate bookselector-text-title')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.title)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH6,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-muted bookselector-text-author')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.authors)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-muted small bookselector-text-published')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.publishedDate)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('card-text block-with-text bookselector-text-description')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.description)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-muted small bookselector-text-language')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.language)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-checkout-x')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$p,
+												_List_Nil,
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Checked out!')
+													])),
+												A2(
+												$elm$html$Html$p,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('small')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(
+														'from ' + ($author$project$Utils$getNiceTime(checkout1.dateTimeFrom) + ', by You'))
+													]))
+											]))
+									]),
+								A3(
+									$rundis$elm_bootstrap$Bootstrap$Card$imgTop,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$src(
+											$author$project$View$LibraryTiles$getthumbnail(book)),
+											$elm$html$Html$Attributes$class('bookselector-img-top')
+										]),
+									_List_Nil,
+									$rundis$elm_bootstrap$Bootstrap$Card$config(
+										_List_fromArray(
+											[
+												$rundis$elm_bootstrap$Bootstrap$Card$attrs(
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('card-checkout-x')
+													]))
+											]))))))
+					])) : A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('col-lg-3 col-md-4 mb-4'),
+						$elm$html$Html$Events$onClick(
+						$author$project$View$LibraryTiles$DoDetail(index))
+					]),
+				_List_fromArray(
+					[
+						$rundis$elm_bootstrap$Bootstrap$Card$view(
+						A3(
+							$rundis$elm_bootstrap$Bootstrap$Card$imgBottom,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$src(
+									$author$project$View$LibraryTiles$getthumbnail(book)),
+									$elm$html$Html$Attributes$class('bookselector-img-bottom')
+								]),
+							_List_Nil,
+							A3(
+								$rundis$elm_bootstrap$Bootstrap$Card$block,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH4,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('card-title text-truncate bookselector-text-title')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.title)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH6,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-muted bookselector-text-author')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.authors)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-muted small bookselector-text-published')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.publishedDate)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('card-text block-with-text bookselector-text-description')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.description)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-muted small bookselector-text-language')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.language)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-checkout')
+											]),
+										_List_fromArray(
+											[
+												A2(
+												$elm$html$Html$p,
+												_List_Nil,
+												_List_fromArray(
+													[
+														$elm$html$Html$text('Checked out!')
+													])),
+												A2(
+												$elm$html$Html$p,
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('small')
+													]),
+												_List_fromArray(
+													[
+														$elm$html$Html$text(
+														'from ' + ($author$project$Utils$getNiceTime(checkout1.dateTimeFrom) + (', by ' + checkout1.userEmail)))
+													]))
+											]))
+									]),
+								A3(
+									$rundis$elm_bootstrap$Bootstrap$Card$imgTop,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$src(
+											$author$project$View$LibraryTiles$getthumbnail(book)),
+											$elm$html$Html$Attributes$class('bookselector-img-top')
+										]),
+									_List_Nil,
+									$rundis$elm_bootstrap$Bootstrap$Card$config(
+										_List_fromArray(
+											[
+												$rundis$elm_bootstrap$Bootstrap$Card$attrs(
+												_List_fromArray(
+													[
+														$elm$html$Html$Attributes$class('card-checkout')
+													]))
+											]))))))
+					]));
+		} else {
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('col-lg-3 col-md-4 mb-4'),
+						$elm$html$Html$Events$onClick(
+						$author$project$View$LibraryTiles$DoDetail(index))
+					]),
+				_List_fromArray(
+					[
+						$rundis$elm_bootstrap$Bootstrap$Card$view(
+						A3(
+							$rundis$elm_bootstrap$Bootstrap$Card$imgBottom,
+							_List_fromArray(
+								[
+									$elm$html$Html$Attributes$src(
+									$author$project$View$LibraryTiles$getthumbnail(book)),
+									$elm$html$Html$Attributes$class('bookselector-img-bottom')
+								]),
+							_List_Nil,
+							A3(
+								$rundis$elm_bootstrap$Bootstrap$Card$block,
+								_List_Nil,
+								_List_fromArray(
+									[
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH4,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('card-title text-truncate bookselector-text-title')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.title)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH6,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-muted bookselector-text-author')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.authors)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-muted small bookselector-text-published')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.publishedDate)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('card-text block-with-text bookselector-text-description')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.description)
+											])),
+										A2(
+										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
+										_List_fromArray(
+											[
+												$elm$html$Html$Attributes$class('text-muted small bookselector-text-language')
+											]),
+										_List_fromArray(
+											[
+												$elm$html$Html$text(book.language)
+											]))
+									]),
+								A3(
+									$rundis$elm_bootstrap$Bootstrap$Card$imgTop,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$src(
+											$author$project$View$LibraryTiles$getthumbnail(book)),
+											$elm$html$Html$Attributes$class('bookselector-img-top')
+										]),
+									_List_Nil,
+									$rundis$elm_bootstrap$Bootstrap$Card$config(
+										_List_fromArray(
+											[
+												$rundis$elm_bootstrap$Bootstrap$Card$attrs(_List_Nil)
+											]))))))
+					]));
+		}
+	});
+var $author$project$View$LibraryTiles$viewBookTiles = F3(
+	function (config, books, checkouts) {
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('row')
+				]),
+			A2(
+				$elm$core$List$map,
+				$author$project$View$LibraryTiles$viewBookTilesCard(config),
+				A2(
+					$elm$core$List$filterMap,
+					$author$project$View$LibraryTiles$booksFilter(
+						{searchAuthors: config.searchAuthors, searchCheckStatus: config.searchCheckStatus, searchCheckoutUser: config.searchCheckoutUser, searchLocation: config.searchLocation, searchOwner: config.searchOwner, searchTitle: config.searchTitle}),
+					A4(
+						$elm$core$List$map3,
+						$author$project$View$LibraryTiles$bookCheckoutIndex,
+						$elm$core$Array$toList(books),
+						$elm$core$Array$toList(checkouts),
+						A2(
+							$elm$core$List$range,
+							0,
+							$elm$core$Array$length(books) - 1)))));
+	});
+var $elm$html$Html$h3 = _VirtualDom_node('h3');
+var $author$project$View$LibraryTiles$viewFetchError = function (errorMessage) {
+	var errorHeading = 'Couldn\'t fetch posts at this time.';
+	return A2(
+		$elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$h3,
+				_List_Nil,
+				_List_fromArray(
+					[
+						$elm$html$Html$text(errorHeading)
+					])),
+				$elm$html$Html$text('Error: ' + errorMessage)
+			]));
+};
+var $author$project$View$LibraryTiles$viewBooks = function (config) {
+	var _v0 = config;
+	var books = _v0.books;
+	var checkoutsDistributed = _v0.checkoutsDistributed;
+	var waarzijnwe = A2($elm$core$Debug$log, 'Library.elm viewBooks libraryBooks ', books);
+	var books_checkouts = A2($author$project$View$LibraryTiles$merge2RemoteDatas, books, checkoutsDistributed);
+	switch (books_checkouts.$) {
+		case 'NotAsked':
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('container')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$elm$html$Html$p,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2($elm$html$Html$br, _List_Nil, _List_Nil)
+							]))
+					]));
+		case 'Loading':
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('container')
+					]),
+				_List_fromArray(
+					[
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Spinner$spinner,
+						_List_fromArray(
+							[
+								$rundis$elm_bootstrap$Bootstrap$Spinner$large,
+								$rundis$elm_bootstrap$Bootstrap$Spinner$color($rundis$elm_bootstrap$Bootstrap$Text$primary)
+							]),
+						_List_fromArray(
+							[
+								$rundis$elm_bootstrap$Bootstrap$Spinner$srMessage('Loading...')
+							]))
+					]));
+		case 'Success':
+			var _v2 = books_checkouts.a;
+			var actualBooks = _v2.a;
+			var actualCheckouts = _v2.b;
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('containerFluid')
+					]),
+				_List_fromArray(
+					[
+						A3($author$project$View$LibraryTiles$viewBookTiles, config, actualBooks, actualCheckouts)
+					]));
+		default:
+			var httpError = books_checkouts.a;
+			return A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('container')
+					]),
+				_List_fromArray(
+					[
+						$author$project$View$LibraryTiles$viewFetchError(
+						$author$project$Utils$buildErrorMessage(httpError))
+					]));
+	}
+};
+var $author$project$View$LibraryTiles$view = function (config) {
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('row containerFluid')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('col-lg-2 col-md-3 mb-4')
+					]),
+				_List_fromArray(
+					[
+						$author$project$View$LibraryTiles$viewBookFilter(config)
+					])),
+				A2(
+				$elm$html$Html$div,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('col-lg-8')
+					]),
+				_List_fromArray(
+					[
+						$author$project$View$LibraryTiles$viewBooks(config)
+					]))
+			]));
+};
+var $author$project$BookEditor$DoDeleteConfirm = {$: 'DoDeleteConfirm'};
+var $author$project$BookEditor$viewConfirmDelete = F2(
+	function (index, model) {
+		var bookdetails = model.bookdetails;
+		return $author$project$View$LibraryDetails$view(
+			_Utils_update(
+				bookdetails,
+				{
+					doAction1: {disabled: false, msg: $author$project$BookEditor$DoDeleteConfirm, text: 'Confirm', visible: true},
+					doAction2: {disabled: false, msg: $author$project$BookEditor$DoUpdate, text: 'Edit', visible: false},
+					remarks: 'Please confirm that the book will be removed from the library.'
+				}));
+	});
+var $author$project$BookEditor$DoUpdateConfirm = {$: 'DoUpdateConfirm'};
+var $author$project$BookEditor$viewConfirmUpdate = F2(
+	function (index, model) {
+		var bookdetails = model.bookdetails;
+		return $author$project$View$LibraryDetails$view(
+			_Utils_update(
+				bookdetails,
+				{
+					doAction1: {disabled: false, msg: $author$project$BookEditor$DoUpdateConfirm, text: 'Confirm', visible: true},
+					doAction2: {disabled: false, msg: $author$project$BookEditor$DoUpdate, text: 'Edit', visible: false},
+					remarks: 'Please confirm that the book will be updated in the library.'
+				}));
+	});
+var $author$project$BookEditor$viewDetails = F2(
+	function (index, model) {
+		var bookdetails = model.bookdetails;
+		var _v0 = bookdetails.maybeCheckout;
+		if (_v0.$ === 'Just') {
+			var checkout = _v0.a;
+			return $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: true, msg: $author$project$BookEditor$DoDelete, text: 'Delete', visible: true},
+						doAction2: {disabled: false, msg: $author$project$BookEditor$DoUpdate, text: 'Edit', visible: true},
+						remarks: 'This book is checked out by ' + (checkout.userEmail + '.')
+					}));
+		} else {
+			return $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: false, msg: $author$project$BookEditor$DoDelete, text: 'Delete', visible: true},
+						doAction2: {disabled: false, msg: $author$project$BookEditor$DoUpdate, text: 'Edit', visible: true},
+						remarks: ''
+					}));
+		}
+	});
+var $author$project$BookEditor$view = function (model) {
+	var _v0 = model.bookView;
+	switch (_v0.$) {
+		case 'Tiles':
+			return A2(
+				$elm$html$Html$map,
+				$author$project$BookEditor$LibraryTilesMsg,
+				$author$project$View$LibraryTiles$view(model.booktiles));
+		case 'Details':
+			var index = _v0.a;
+			return A2($author$project$BookEditor$viewDetails, index, model);
+		case 'Update':
+			var index = _v0.a;
+			return A2(
+				$elm$html$Html$map,
+				$author$project$BookEditor$LibraryEditMsg,
+				$author$project$View$LibraryEdit$view(model.bookedit));
+		case 'ConfirmDelete':
+			var index = _v0.a;
+			return A2($author$project$BookEditor$viewConfirmDelete, index, model);
+		case 'ConfirmUpdate':
+			var index = _v0.a;
+			return A2($author$project$BookEditor$viewConfirmUpdate, index, model);
+		default:
+			var index = _v0.a;
+			return $author$project$View$LibraryDetails$view(model.bookdetails);
+	}
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$Disabled = function (a) {
+	return {$: 'Disabled', a: a};
+};
+var $rundis$elm_bootstrap$Bootstrap$Form$Select$disabled = function (disabled_) {
+	return $rundis$elm_bootstrap$Bootstrap$Form$Select$Disabled(disabled_);
+};
+var $author$project$View$SelectorDetails$selectitem = F2(
+	function (valueSelected, _v0) {
+		var value1 = _v0.a;
+		var text1 = _v0.b;
+		var _v1 = _Utils_eq(valueSelected, value1);
+		if (_v1) {
+			return A2(
+				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$selected(true),
+						$elm$html$Html$Attributes$value(value1)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(text1)
+					]));
+		} else {
+			return A2(
+				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$value(value1)
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(text1)
+					]));
+		}
+	});
 var $author$project$View$SelectorDetails$viewBookDetail = function (config) {
 	var _v0 = config;
 	var maybeBook = _v0.maybeBook;
@@ -12042,516 +15276,8 @@ var $author$project$View$SelectorDetails$viewBookDetail = function (config) {
 var $author$project$View$SelectorDetails$view = function (config) {
 	return $author$project$View$SelectorDetails$viewBookDetail(config);
 };
-var $author$project$View$SelectorDetailsEdit$isObligatory = F2(
-	function (label, value) {
-		if (value === '') {
-			return 'Field \"' + (label + '\" needs a value here.');
-		} else {
-			return '';
-		}
-	});
-var $author$project$View$SelectorDetailsEdit$checkAuthors = F2(
-	function (label, value) {
-		return A2($author$project$View$SelectorDetailsEdit$isObligatory, label, value);
-	});
-var $author$project$View$SelectorDetailsEdit$checkDescription = F2(
-	function (label, value) {
-		return A2($author$project$View$SelectorDetailsEdit$isObligatory, label, value);
-	});
-var $author$project$View$SelectorDetailsEdit$checkLanguage = F2(
-	function (label, value) {
-		return A2($author$project$View$SelectorDetailsEdit$isObligatory, label, value);
-	});
-var $author$project$View$SelectorDetailsEdit$checkLocation = F2(
-	function (label, value) {
-		return A2($author$project$View$SelectorDetailsEdit$isObligatory, label, value);
-	});
-var $elm$regex$Regex$Match = F4(
-	function (match, index, number, submatches) {
-		return {index: index, match: match, number: number, submatches: submatches};
-	});
-var $elm$regex$Regex$contains = _Regex_contains;
-var $author$project$View$SelectorDetailsEdit$emailRegex = '(?:[a-z0-9!#$%&\'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&\'*+/=?^_`{|}~-]+)*|\"' + ('(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*' + ('\")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)' + '\\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])'));
-var $elm$regex$Regex$fromStringWith = _Regex_fromStringWith;
-var $elm$regex$Regex$fromString = function (string) {
-	return A2(
-		$elm$regex$Regex$fromStringWith,
-		{caseInsensitive: false, multiline: false},
-		string);
-};
-var $author$project$View$SelectorDetailsEdit$checkOwner = F2(
-	function (label, value) {
-		var _v0 = $elm$regex$Regex$fromString($author$project$View$SelectorDetailsEdit$emailRegex);
-		if (_v0.$ === 'Just') {
-			var regex = _v0.a;
-			return A2($elm$regex$Regex$contains, regex, value) ? '' : 'Please enter a valid email address.';
-		} else {
-			return '';
-		}
-	});
-var $author$project$View$SelectorDetailsEdit$checkPublishedDate = F2(
-	function (label, value) {
-		return A2($author$project$View$SelectorDetailsEdit$isObligatory, label, value);
-	});
-var $author$project$View$SelectorDetailsEdit$checkTitle = F2(
-	function (label, value) {
-		return A2($author$project$View$SelectorDetailsEdit$isObligatory, label, value);
-	});
-var $rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Danger = {$: 'Danger'};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$Validation = function (a) {
-	return {$: 'Validation', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$danger = $rundis$elm_bootstrap$Bootstrap$Form$Input$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Danger);
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$Validation = function (a) {
-	return {$: 'Validation', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$danger = $rundis$elm_bootstrap$Bootstrap$Form$Select$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Danger);
-var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Validation = function (a) {
-	return {$: 'Validation', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$danger = $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Danger);
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$Email = {$: 'Email'};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$email = $rundis$elm_bootstrap$Bootstrap$Form$Input$input($rundis$elm_bootstrap$Bootstrap$Form$Input$Email);
-var $rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback = F2(
-	function (attributes, children) {
-		return A2(
-			$elm$html$Html$div,
-			A2(
-				$elm$core$List$cons,
-				$elm$html$Html$Attributes$class('invalid-feedback'),
-				attributes),
-			children);
-	});
-var $author$project$Utils$locations = _List_fromArray(
-	[
-		_Utils_Tuple2('', ''),
-		_Utils_Tuple2('am', 'Amsterdam'),
-		_Utils_Tuple2('ro', 'Rotterdam'),
-		_Utils_Tuple2('br', 'Bruxelles'),
-		_Utils_Tuple2('ch', 'Chessy'),
-		_Utils_Tuple2('home', 'At home')
-	]);
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$OnChange = function (a) {
-	return {$: 'OnChange', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$onChange = function (toMsg) {
-	return $rundis$elm_bootstrap$Bootstrap$Form$Select$OnChange(toMsg);
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$OnInput = function (a) {
-	return {$: 'OnInput', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$onInput = function (toMsg) {
-	return $rundis$elm_bootstrap$Bootstrap$Form$Input$OnInput(toMsg);
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$OnInput = function (a) {
-	return {$: 'OnInput', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$onInput = function (toMsg) {
-	return $rundis$elm_bootstrap$Bootstrap$Form$Textarea$OnInput(toMsg);
-};
-var $author$project$View$SelectorDetailsEdit$selectitem = F2(
-	function (valueSelected, _v0) {
-		var value1 = _v0.a;
-		var text1 = _v0.b;
-		var _v1 = _Utils_eq(valueSelected, value1);
-		if (_v1) {
-			return A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$selected(true),
-						$elm$html$Html$Attributes$value(value1)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(text1)
-					]));
-		} else {
-			return A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$value(value1)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(text1)
-					]));
-		}
-	});
-var $rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Success = {$: 'Success'};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$success = $rundis$elm_bootstrap$Bootstrap$Form$Input$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Success);
-var $rundis$elm_bootstrap$Bootstrap$Form$Select$success = $rundis$elm_bootstrap$Bootstrap$Form$Select$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Success);
-var $rundis$elm_bootstrap$Bootstrap$Form$Textarea$success = $rundis$elm_bootstrap$Bootstrap$Form$Textarea$Validation($rundis$elm_bootstrap$Bootstrap$Form$FormInternal$Success);
-var $author$project$View$SelectorDetailsEdit$viewBookDetail = function (config) {
-	var _v0 = config;
-	var book = _v0.book;
-	var titleInputFeedback = A2($author$project$View$SelectorDetailsEdit$checkTitle, 'title', book.title);
-	var publishedDateInputFeedback = A2($author$project$View$SelectorDetailsEdit$checkPublishedDate, 'publishedDate', book.publishedDate);
-	var ownerInputFeedback = A2($author$project$View$SelectorDetailsEdit$checkOwner, 'owner', book.owner);
-	var locationInputFeedback = A2($author$project$View$SelectorDetailsEdit$checkLocation, 'location', book.location);
-	var languageInputFeedback = A2($author$project$View$SelectorDetailsEdit$checkLanguage, 'language', book.language);
-	var descriptionInputFeedback = A2($author$project$View$SelectorDetailsEdit$checkDescription, 'description', book.description);
-	var authorsInputFeedback = A2($author$project$View$SelectorDetailsEdit$checkAuthors, 'author(s)', book.authors);
-	var allOk = (titleInputFeedback === '') && ((authorsInputFeedback === '') && ((descriptionInputFeedback === '') && ((publishedDateInputFeedback === '') && ((languageInputFeedback === '') && ((ownerInputFeedback === '') && (locationInputFeedback === ''))))));
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('container')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$form,
-				_List_Nil,
-				_List_fromArray(
-					[
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Title')
-									])),
-								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$id('title'),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput(config.updateTitle),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.title),
-										(titleInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Input$success : $rundis$elm_bootstrap$Bootstrap$Form$Input$danger
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(titleInputFeedback)
-									]))
-							])),
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Author(s)')
-									])),
-								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$id('authors'),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput(config.updateAuthors),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.authors),
-										(authorsInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Input$success : $rundis$elm_bootstrap$Bootstrap$Form$Input$danger
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(authorsInputFeedback)
-									]))
-							])),
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Description')
-									])),
-								$rundis$elm_bootstrap$Bootstrap$Form$Textarea$textarea(
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$id('description'),
-										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$rows(5),
-										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$onInput(config.updateDescription),
-										$rundis$elm_bootstrap$Bootstrap$Form$Textarea$value(book.description),
-										(descriptionInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Textarea$success : $rundis$elm_bootstrap$Bootstrap$Form$Textarea$danger
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(descriptionInputFeedback)
-									]))
-							])),
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Published date')
-									])),
-								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$id('publishedDate'),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput(config.updatePublishedDate),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.publishedDate),
-										(publishedDateInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Input$success : $rundis$elm_bootstrap$Bootstrap$Form$Input$danger
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(publishedDateInputFeedback)
-									]))
-							])),
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Language')
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Select$id('language'),
-										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange(config.updateLanguage),
-										(languageInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Select$success : $rundis$elm_bootstrap$Bootstrap$Form$Select$danger
-									]),
-								A2(
-									$elm$core$List$map,
-									$author$project$View$SelectorDetailsEdit$selectitem(book.language),
-									$author$project$Utils$languages)),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(languageInputFeedback)
-									]))
-							])),
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Owner of the book')
-									])),
-								$rundis$elm_bootstrap$Bootstrap$Form$Input$email(
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$id('owner'),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput(config.updateOwner),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.owner),
-										(ownerInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Input$success : $rundis$elm_bootstrap$Bootstrap$Form$Input$danger
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(ownerInputFeedback)
-									]))
-							])),
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Location of the book')
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Select$id('location'),
-										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange(config.updateLocation),
-										(locationInputFeedback === '') ? $rundis$elm_bootstrap$Bootstrap$Form$Select$success : $rundis$elm_bootstrap$Bootstrap$Form$Select$danger
-									]),
-								A2(
-									$elm$core$List$map,
-									$author$project$View$SelectorDetailsEdit$selectitem(book.location),
-									$author$project$Utils$locations)),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$invalidFeedback,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text(locationInputFeedback)
-									]))
-							])),
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Image of the book')
-									])),
-								$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
-								_Utils_Tuple2(
-									A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
-									A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tbody,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$tr,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Table$td,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																$elm$html$Html$img,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$Attributes$src(book.thumbnail)
-																	]),
-																_List_Nil)
-															]))
-													]))
-											]))))
-							])),
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
-								_Utils_Tuple2(
-									A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
-									A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tbody,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$tr,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Table$td,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																$rundis$elm_bootstrap$Bootstrap$Button$button,
-																_List_fromArray(
-																	[
-																		$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																		$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																		$rundis$elm_bootstrap$Bootstrap$Button$disabled(true)
-																	]),
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text('<')
-																	]))
-															])),
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Table$td,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																$rundis$elm_bootstrap$Bootstrap$Button$button,
-																_List_fromArray(
-																	[
-																		$rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary,
-																		$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																		$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCancel)
-																	]),
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text('Cancel')
-																	]))
-															])),
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Table$td,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																$rundis$elm_bootstrap$Bootstrap$Button$button,
-																_List_fromArray(
-																	[
-																		$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
-																		$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																		$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doAction),
-																		$rundis$elm_bootstrap$Bootstrap$Button$disabled(!allOk)
-																	]),
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text('Add to library')
-																	]))
-															])),
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Table$td,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																$rundis$elm_bootstrap$Bootstrap$Button$button,
-																_List_fromArray(
-																	[
-																		$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																		$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																		$rundis$elm_bootstrap$Bootstrap$Button$disabled(true)
-																	]),
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text('>')
-																	]))
-															]))
-													]))
-											]))))
-							]))
-					]))
-			]));
-};
-var $author$project$View$SelectorDetailsEdit$view = function (config) {
-	return $author$project$View$SelectorDetailsEdit$viewBookDetail(config);
+var $author$project$View$SelectorTiles$displaySearchIsbn = function (isbn) {
+	return (!isbn) ? '' : $elm$core$String$fromInt(isbn);
 };
 var $elm$html$Html$small = _VirtualDom_node('small');
 var $rundis$elm_bootstrap$Bootstrap$Form$help = F2(
@@ -12640,6 +15366,33 @@ var $author$project$View$SelectorTiles$viewBookSearcher = function (config) {
 								_List_Nil,
 								_List_fromArray(
 									[
+										$elm$html$Html$text('Isbn')
+									])),
+								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
+								_List_fromArray(
+									[
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(
+										$author$project$View$SelectorTiles$displaySearchIsbn(config.searchIsbn)),
+										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput(config.updateSearchIsbn)
+									])),
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$help,
+								_List_Nil,
+								_List_fromArray(
+									[
+										$elm$html$Html$text('What is the Isbn of the book.')
+									]))
+							])),
+						A2(
+						$rundis$elm_bootstrap$Bootstrap$Form$group,
+						_List_Nil,
+						_List_fromArray(
+							[
+								A2(
+								$rundis$elm_bootstrap$Bootstrap$Form$label,
+								_List_Nil,
+								_List_fromArray(
+									[
 										$elm$html$Html$text('Keywords')
 									])),
 								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
@@ -12659,539 +15412,13 @@ var $author$project$View$SelectorTiles$viewBookSearcher = function (config) {
 					]))
 			]));
 };
-var $elm$html$Html$br = _VirtualDom_node('br');
-var $rundis$elm_bootstrap$Bootstrap$Spinner$Color = function (a) {
-	return {$: 'Color', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$color = function (color_) {
-	return $rundis$elm_bootstrap$Bootstrap$Spinner$Color(color_);
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$Large = {$: 'Large'};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$Size = function (a) {
-	return {$: 'Size', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$large = $rundis$elm_bootstrap$Bootstrap$Spinner$Size($rundis$elm_bootstrap$Bootstrap$Spinner$Large);
-var $elm$html$Html$p = _VirtualDom_node('p');
 var $rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled = function (a) {
 	return {$: 'Roled', a: a};
 };
 var $rundis$elm_bootstrap$Bootstrap$Button$primary = $rundis$elm_bootstrap$Bootstrap$Internal$Button$Coloring(
 	$rundis$elm_bootstrap$Bootstrap$Internal$Button$Roled($rundis$elm_bootstrap$Bootstrap$Internal$Button$Primary));
-var $rundis$elm_bootstrap$Bootstrap$Internal$Role$Primary = {$: 'Primary'};
-var $rundis$elm_bootstrap$Bootstrap$Internal$Text$Role = function (a) {
-	return {$: 'Role', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Text$primary = $rundis$elm_bootstrap$Bootstrap$Internal$Text$Role($rundis$elm_bootstrap$Bootstrap$Internal$Role$Primary);
-var $rundis$elm_bootstrap$Bootstrap$Spinner$applyModifier = F2(
-	function (modifier, options) {
-		switch (modifier.$) {
-			case 'Kind':
-				var spinnerKind = modifier.a;
-				return _Utils_update(
-					options,
-					{kind: spinnerKind});
-			case 'Size':
-				var spinnerSize = modifier.a;
-				return _Utils_update(
-					options,
-					{size: spinnerSize});
-			case 'Color':
-				var color_ = modifier.a;
-				return _Utils_update(
-					options,
-					{
-						color: $elm$core$Maybe$Just(color_)
-					});
-			default:
-				var list = modifier.a;
-				return _Utils_update(
-					options,
-					{attributes: list});
-		}
-	});
-var $rundis$elm_bootstrap$Bootstrap$Spinner$Border = {$: 'Border'};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$Normal = {$: 'Normal'};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$defaultOptions = {attributes: _List_Nil, color: $elm$core$Maybe$Nothing, kind: $rundis$elm_bootstrap$Bootstrap$Spinner$Border, size: $rundis$elm_bootstrap$Bootstrap$Spinner$Normal};
-var $elm$virtual_dom$VirtualDom$attribute = F2(
-	function (key, value) {
-		return A2(
-			_VirtualDom_attribute,
-			_VirtualDom_noOnOrFormAction(key),
-			_VirtualDom_noJavaScriptOrHtmlUri(value));
-	});
-var $elm$html$Html$Attributes$attribute = $elm$virtual_dom$VirtualDom$attribute;
-var $rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName = function (kind_) {
-	if (kind_.$ === 'Border') {
-		return 'spinner-border';
-	} else {
-		return 'spinner-grow';
-	}
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$kindClass = A2($elm$core$Basics$composeL, $elm$html$Html$Attributes$class, $rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName);
-var $elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var $elm$html$Html$Attributes$style = $elm$virtual_dom$VirtualDom$style;
-var $rundis$elm_bootstrap$Bootstrap$Spinner$sizeAttributes = F2(
-	function (size_, kind_) {
-		switch (size_.$) {
-			case 'Normal':
-				return $elm$core$Maybe$Nothing;
-			case 'Small':
-				return $elm$core$Maybe$Just(
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class(
-							$rundis$elm_bootstrap$Bootstrap$Spinner$kindClassName(kind_) + '-sm')
-						]));
-			default:
-				return $elm$core$Maybe$Just(
-					_List_fromArray(
-						[
-							A2($elm$html$Html$Attributes$style, 'width', '3rem'),
-							A2($elm$html$Html$Attributes$style, 'height', '3rem')
-						]));
-		}
-	});
-var $rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass = function (color) {
-	if (color.$ === 'White') {
-		return $elm$html$Html$Attributes$class('text-white');
-	} else {
-		var role = color.a;
-		return A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'text', role);
-	}
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$toAttributes = function (options) {
-	return _Utils_ap(
-		A2(
-			$elm$core$List$filterMap,
-			$elm$core$Basics$identity,
-			_List_fromArray(
-				[
-					$elm$core$Maybe$Just(
-					$rundis$elm_bootstrap$Bootstrap$Spinner$kindClass(options.kind)),
-					A2($elm$core$Maybe$map, $rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass, options.color)
-				])),
-		_Utils_ap(
-			A2(
-				$elm$core$Maybe$withDefault,
-				_List_Nil,
-				A2($rundis$elm_bootstrap$Bootstrap$Spinner$sizeAttributes, options.size, options.kind)),
-			_Utils_ap(
-				_List_fromArray(
-					[
-						A2($elm$html$Html$Attributes$attribute, 'role', 'status')
-					]),
-				options.attributes)));
-};
-var $rundis$elm_bootstrap$Bootstrap$Spinner$spinner = F2(
-	function (options, children) {
-		var opts = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Spinner$applyModifier, $rundis$elm_bootstrap$Bootstrap$Spinner$defaultOptions, options);
-		return A2(
-			$elm$html$Html$div,
-			$rundis$elm_bootstrap$Bootstrap$Spinner$toAttributes(opts),
-			children);
-	});
-var $elm$html$Html$span = _VirtualDom_node('span');
-var $rundis$elm_bootstrap$Bootstrap$Spinner$srMessage = function (msg) {
-	return A2(
-		$elm$html$Html$span,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('sr-only')
-			]),
-		_List_fromArray(
-			[
-				$elm$html$Html$text(msg)
-			]));
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$Attrs = function (a) {
-	return {$: 'Attrs', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$attrs = function (attrs_) {
-	return $rundis$elm_bootstrap$Bootstrap$Card$Internal$Attrs(attrs_);
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$Config = function (a) {
-	return {$: 'Config', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$CardBlock = function (a) {
-	return {$: 'CardBlock', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$applyBlockModifier = F2(
-	function (option, options) {
-		switch (option.$) {
-			case 'AlignedBlock':
-				var align = option.a;
-				return _Utils_update(
-					options,
-					{
-						aligned: $elm$core$Maybe$Just(align)
-					});
-			case 'BlockColoring':
-				var role = option.a;
-				return _Utils_update(
-					options,
-					{
-						coloring: $elm$core$Maybe$Just(role)
-					});
-			case 'BlockTextColoring':
-				var color = option.a;
-				return _Utils_update(
-					options,
-					{
-						textColoring: $elm$core$Maybe$Just(color)
-					});
-			default:
-				var attrs = option.a;
-				return _Utils_update(
-					options,
-					{
-						attributes: _Utils_ap(options.attributes, attrs)
-					});
-		}
-	});
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$defaultBlockOptions = {aligned: $elm$core$Maybe$Nothing, attributes: _List_Nil, coloring: $elm$core$Maybe$Nothing, textColoring: $elm$core$Maybe$Nothing};
-var $rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignDirOption = function (dir) {
-	switch (dir.$) {
-		case 'Center':
-			return 'center';
-		case 'Left':
-			return 'left';
-		default:
-			return 'right';
-	}
-};
-var $rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignClass = function (_v0) {
-	var dir = _v0.dir;
-	var size = _v0.size;
-	return $elm$html$Html$Attributes$class(
-		'text' + (A2(
-			$elm$core$Maybe$withDefault,
-			'-',
-			A2(
-				$elm$core$Maybe$map,
-				function (s) {
-					return '-' + (s + '-');
-				},
-				$rundis$elm_bootstrap$Bootstrap$General$Internal$screenSizeOption(size))) + $rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignDirOption(dir)));
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$blockAttributes = function (modifiers) {
-	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Card$Internal$applyBlockModifier, $rundis$elm_bootstrap$Bootstrap$Card$Internal$defaultBlockOptions, modifiers);
-	return _Utils_ap(
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('card-body')
-			]),
-		_Utils_ap(
-			function () {
-				var _v0 = options.aligned;
-				if (_v0.$ === 'Just') {
-					var align = _v0.a;
-					return _List_fromArray(
-						[
-							$rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignClass(align)
-						]);
-				} else {
-					return _List_Nil;
-				}
-			}(),
-			_Utils_ap(
-				function () {
-					var _v1 = options.coloring;
-					if (_v1.$ === 'Just') {
-						var role = _v1.a;
-						return _List_fromArray(
-							[
-								A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'bg', role)
-							]);
-					} else {
-						return _List_Nil;
-					}
-				}(),
-				_Utils_ap(
-					function () {
-						var _v2 = options.textColoring;
-						if (_v2.$ === 'Just') {
-							var color = _v2.a;
-							return _List_fromArray(
-								[
-									$rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass(color)
-								]);
-						} else {
-							return _List_Nil;
-						}
-					}(),
-					options.attributes))));
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$block = F2(
-	function (options, items) {
-		return $rundis$elm_bootstrap$Bootstrap$Card$Internal$CardBlock(
-			A2(
-				$elm$html$Html$div,
-				$rundis$elm_bootstrap$Bootstrap$Card$Internal$blockAttributes(options),
-				A2(
-					$elm$core$List$map,
-					function (_v0) {
-						var e = _v0.a;
-						return e;
-					},
-					items)));
-	});
-var $rundis$elm_bootstrap$Bootstrap$Card$block = F3(
-	function (options, items, _v0) {
-		var conf = _v0.a;
-		return $rundis$elm_bootstrap$Bootstrap$Card$Config(
-			_Utils_update(
-				conf,
-				{
-					blocks: _Utils_ap(
-						conf.blocks,
-						_List_fromArray(
-							[
-								A2($rundis$elm_bootstrap$Bootstrap$Card$Internal$block, options, items)
-							]))
-				}));
-	});
-var $rundis$elm_bootstrap$Bootstrap$Card$config = function (options) {
-	return $rundis$elm_bootstrap$Bootstrap$Card$Config(
-		{blocks: _List_Nil, footer: $elm$core$Maybe$Nothing, header: $elm$core$Maybe$Nothing, imgBottom: $elm$core$Maybe$Nothing, imgTop: $elm$core$Maybe$Nothing, options: options});
-};
 var $author$project$View$SelectorTiles$getthumbnail = function (book) {
 	return book.smallThumbnail;
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$ImageBottom = function (a) {
-	return {$: 'ImageBottom', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$imgBottom = F3(
-	function (attributes, children, _v0) {
-		var conf = _v0.a;
-		return $rundis$elm_bootstrap$Bootstrap$Card$Config(
-			_Utils_update(
-				conf,
-				{
-					imgBottom: $elm$core$Maybe$Just(
-						$rundis$elm_bootstrap$Bootstrap$Card$ImageBottom(
-							A2(
-								$elm$html$Html$img,
-								_Utils_ap(
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('card-img-bottom')
-										]),
-									attributes),
-								children)))
-				}));
-	});
-var $rundis$elm_bootstrap$Bootstrap$Card$ImageTop = function (a) {
-	return {$: 'ImageTop', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$imgTop = F3(
-	function (attributes, children, _v0) {
-		var conf = _v0.a;
-		return $rundis$elm_bootstrap$Bootstrap$Card$Config(
-			_Utils_update(
-				conf,
-				{
-					imgTop: $elm$core$Maybe$Just(
-						$rundis$elm_bootstrap$Bootstrap$Card$ImageTop(
-							A2(
-								$elm$html$Html$img,
-								_Utils_ap(
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$class('card-img-top')
-										]),
-									attributes),
-								children)))
-				}));
-	});
-var $elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		$elm$html$Html$Events$on,
-		'click',
-		$elm$json$Json$Decode$succeed(msg));
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$BlockItem = function (a) {
-	return {$: 'BlockItem', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$Block$text = F2(
-	function (attributes, children) {
-		return $rundis$elm_bootstrap$Bootstrap$Card$Internal$BlockItem(
-			A2(
-				$elm$html$Html$p,
-				_Utils_ap(
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('card-text')
-						]),
-					attributes),
-				children));
-	});
-var $elm$html$Html$h4 = _VirtualDom_node('h4');
-var $rundis$elm_bootstrap$Bootstrap$Card$Block$title = F3(
-	function (elemFn, attributes, children) {
-		return $rundis$elm_bootstrap$Bootstrap$Card$Internal$BlockItem(
-			A2(
-				elemFn,
-				A2(
-					$elm$core$List$cons,
-					$elm$html$Html$Attributes$class('card-title'),
-					attributes),
-				children));
-	});
-var $rundis$elm_bootstrap$Bootstrap$Card$Block$titleH4 = $rundis$elm_bootstrap$Bootstrap$Card$Block$title($elm$html$Html$h4);
-var $elm$html$Html$h6 = _VirtualDom_node('h6');
-var $rundis$elm_bootstrap$Bootstrap$Card$Block$titleH6 = $rundis$elm_bootstrap$Bootstrap$Card$Block$title($elm$html$Html$h6);
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$applyModifier = F2(
-	function (option, options) {
-		switch (option.$) {
-			case 'Aligned':
-				var align = option.a;
-				return _Utils_update(
-					options,
-					{
-						aligned: $elm$core$Maybe$Just(align)
-					});
-			case 'Coloring':
-				var coloring = option.a;
-				return _Utils_update(
-					options,
-					{
-						coloring: $elm$core$Maybe$Just(coloring)
-					});
-			case 'TextColoring':
-				var coloring = option.a;
-				return _Utils_update(
-					options,
-					{
-						textColoring: $elm$core$Maybe$Just(coloring)
-					});
-			default:
-				var attrs = option.a;
-				return _Utils_update(
-					options,
-					{
-						attributes: _Utils_ap(options.attributes, attrs)
-					});
-		}
-	});
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$defaultOptions = {aligned: $elm$core$Maybe$Nothing, attributes: _List_Nil, coloring: $elm$core$Maybe$Nothing, textColoring: $elm$core$Maybe$Nothing};
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$cardAttributes = function (modifiers) {
-	var options = A3($elm$core$List$foldl, $rundis$elm_bootstrap$Bootstrap$Card$Internal$applyModifier, $rundis$elm_bootstrap$Bootstrap$Card$Internal$defaultOptions, modifiers);
-	return _Utils_ap(
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('card')
-			]),
-		_Utils_ap(
-			function () {
-				var _v0 = options.coloring;
-				if (_v0.$ === 'Just') {
-					if (_v0.a.$ === 'Roled') {
-						var role = _v0.a.a;
-						return _List_fromArray(
-							[
-								A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'bg', role)
-							]);
-					} else {
-						var role = _v0.a.a;
-						return _List_fromArray(
-							[
-								A2($rundis$elm_bootstrap$Bootstrap$Internal$Role$toClass, 'border', role)
-							]);
-					}
-				} else {
-					return _List_Nil;
-				}
-			}(),
-			_Utils_ap(
-				function () {
-					var _v1 = options.textColoring;
-					if (_v1.$ === 'Just') {
-						var color = _v1.a;
-						return _List_fromArray(
-							[
-								$rundis$elm_bootstrap$Bootstrap$Internal$Text$textColorClass(color)
-							]);
-					} else {
-						return _List_Nil;
-					}
-				}(),
-				_Utils_ap(
-					function () {
-						var _v2 = options.aligned;
-						if (_v2.$ === 'Just') {
-							var align = _v2.a;
-							return _List_fromArray(
-								[
-									$rundis$elm_bootstrap$Bootstrap$Internal$Text$textAlignClass(align)
-								]);
-						} else {
-							return _List_Nil;
-						}
-					}(),
-					options.attributes))));
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$Internal$renderBlocks = function (blocks) {
-	return A2(
-		$elm$core$List$map,
-		function (block_) {
-			if (block_.$ === 'CardBlock') {
-				var e = block_.a;
-				return e;
-			} else {
-				var e = block_.a;
-				return e;
-			}
-		},
-		blocks);
-};
-var $rundis$elm_bootstrap$Bootstrap$Card$view = function (_v0) {
-	var conf = _v0.a;
-	return A2(
-		$elm$html$Html$div,
-		$rundis$elm_bootstrap$Bootstrap$Card$Internal$cardAttributes(conf.options),
-		_Utils_ap(
-			A2(
-				$elm$core$List$filterMap,
-				$elm$core$Basics$identity,
-				_List_fromArray(
-					[
-						A2(
-						$elm$core$Maybe$map,
-						function (_v1) {
-							var e = _v1.a;
-							return e;
-						},
-						conf.header),
-						A2(
-						$elm$core$Maybe$map,
-						function (_v2) {
-							var e = _v2.a;
-							return e;
-						},
-						conf.imgTop)
-					])),
-			_Utils_ap(
-				$rundis$elm_bootstrap$Bootstrap$Card$Internal$renderBlocks(conf.blocks),
-				A2(
-					$elm$core$List$filterMap,
-					$elm$core$Basics$identity,
-					_List_fromArray(
-						[
-							A2(
-							$elm$core$Maybe$map,
-							function (_v3) {
-								var e = _v3.a;
-								return e;
-							},
-							conf.footer),
-							A2(
-							$elm$core$Maybe$map,
-							function (_v4) {
-								var e = _v4.a;
-								return e;
-							},
-							conf.imgBottom)
-						])))));
 };
 var $author$project$View$SelectorTiles$viewBookTilesCard = F3(
 	function (_v0, book, index) {
@@ -13200,7 +15427,7 @@ var $author$project$View$SelectorTiles$viewBookTilesCard = F3(
 			$elm$html$Html$div,
 			_List_fromArray(
 				[
-					$elm$html$Html$Attributes$class('col-lg-2 col-md-3 mb-4'),
+					$elm$html$Html$Attributes$class('col-lg-4 col-md-6 mb-4'),
 					$elm$html$Html$Events$onClick(
 					doAction(index))
 				]),
@@ -13305,7 +15532,6 @@ var $author$project$View$SelectorTiles$viewBookTiles = F2(
 					0,
 					$elm$core$Array$length(books) - 1)));
 	});
-var $elm$html$Html$h3 = _VirtualDom_node('h3');
 var $author$project$View$SelectorTiles$viewFetchError = function (errorMessage) {
 	var errorHeading = 'Couldn\'t fetch posts at this time.';
 	return A2(
@@ -13388,7 +15614,7 @@ var $author$project$View$SelectorTiles$viewBooks = function (config) {
 				$elm$html$Html$div,
 				_List_fromArray(
 					[
-						$elm$html$Html$Attributes$class('containerFluid')
+						$elm$html$Html$Attributes$class('container')
 					]),
 				_List_fromArray(
 					[
@@ -13475,1929 +15701,167 @@ var $author$project$BookSelector$view = function (model) {
 			return $author$project$View$SelectorDetails$view(model.bookdetails);
 		default:
 			var index = _v0.a;
-			var _v1 = model.bookDetailsEdit;
-			if (_v1.$ === 'Just') {
-				var bookDetailsEdit = _v1.a;
-				return $author$project$View$SelectorDetailsEdit$view(bookDetailsEdit);
-			} else {
-				return A2($elm$html$Html$div, _List_Nil, _List_Nil);
-			}
+			return A2(
+				$elm$html$Html$map,
+				$author$project$BookSelector$LibraryEditMsg,
+				$author$project$View$LibraryEdit$view(model.bookDetailsEdit));
 	}
 };
-var $author$project$Utils$lookup = F2(
-	function (key, list) {
-		return A2(
-			$elm$core$Maybe$withDefault,
-			key,
-			A2(
-				$elm$core$Maybe$map,
-				$elm$core$Tuple$second,
-				$elm$core$List$head(
-					A2(
-						$elm$core$List$filter,
-						function (_v0) {
-							var key1 = _v0.a;
-							var value = _v0.b;
-							return _Utils_eq(key1, key);
-						},
-						list))));
-	});
-var $elm$html$Html$Attributes$colspan = function (n) {
-	return A2(
-		_VirtualDom_attribute,
-		'colspan',
-		$elm$core$String$fromInt(n));
-};
-var $elm$time$Time$Zone = F2(
-	function (a, b) {
-		return {$: 'Zone', a: a, b: b};
-	});
-var $elm$time$Time$utc = A2($elm$time$Time$Zone, 0, _List_Nil);
-var $author$project$Utils$getTimeZone = $elm$time$Time$utc;
-var $elm$time$Time$flooredDiv = F2(
-	function (numerator, denominator) {
-		return $elm$core$Basics$floor(numerator / denominator);
-	});
-var $elm$time$Time$posixToMillis = function (_v0) {
-	var millis = _v0.a;
-	return millis;
-};
-var $elm$time$Time$toAdjustedMinutesHelp = F3(
-	function (defaultOffset, posixMinutes, eras) {
-		toAdjustedMinutesHelp:
-		while (true) {
-			if (!eras.b) {
-				return posixMinutes + defaultOffset;
-			} else {
-				var era = eras.a;
-				var olderEras = eras.b;
-				if (_Utils_cmp(era.start, posixMinutes) < 0) {
-					return posixMinutes + era.offset;
-				} else {
-					var $temp$defaultOffset = defaultOffset,
-						$temp$posixMinutes = posixMinutes,
-						$temp$eras = olderEras;
-					defaultOffset = $temp$defaultOffset;
-					posixMinutes = $temp$posixMinutes;
-					eras = $temp$eras;
-					continue toAdjustedMinutesHelp;
-				}
-			}
+var $author$project$Checkin$DoCheckin = {$: 'DoCheckin'};
+var $author$project$Checkin$viewConfirm = F2(
+	function (index, model) {
+		var bookdetails = model.bookdetails;
+		var _v0 = bookdetails.maybeCheckout;
+		if (_v0.$ === 'Just') {
+			var checkout = _v0.a;
+			return _Utils_eq(checkout.userEmail, bookdetails.userEmail) ? $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: false, msg: $author$project$Checkin$DoCheckin, text: 'Confirm', visible: true},
+						remarks: 'Please confirm that the book is checked in by ' + (bookdetails.userEmail + '.')
+					})) : $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: true, msg: $author$project$Checkin$DoCheckin, text: 'Check out', visible: true},
+						remarks: checkout.userEmail + (' checked this book out at ' + ($author$project$Utils$getNiceTime(checkout.dateTimeFrom) + '.'))
+					}));
+		} else {
+			return $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: false, msg: $author$project$Checkin$DoCheckout, text: 'Confirm', visible: true},
+						remarks: 'Please confirm that the book is checked out by ' + (bookdetails.userEmail + '.')
+					}));
 		}
 	});
-var $elm$time$Time$toAdjustedMinutes = F2(
-	function (_v0, time) {
-		var defaultOffset = _v0.a;
-		var eras = _v0.b;
-		return A3(
-			$elm$time$Time$toAdjustedMinutesHelp,
-			defaultOffset,
-			A2(
-				$elm$time$Time$flooredDiv,
-				$elm$time$Time$posixToMillis(time),
-				60000),
-			eras);
-	});
-var $elm$time$Time$toCivil = function (minutes) {
-	var rawDay = A2($elm$time$Time$flooredDiv, minutes, 60 * 24) + 719468;
-	var era = (((rawDay >= 0) ? rawDay : (rawDay - 146096)) / 146097) | 0;
-	var dayOfEra = rawDay - (era * 146097);
-	var yearOfEra = ((((dayOfEra - ((dayOfEra / 1460) | 0)) + ((dayOfEra / 36524) | 0)) - ((dayOfEra / 146096) | 0)) / 365) | 0;
-	var dayOfYear = dayOfEra - (((365 * yearOfEra) + ((yearOfEra / 4) | 0)) - ((yearOfEra / 100) | 0));
-	var mp = (((5 * dayOfYear) + 2) / 153) | 0;
-	var month = mp + ((mp < 10) ? 3 : (-9));
-	var year = yearOfEra + (era * 400);
-	return {
-		day: (dayOfYear - ((((153 * mp) + 2) / 5) | 0)) + 1,
-		month: month,
-		year: year + ((month <= 2) ? 1 : 0)
-	};
-};
-var $elm$time$Time$toDay = F2(
-	function (zone, time) {
-		return $elm$time$Time$toCivil(
-			A2($elm$time$Time$toAdjustedMinutes, zone, time)).day;
-	});
-var $elm$time$Time$Apr = {$: 'Apr'};
-var $elm$time$Time$Aug = {$: 'Aug'};
-var $elm$time$Time$Dec = {$: 'Dec'};
-var $elm$time$Time$Feb = {$: 'Feb'};
-var $elm$time$Time$Jan = {$: 'Jan'};
-var $elm$time$Time$Jul = {$: 'Jul'};
-var $elm$time$Time$Jun = {$: 'Jun'};
-var $elm$time$Time$Mar = {$: 'Mar'};
-var $elm$time$Time$May = {$: 'May'};
-var $elm$time$Time$Nov = {$: 'Nov'};
-var $elm$time$Time$Oct = {$: 'Oct'};
-var $elm$time$Time$Sep = {$: 'Sep'};
-var $elm$time$Time$toMonth = F2(
-	function (zone, time) {
-		var _v0 = $elm$time$Time$toCivil(
-			A2($elm$time$Time$toAdjustedMinutes, zone, time)).month;
-		switch (_v0) {
-			case 1:
-				return $elm$time$Time$Jan;
-			case 2:
-				return $elm$time$Time$Feb;
-			case 3:
-				return $elm$time$Time$Mar;
-			case 4:
-				return $elm$time$Time$Apr;
-			case 5:
-				return $elm$time$Time$May;
-			case 6:
-				return $elm$time$Time$Jun;
-			case 7:
-				return $elm$time$Time$Jul;
-			case 8:
-				return $elm$time$Time$Aug;
-			case 9:
-				return $elm$time$Time$Sep;
-			case 10:
-				return $elm$time$Time$Oct;
-			case 11:
-				return $elm$time$Time$Nov;
-			default:
-				return $elm$time$Time$Dec;
+var $author$project$Checkin$viewDetails = F2(
+	function (index, model) {
+		var bookdetails = model.bookdetails;
+		var _v0 = bookdetails.maybeCheckout;
+		if (_v0.$ === 'Just') {
+			var checkout = _v0.a;
+			return _Utils_eq(checkout.userEmail, bookdetails.userEmail) ? $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: false, msg: $author$project$Checkin$DoCheckin, text: 'Check in', visible: true},
+						remarks: 'You checked this book out at ' + ($author$project$Utils$getNiceTime(checkout.dateTimeFrom) + '.')
+					})) : $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: true, msg: $author$project$Checkin$DoCheckout, text: 'Check out', visible: true},
+						remarks: checkout.userEmail + (' checked this book out at ' + ($author$project$Utils$getNiceTime(checkout.dateTimeFrom) + '.'))
+					}));
+		} else {
+			return $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: false, msg: $author$project$Checkin$DoCheckout, text: 'Check out', visible: true},
+						remarks: ''
+					}));
 		}
 	});
-var $author$project$Utils$toMonth = function (month) {
-	switch (month.$) {
-		case 'Jan':
-			return 'januari';
-		case 'Feb':
-			return 'februari';
-		case 'Mar':
-			return 'march';
-		case 'Apr':
-			return 'april';
-		case 'May':
-			return 'may';
-		case 'Jun':
-			return 'june';
-		case 'Jul':
-			return 'july';
-		case 'Aug':
-			return 'august';
-		case 'Sep':
-			return 'september';
-		case 'Oct':
-			return 'oktober';
-		case 'Nov':
-			return 'november';
+var $author$project$Checkin$view = function (model) {
+	var _v0 = model.bookView;
+	switch (_v0.$) {
+		case 'Tiles':
+			return A2(
+				$elm$html$Html$map,
+				$author$project$Checkin$LibraryTilesMsg,
+				$author$project$View$LibraryTiles$view(model.booktiles));
+		case 'Details':
+			var index = _v0.a;
+			return A2($author$project$Checkin$viewDetails, index, model);
+		case 'Confirm':
+			var index = _v0.a;
+			return A2($author$project$Checkin$viewConfirm, index, model);
 		default:
-			return 'december';
+			var index = _v0.a;
+			return $author$project$View$LibraryDetails$view(model.bookdetails);
 	}
 };
-var $elm$time$Time$Fri = {$: 'Fri'};
-var $elm$time$Time$Mon = {$: 'Mon'};
-var $elm$time$Time$Sat = {$: 'Sat'};
-var $elm$time$Time$Sun = {$: 'Sun'};
-var $elm$time$Time$Thu = {$: 'Thu'};
-var $elm$time$Time$Tue = {$: 'Tue'};
-var $elm$time$Time$Wed = {$: 'Wed'};
-var $elm$time$Time$toWeekday = F2(
-	function (zone, time) {
-		var _v0 = A2(
-			$elm$core$Basics$modBy,
-			7,
-			A2(
-				$elm$time$Time$flooredDiv,
-				A2($elm$time$Time$toAdjustedMinutes, zone, time),
-				60 * 24));
-		switch (_v0) {
-			case 0:
-				return $elm$time$Time$Thu;
-			case 1:
-				return $elm$time$Time$Fri;
-			case 2:
-				return $elm$time$Time$Sat;
-			case 3:
-				return $elm$time$Time$Sun;
-			case 4:
-				return $elm$time$Time$Mon;
-			case 5:
-				return $elm$time$Time$Tue;
-			default:
-				return $elm$time$Time$Wed;
-		}
-	});
-var $author$project$Utils$toWeekday = function (weekday) {
-	switch (weekday.$) {
-		case 'Mon':
-			return 'Monday';
-		case 'Tue':
-			return 'Tuesday';
-		case 'Wed':
-			return 'Wednesday';
-		case 'Thu':
-			return 'Thursday';
-		case 'Fri':
-			return 'Friday';
-		case 'Sat':
-			return 'Saturday';
-		default:
-			return 'Sunday';
-	}
-};
-var $elm$time$Time$toYear = F2(
-	function (zone, time) {
-		return $elm$time$Time$toCivil(
-			A2($elm$time$Time$toAdjustedMinutes, zone, time)).year;
-	});
-var $author$project$Utils$getNiceTime = function (datetime) {
-	return $author$project$Utils$toWeekday(
-		A2($elm$time$Time$toWeekday, $author$project$Utils$getTimeZone, datetime)) + (' ' + ($elm$core$String$fromInt(
-		A2($elm$time$Time$toDay, $author$project$Utils$getTimeZone, datetime)) + (' ' + ($author$project$Utils$toMonth(
-		A2($elm$time$Time$toMonth, $author$project$Utils$getTimeZone, datetime)) + (' ' + $elm$core$String$fromInt(
-		A2($elm$time$Time$toYear, $author$project$Utils$getTimeZone, datetime)))))));
-};
-var $author$project$View$LibraryDetails$viewBookDetailButtons = function (config) {
-	var _v0 = _Utils_Tuple2(config.maybeCheckout, config.doActionPrepare);
-	if (_v0.a.$ === 'Just') {
-		if (!_v0.b) {
-			var checkout = _v0.a.a;
-			var a = A2($elm$core$Debug$log, 'viewBookDetailButtons checkout = ', checkout);
-			return _Utils_eq(checkout.userEmail, config.userEmail) ? A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$group,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
-						_Utils_Tuple2(
-							A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
-							A2(
-								$rundis$elm_bootstrap$Bootstrap$Table$tbody,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tr,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doPrevious),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(!config.hasPrevious)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('<')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCancel)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Cancel')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCheckin)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Check in')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doNext),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(!config.hasNext)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('>')
-															]))
-													]))
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tr,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_fromArray(
-													[
-														$rundis$elm_bootstrap$Bootstrap$Table$cellAttr(
-														$elm$html$Html$Attributes$colspan(4))
-													]),
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Form$group,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																$rundis$elm_bootstrap$Bootstrap$Form$label,
-																_List_Nil,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text(
-																		'You checked this book out at ' + ($author$project$Utils$getNiceTime(checkout.dateTimeFrom) + '.'))
-																	]))
-															]))
-													]))
-											]))
-									]))))
-					])) : A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$group,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
-						_Utils_Tuple2(
-							A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
-							A2(
-								$rundis$elm_bootstrap$Bootstrap$Table$tbody,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tr,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doPrevious),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(!config.hasPrevious)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('<')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCancel)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Cancel')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(true)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Check out')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doNext),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(!config.hasNext)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('>')
-															]))
-													]))
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tr,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_fromArray(
-													[
-														$rundis$elm_bootstrap$Bootstrap$Table$cellAttr(
-														$elm$html$Html$Attributes$colspan(4))
-													]),
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Form$group,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																$rundis$elm_bootstrap$Bootstrap$Form$label,
-																_List_Nil,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text(
-																		checkout.userEmail + (' checked this book out at ' + ($author$project$Utils$getNiceTime(checkout.dateTimeFrom) + '.')))
-																	]))
-															]))
-													]))
-											]))
-									]))))
-					]));
+var $author$project$Library$DoCheckin = {$: 'DoCheckin'};
+var $author$project$Library$viewConfirm = F2(
+	function (index, model) {
+		var bookdetails = model.bookdetails;
+		var _v0 = bookdetails.maybeCheckout;
+		if (_v0.$ === 'Just') {
+			var checkout = _v0.a;
+			return _Utils_eq(checkout.userEmail, bookdetails.userEmail) ? $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: false, msg: $author$project$Library$DoCheckin, text: 'Confirm', visible: true},
+						remarks: 'Please confirm that the book is checked in by ' + (bookdetails.userEmail + '.')
+					})) : $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: true, msg: $author$project$Library$DoCheckin, text: 'Check out', visible: true},
+						remarks: checkout.userEmail + (' checked this book out at ' + ($author$project$Utils$getNiceTime(checkout.dateTimeFrom) + '.'))
+					}));
 		} else {
-			var checkout = _v0.a.a;
-			return A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$group,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
-						_Utils_Tuple2(
-							A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
-							A2(
-								$rundis$elm_bootstrap$Bootstrap$Table$tbody,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tr,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doPrevious),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(true)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('<')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCancel)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Cancel')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCheckin)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Confirm check in')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doNext),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(true)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('>')
-															]))
-													]))
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tr,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_fromArray(
-													[
-														$rundis$elm_bootstrap$Bootstrap$Table$cellAttr(
-														$elm$html$Html$Attributes$colspan(4))
-													]),
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Form$group,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																$rundis$elm_bootstrap$Bootstrap$Form$label,
-																_List_Nil,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text('Checked in by ' + (config.userEmail + '.'))
-																	]))
-															]))
-													]))
-											]))
-									]))))
-					]));
+			return $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: false, msg: $author$project$Library$DoCheckout, text: 'Confirm', visible: true},
+						remarks: 'Please confirm that the book is checked out by ' + (bookdetails.userEmail + '.')
+					}));
 		}
-	} else {
-		if (!_v0.b) {
-			var _v1 = _v0.a;
-			return A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$group,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
-						_Utils_Tuple2(
-							A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
-							A2(
-								$rundis$elm_bootstrap$Bootstrap$Table$tbody,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tr,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doPrevious),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(!config.hasPrevious)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('<')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCancel)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Cancel')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCheckout)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Check out')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doNext),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(!config.hasNext)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('>')
-															]))
-													]))
-											]))
-									]))))
-					]));
+	});
+var $author$project$Library$viewDetails = F2(
+	function (index, model) {
+		var bookdetails = model.bookdetails;
+		var _v0 = bookdetails.maybeCheckout;
+		if (_v0.$ === 'Just') {
+			var checkout = _v0.a;
+			return _Utils_eq(checkout.userEmail, bookdetails.userEmail) ? $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: false, msg: $author$project$Library$DoCheckin, text: 'Check in', visible: true},
+						remarks: 'You checked this book out at ' + ($author$project$Utils$getNiceTime(checkout.dateTimeFrom) + '.')
+					})) : $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: true, msg: $author$project$Library$DoCheckout, text: 'Check out', visible: true},
+						remarks: checkout.userEmail + (' checked this book out at ' + ($author$project$Utils$getNiceTime(checkout.dateTimeFrom) + '.'))
+					}));
 		} else {
-			var _v2 = _v0.a;
-			return A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$group,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
-						_Utils_Tuple2(
-							A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
-							A2(
-								$rundis$elm_bootstrap$Bootstrap$Table$tbody,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tr,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doPrevious),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(true)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('<')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineSecondary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCancel)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Cancel')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlinePrimary,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doCheckout)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('Confirm check out')
-															]))
-													])),
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_Nil,
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Button$button,
-														_List_fromArray(
-															[
-																$rundis$elm_bootstrap$Bootstrap$Button$outlineInfo,
-																$rundis$elm_bootstrap$Bootstrap$Button$attrs(_List_Nil),
-																$rundis$elm_bootstrap$Bootstrap$Button$onClick(config.doNext),
-																$rundis$elm_bootstrap$Bootstrap$Button$disabled(true)
-															]),
-														_List_fromArray(
-															[
-																$elm$html$Html$text('>')
-															]))
-													]))
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Table$tr,
-										_List_Nil,
-										_List_fromArray(
-											[
-												A2(
-												$rundis$elm_bootstrap$Bootstrap$Table$td,
-												_List_fromArray(
-													[
-														$rundis$elm_bootstrap$Bootstrap$Table$cellAttr(
-														$elm$html$Html$Attributes$colspan(4))
-													]),
-												_List_fromArray(
-													[
-														A2(
-														$rundis$elm_bootstrap$Bootstrap$Form$group,
-														_List_Nil,
-														_List_fromArray(
-															[
-																A2(
-																$rundis$elm_bootstrap$Bootstrap$Form$label,
-																_List_Nil,
-																_List_fromArray(
-																	[
-																		$elm$html$Html$text('Checked out by ' + (config.userEmail + '.'))
-																	]))
-															]))
-													]))
-											]))
-									]))))
-					]));
-		}
-	}
-};
-var $author$project$View$LibraryDetails$viewBookDetail = function (config) {
-	var _v0 = config;
-	var maybeBook = _v0.maybeBook;
-	if (maybeBook.$ === 'Just') {
-		var book = maybeBook.a;
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('container')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$rundis$elm_bootstrap$Bootstrap$Form$form,
-					_List_Nil,
-					_List_fromArray(
-						[
-							A2(
-							$rundis$elm_bootstrap$Bootstrap$Form$group,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$rundis$elm_bootstrap$Bootstrap$Form$label,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Title')
-										])),
-									$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-									_List_fromArray(
-										[
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.title),
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
-										]))
-								])),
-							A2(
-							$rundis$elm_bootstrap$Bootstrap$Form$group,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$rundis$elm_bootstrap$Bootstrap$Form$label,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Author(s)')
-										])),
-									$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-									_List_fromArray(
-										[
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.authors),
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
-										]))
-								])),
-							A2(
-							$rundis$elm_bootstrap$Bootstrap$Form$group,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$rundis$elm_bootstrap$Bootstrap$Form$label,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Description')
-										])),
-									$rundis$elm_bootstrap$Bootstrap$Form$Textarea$textarea(
-									_List_fromArray(
-										[
-											$rundis$elm_bootstrap$Bootstrap$Form$Textarea$rows(5),
-											$rundis$elm_bootstrap$Bootstrap$Form$Textarea$value(book.description),
-											$rundis$elm_bootstrap$Bootstrap$Form$Textarea$disabled
-										]))
-								])),
-							A2(
-							$rundis$elm_bootstrap$Bootstrap$Form$group,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$rundis$elm_bootstrap$Bootstrap$Form$label,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Published date')
-										])),
-									$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-									_List_fromArray(
-										[
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.publishedDate),
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
-										]))
-								])),
-							A2(
-							$rundis$elm_bootstrap$Bootstrap$Form$group,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$rundis$elm_bootstrap$Bootstrap$Form$label,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Language')
-										])),
-									$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-									_List_fromArray(
-										[
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$value(
-											A2($author$project$Utils$lookup, book.language, $author$project$Utils$languages)),
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
-										]))
-								])),
-							A2(
-							$rundis$elm_bootstrap$Bootstrap$Form$group,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$rundis$elm_bootstrap$Bootstrap$Form$label,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Location')
-										])),
-									$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-									_List_fromArray(
-										[
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$value(
-											A2($author$project$Utils$lookup, book.location, $author$project$Utils$locations)),
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
-										]))
-								])),
-							A2(
-							$rundis$elm_bootstrap$Bootstrap$Form$group,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$rundis$elm_bootstrap$Bootstrap$Form$label,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Owner')
-										])),
-									$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-									_List_fromArray(
-										[
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$value(book.owner),
-											$rundis$elm_bootstrap$Bootstrap$Form$Input$disabled(true)
-										]))
-								])),
-							A2(
-							$rundis$elm_bootstrap$Bootstrap$Form$group,
-							_List_Nil,
-							_List_fromArray(
-								[
-									A2(
-									$rundis$elm_bootstrap$Bootstrap$Form$label,
-									_List_Nil,
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Image of the book')
-										])),
-									$rundis$elm_bootstrap$Bootstrap$Table$simpleTable(
-									_Utils_Tuple2(
-										A2($rundis$elm_bootstrap$Bootstrap$Table$thead, _List_Nil, _List_Nil),
-										A2(
-											$rundis$elm_bootstrap$Bootstrap$Table$tbody,
-											_List_Nil,
-											_List_fromArray(
-												[
-													A2(
-													$rundis$elm_bootstrap$Bootstrap$Table$tr,
-													_List_Nil,
-													_List_fromArray(
-														[
-															A2(
-															$rundis$elm_bootstrap$Bootstrap$Table$td,
-															_List_Nil,
-															_List_fromArray(
-																[
-																	A2(
-																	$elm$html$Html$img,
-																	_List_fromArray(
-																		[
-																			$elm$html$Html$Attributes$src(book.thumbnail)
-																		]),
-																	_List_Nil)
-																]))
-														]))
-												]))))
-								])),
-							$author$project$View$LibraryDetails$viewBookDetailButtons(config)
-						]))
-				]));
-	} else {
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('container')
-				]),
-			_List_fromArray(
-				[
-					$elm$html$Html$text('Oeps : BookDetails.elm config.book = Nothing')
-				]));
-	}
-};
-var $author$project$View$LibraryDetails$view = function (config) {
-	return $author$project$View$LibraryDetails$viewBookDetail(config);
-};
-var $elm$core$Dict$fromList = function (assocs) {
-	return A3(
-		$elm$core$List$foldl,
-		F2(
-			function (_v0, dict) {
-				var key = _v0.a;
-				var value = _v0.b;
-				return A3($elm$core$Dict$insert, key, value, dict);
-			}),
-		$elm$core$Dict$empty,
-		assocs);
-};
-var $author$project$Utils$checkedStatusList = $elm$core$Dict$fromList(
-	_List_fromArray(
-		[
-			_Utils_Tuple2('available', 'Available books'),
-			_Utils_Tuple2('checkedout', 'Checked out books')
-		]));
-var $elm$core$List$member = F2(
-	function (x, xs) {
-		return A2(
-			$elm$core$List$any,
-			function (a) {
-				return _Utils_eq(a, x);
-			},
-			xs);
-	});
-var $author$project$View$LibraryTiles$addCheckoutUser = F2(
-	function (maybeCheckout, users) {
-		if (maybeCheckout.$ === 'Just') {
-			var checkout = maybeCheckout.a;
-			return (checkout.userEmail === '') ? users : (A2(
-				$elm$core$List$member,
-				_Utils_Tuple2(checkout.userEmail, checkout.userEmail),
-				users) ? users : A2(
-				$elm$core$List$cons,
-				_Utils_Tuple2(checkout.userEmail, checkout.userEmail),
-				users));
-		} else {
-			return users;
+			return $author$project$View$LibraryDetails$view(
+				_Utils_update(
+					bookdetails,
+					{
+						doAction1: {disabled: false, msg: $author$project$Library$DoCheckout, text: 'Check out', visible: true},
+						remarks: ''
+					}));
 		}
 	});
-var $author$project$View$LibraryTiles$getCheckoutUsers = function (webDataCheckouts) {
-	if (webDataCheckouts.$ === 'Success') {
-		var actualCheckouts = webDataCheckouts.a;
-		return A3(
-			$elm$core$List$foldl,
-			$author$project$View$LibraryTiles$addCheckoutUser,
-			_List_Nil,
-			$elm$core$Array$toList(actualCheckouts));
-	} else {
-		return _List_Nil;
-	}
-};
-var $author$project$View$LibraryTiles$addLocation = F2(
-	function (book, locations) {
-		return (book.location === '') ? locations : (A2(
-			$elm$core$List$member,
-			_Utils_Tuple2(book.location, book.location),
-			locations) ? locations : A2(
-			$elm$core$List$cons,
-			_Utils_Tuple2(book.location, book.location),
-			locations));
-	});
-var $author$project$View$LibraryTiles$getLocations = function (webDataBooks) {
-	if (webDataBooks.$ === 'Success') {
-		var actualBooks = webDataBooks.a;
-		return A3(
-			$elm$core$List$foldl,
-			$author$project$View$LibraryTiles$addLocation,
-			_List_Nil,
-			$elm$core$Array$toList(actualBooks));
-	} else {
-		return _List_Nil;
-	}
-};
-var $author$project$View$LibraryTiles$addOwner = F2(
-	function (book, owners) {
-		return (book.owner === '') ? owners : (A2(
-			$elm$core$List$member,
-			_Utils_Tuple2(book.owner, book.owner),
-			owners) ? owners : A2(
-			$elm$core$List$cons,
-			_Utils_Tuple2(book.owner, book.owner),
-			owners));
-	});
-var $author$project$View$LibraryTiles$getOwners = function (webDataBooks) {
-	if (webDataBooks.$ === 'Success') {
-		var actualBooks = webDataBooks.a;
-		return A3(
-			$elm$core$List$foldl,
-			$author$project$View$LibraryTiles$addOwner,
-			_List_Nil,
-			$elm$core$Array$toList(actualBooks));
-	} else {
-		return _List_Nil;
-	}
-};
-var $author$project$View$LibraryTiles$selectitem = F2(
-	function (valueSelected, _v0) {
-		var value1 = _v0.a;
-		var text1 = _v0.b;
-		var _v1 = _Utils_eq(valueSelected, value1);
-		if (_v1) {
-			return A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$selected(true),
-						$elm$html$Html$Attributes$value(value1)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(text1)
-					]));
-		} else {
-			return A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$Select$item,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$value(value1)
-					]),
-				_List_fromArray(
-					[
-						$elm$html$Html$text(text1)
-					]));
-		}
-	});
-var $rundis$elm_bootstrap$Bootstrap$General$Internal$SM = {$: 'SM'};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$Size = function (a) {
-	return {$: 'Size', a: a};
-};
-var $rundis$elm_bootstrap$Bootstrap$Form$Input$small = $rundis$elm_bootstrap$Bootstrap$Form$Input$Size($rundis$elm_bootstrap$Bootstrap$General$Internal$SM);
-var $author$project$View$LibraryTiles$viewBookFilter = function (config) {
-	var _v0 = config;
-	var books = _v0.books;
-	var doSearch = _v0.doSearch;
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('container')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$rundis$elm_bootstrap$Bootstrap$Form$form,
-				_List_Nil,
-				_List_fromArray(
-					[
-						config.showSearchTitle ? A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Title')
-									])),
-								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$small,
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(config.searchTitle),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput(config.updateSearchTitle)
-									]))
-							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
-						config.showSearchAuthors ? A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Author(s)')
-									])),
-								$rundis$elm_bootstrap$Bootstrap$Form$Input$text(
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$small,
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$value(config.searchAuthors),
-										$rundis$elm_bootstrap$Bootstrap$Form$Input$onInput(config.updateSearchAuthors)
-									]))
-							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
-						config.showSearchLocation ? A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Location')
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange(config.updateSearchLocation)
-									]),
-								A2(
-									$elm$core$List$map,
-									$author$project$View$LibraryTiles$selectitem(config.searchLocation),
-									A2(
-										$elm$core$List$cons,
-										_Utils_Tuple2('', ''),
-										$author$project$View$LibraryTiles$getLocations(books))))
-							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
-						config.showSearchOwner ? A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Owner')
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange(config.updateSearchOwner)
-									]),
-								A2(
-									$elm$core$List$map,
-									$author$project$View$LibraryTiles$selectitem(config.searchOwner),
-									A2(
-										$elm$core$List$cons,
-										_Utils_Tuple2('', ''),
-										$author$project$View$LibraryTiles$getOwners(books))))
-							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
-						config.showSearchCheckStatus ? A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Availability')
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange(config.updateSearchCheckStatus)
-									]),
-								A2(
-									$elm$core$List$map,
-									$author$project$View$LibraryTiles$selectitem(config.searchCheckStatus),
-									A2(
-										$elm$core$List$cons,
-										_Utils_Tuple2('', ''),
-										$elm$core$Dict$toList($author$project$Utils$checkedStatusList))))
-							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil),
-						config.showSearchCheckoutUser ? A2(
-						$rundis$elm_bootstrap$Bootstrap$Form$group,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$label,
-								_List_Nil,
-								_List_fromArray(
-									[
-										$elm$html$Html$text('Checked out by')
-									])),
-								A2(
-								$rundis$elm_bootstrap$Bootstrap$Form$Select$select,
-								_List_fromArray(
-									[
-										$rundis$elm_bootstrap$Bootstrap$Form$Select$onChange(config.updateSearchCheckoutUser)
-									]),
-								A2(
-									$elm$core$List$map,
-									$author$project$View$LibraryTiles$selectitem(config.searchCheckoutUser),
-									A2(
-										$elm$core$List$cons,
-										_Utils_Tuple2('', ''),
-										$author$project$View$LibraryTiles$getCheckoutUsers(config.checkouts))))
-							])) : A2($elm$html$Html$div, _List_Nil, _List_Nil)
-					]))
-			]));
-};
-var $author$project$View$LibraryTiles$bookCheckoutIndex = F3(
-	function (book, checkout, index) {
-		return {book: book, checkout: checkout, index: index};
-	});
-var $elm$core$String$toUpper = _String_toUpper;
-var $author$project$View$LibraryTiles$booksFilter = F2(
-	function (_v0, _v1) {
-		var searchTitle = _v0.searchTitle;
-		var searchAuthors = _v0.searchAuthors;
-		var searchOwner = _v0.searchOwner;
-		var searchLocation = _v0.searchLocation;
-		var searchCheckStatus = _v0.searchCheckStatus;
-		var searchCheckoutUser = _v0.searchCheckoutUser;
-		var book = _v1.book;
-		var checkout = _v1.checkout;
-		var index = _v1.index;
-		return (($elm$core$String$isEmpty(searchTitle) || A2(
-			$elm$core$String$contains,
-			$elm$core$String$toUpper(searchTitle),
-			$elm$core$String$toUpper(book.title))) && (($elm$core$String$isEmpty(searchAuthors) || A2(
-			$elm$core$String$contains,
-			$elm$core$String$toUpper(searchAuthors),
-			$elm$core$String$toUpper(book.authors))) && (($elm$core$String$isEmpty(searchOwner) || _Utils_eq(searchOwner, book.owner)) && (($elm$core$String$isEmpty(searchLocation) || _Utils_eq(searchOwner, book.location)) && (($elm$core$String$isEmpty(searchCheckStatus) || (((searchCheckStatus === 'available') && _Utils_eq(checkout, $elm$core$Maybe$Nothing)) || ((searchCheckStatus === 'checkedout') && (!_Utils_eq(checkout, $elm$core$Maybe$Nothing))))) && ($elm$core$String$isEmpty(searchCheckoutUser) || function () {
-			if (checkout.$ === 'Just') {
-				var checkout1 = checkout.a;
-				return _Utils_eq(checkout1.userEmail, searchCheckoutUser);
-			} else {
-				return false;
-			}
-		}())))))) ? $elm$core$Maybe$Just(
-			{book: book, checkout: checkout, index: index}) : $elm$core$Maybe$Nothing;
-	});
-var $elm$core$List$map3 = _List_map3;
-var $elm$core$String$replace = F3(
-	function (before, after, string) {
-		return A2(
-			$elm$core$String$join,
-			after,
-			A2($elm$core$String$split, before, string));
-	});
-var $author$project$View$LibraryTiles$getthumbnail = function (book) {
-	return A3($elm$core$String$replace, '&zoom=1&', '&zoom=7&', book.thumbnail);
-};
-var $author$project$View$LibraryTiles$viewBookTilesCard = F2(
-	function (_v0, _v1) {
-		var doAction = _v0.doAction;
-		var userEmail = _v0.userEmail;
-		var book = _v1.book;
-		var checkout = _v1.checkout;
-		var index = _v1.index;
-		if (checkout.$ === 'Just') {
-			var checkout1 = checkout.a;
-			return _Utils_eq(userEmail, checkout1.userEmail) ? A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('col-lg-3 col-md-4 mb-4'),
-						$elm$html$Html$Events$onClick(
-						doAction(index))
-					]),
-				_List_fromArray(
-					[
-						$rundis$elm_bootstrap$Bootstrap$Card$view(
-						A3(
-							$rundis$elm_bootstrap$Bootstrap$Card$imgBottom,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$src(
-									$author$project$View$LibraryTiles$getthumbnail(book)),
-									$elm$html$Html$Attributes$class('bookselector-img-bottom')
-								]),
-							_List_Nil,
-							A3(
-								$rundis$elm_bootstrap$Bootstrap$Card$block,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH4,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('card-title text-truncate bookselector-text-title')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.title)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH6,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-muted bookselector-text-author')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.authors)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-muted small bookselector-text-published')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.publishedDate)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('card-text block-with-text bookselector-text-description')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.description)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-muted small bookselector-text-language')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.language)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-checkout-x')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$p,
-												_List_Nil,
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Checked out!')
-													])),
-												A2(
-												$elm$html$Html$p,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('small')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text(
-														'from ' + ($author$project$Utils$getNiceTime(checkout1.dateTimeFrom) + ', by You'))
-													]))
-											]))
-									]),
-								A3(
-									$rundis$elm_bootstrap$Bootstrap$Card$imgTop,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$src(
-											$author$project$View$LibraryTiles$getthumbnail(book)),
-											$elm$html$Html$Attributes$class('bookselector-img-top')
-										]),
-									_List_Nil,
-									$rundis$elm_bootstrap$Bootstrap$Card$config(
-										_List_fromArray(
-											[
-												$rundis$elm_bootstrap$Bootstrap$Card$attrs(
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('card-checkout-x')
-													]))
-											]))))))
-					])) : A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('col-lg-3 col-md-4 mb-4'),
-						$elm$html$Html$Events$onClick(
-						doAction(index))
-					]),
-				_List_fromArray(
-					[
-						$rundis$elm_bootstrap$Bootstrap$Card$view(
-						A3(
-							$rundis$elm_bootstrap$Bootstrap$Card$imgBottom,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$src(
-									$author$project$View$LibraryTiles$getthumbnail(book)),
-									$elm$html$Html$Attributes$class('bookselector-img-bottom')
-								]),
-							_List_Nil,
-							A3(
-								$rundis$elm_bootstrap$Bootstrap$Card$block,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH4,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('card-title text-truncate bookselector-text-title')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.title)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH6,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-muted bookselector-text-author')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.authors)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-muted small bookselector-text-published')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.publishedDate)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('card-text block-with-text bookselector-text-description')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.description)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-muted small bookselector-text-language')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.language)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-checkout')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$p,
-												_List_Nil,
-												_List_fromArray(
-													[
-														$elm$html$Html$text('Checked out!')
-													])),
-												A2(
-												$elm$html$Html$p,
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('small')
-													]),
-												_List_fromArray(
-													[
-														$elm$html$Html$text(
-														'from ' + ($author$project$Utils$getNiceTime(checkout1.dateTimeFrom) + (', by ' + checkout1.userEmail)))
-													]))
-											]))
-									]),
-								A3(
-									$rundis$elm_bootstrap$Bootstrap$Card$imgTop,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$src(
-											$author$project$View$LibraryTiles$getthumbnail(book)),
-											$elm$html$Html$Attributes$class('bookselector-img-top')
-										]),
-									_List_Nil,
-									$rundis$elm_bootstrap$Bootstrap$Card$config(
-										_List_fromArray(
-											[
-												$rundis$elm_bootstrap$Bootstrap$Card$attrs(
-												_List_fromArray(
-													[
-														$elm$html$Html$Attributes$class('card-checkout')
-													]))
-											]))))))
-					]));
-		} else {
-			return A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('col-lg-3 col-md-4 mb-4'),
-						$elm$html$Html$Events$onClick(
-						doAction(index))
-					]),
-				_List_fromArray(
-					[
-						$rundis$elm_bootstrap$Bootstrap$Card$view(
-						A3(
-							$rundis$elm_bootstrap$Bootstrap$Card$imgBottom,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$src(
-									$author$project$View$LibraryTiles$getthumbnail(book)),
-									$elm$html$Html$Attributes$class('bookselector-img-bottom')
-								]),
-							_List_Nil,
-							A3(
-								$rundis$elm_bootstrap$Bootstrap$Card$block,
-								_List_Nil,
-								_List_fromArray(
-									[
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH4,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('card-title text-truncate bookselector-text-title')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.title)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$titleH6,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-muted bookselector-text-author')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.authors)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-muted small bookselector-text-published')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.publishedDate)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('card-text block-with-text bookselector-text-description')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.description)
-											])),
-										A2(
-										$rundis$elm_bootstrap$Bootstrap$Card$Block$text,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-muted small bookselector-text-language')
-											]),
-										_List_fromArray(
-											[
-												$elm$html$Html$text(book.language)
-											]))
-									]),
-								A3(
-									$rundis$elm_bootstrap$Bootstrap$Card$imgTop,
-									_List_fromArray(
-										[
-											$elm$html$Html$Attributes$src(
-											$author$project$View$LibraryTiles$getthumbnail(book)),
-											$elm$html$Html$Attributes$class('bookselector-img-top')
-										]),
-									_List_Nil,
-									$rundis$elm_bootstrap$Bootstrap$Card$config(
-										_List_fromArray(
-											[
-												$rundis$elm_bootstrap$Bootstrap$Card$attrs(_List_Nil)
-											]))))))
-					]));
-		}
-	});
-var $author$project$View$LibraryTiles$viewBookTiles = F3(
-	function (config, books, checkouts) {
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('row')
-				]),
-			A2(
-				$elm$core$List$map,
-				$author$project$View$LibraryTiles$viewBookTilesCard(config),
-				A2(
-					$elm$core$List$filterMap,
-					$author$project$View$LibraryTiles$booksFilter(
-						{searchAuthors: config.searchAuthors, searchCheckStatus: config.searchCheckStatus, searchCheckoutUser: config.searchCheckoutUser, searchLocation: config.searchLocation, searchOwner: config.searchOwner, searchTitle: config.searchTitle}),
-					A4(
-						$elm$core$List$map3,
-						$author$project$View$LibraryTiles$bookCheckoutIndex,
-						$elm$core$Array$toList(books),
-						$elm$core$Array$toList(checkouts),
-						A2(
-							$elm$core$List$range,
-							0,
-							$elm$core$Array$length(books) - 1)))));
-	});
-var $author$project$View$LibraryTiles$viewFetchError = function (errorMessage) {
-	var errorHeading = 'Couldn\'t fetch posts at this time.';
-	return A2(
-		$elm$html$Html$div,
-		_List_Nil,
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$h3,
-				_List_Nil,
-				_List_fromArray(
-					[
-						$elm$html$Html$text(errorHeading)
-					])),
-				$elm$html$Html$text('Error: ' + errorMessage)
-			]));
-};
-var $author$project$View$LibraryTiles$viewBooks = function (config) {
-	var _v0 = config;
-	var books = _v0.books;
-	var checkouts = _v0.checkouts;
-	var doSearch = _v0.doSearch;
-	var waarzijnwe = A2($elm$core$Debug$log, 'Library.elm viewBooks libraryBooks ', books);
-	var books_checkouts = A2($author$project$View$LibraryTiles$merge2RemoteDatas, books, checkouts);
-	switch (books_checkouts.$) {
-		case 'NotAsked':
-			return A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('container')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$elm$html$Html$p,
-						_List_Nil,
-						_List_fromArray(
-							[
-								A2($elm$html$Html$br, _List_Nil, _List_Nil)
-							]))
-					]));
-		case 'Loading':
-			return A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('container')
-					]),
-				_List_fromArray(
-					[
-						A2(
-						$rundis$elm_bootstrap$Bootstrap$Spinner$spinner,
-						_List_fromArray(
-							[
-								$rundis$elm_bootstrap$Bootstrap$Spinner$large,
-								$rundis$elm_bootstrap$Bootstrap$Spinner$color($rundis$elm_bootstrap$Bootstrap$Text$primary)
-							]),
-						_List_fromArray(
-							[
-								$rundis$elm_bootstrap$Bootstrap$Spinner$srMessage('Loading...')
-							]))
-					]));
-		case 'Success':
-			var _v2 = books_checkouts.a;
-			var actualBooks = _v2.a;
-			var actualCheckouts = _v2.b;
-			return A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('containerFluid')
-					]),
-				_List_fromArray(
-					[
-						A3($author$project$View$LibraryTiles$viewBookTiles, config, actualBooks, actualCheckouts)
-					]));
-		default:
-			var httpError = books_checkouts.a;
-			return A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('container')
-					]),
-				_List_fromArray(
-					[
-						$author$project$View$LibraryTiles$viewFetchError(
-						$author$project$Utils$buildErrorMessage(httpError))
-					]));
-	}
-};
-var $author$project$View$LibraryTiles$view = function (config) {
-	return A2(
-		$elm$html$Html$div,
-		_List_fromArray(
-			[
-				$elm$html$Html$Attributes$class('row containerFluid')
-			]),
-		_List_fromArray(
-			[
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('col-lg-2 col-md-3 mb-4')
-					]),
-				_List_fromArray(
-					[
-						$author$project$View$LibraryTiles$viewBookFilter(config)
-					])),
-				A2(
-				$elm$html$Html$div,
-				_List_fromArray(
-					[
-						$elm$html$Html$Attributes$class('col-lg-8')
-					]),
-				_List_fromArray(
-					[
-						$author$project$View$LibraryTiles$viewBooks(config)
-					]))
-			]));
-};
 var $author$project$Library$view = function (model) {
 	var _v0 = model.bookView;
 	switch (_v0.$) {
 		case 'Tiles':
-			return $author$project$View$LibraryTiles$view(model.booktiles);
+			return A2(
+				$elm$html$Html$map,
+				$author$project$Library$LibraryTilesMsg,
+				$author$project$View$LibraryTiles$view(model.booktiles));
 		case 'Details':
 			var index = _v0.a;
-			return $author$project$View$LibraryDetails$view(model.bookdetails);
-		case 'DoAction':
+			return A2($author$project$Library$viewDetails, index, model);
+		case 'Confirm':
 			var index = _v0.a;
-			return $author$project$View$LibraryDetails$view(model.bookdetails);
+			return A2($author$project$Library$viewConfirm, index, model);
 		default:
 			var index = _v0.a;
 			return $author$project$View$LibraryDetails$view(model.bookdetails);
 	}
-};
-var $author$project$BooksEditor$view = function (model) {
-	return A2(
-		$elm$html$Html$map,
-		$author$project$BooksEditor$LibraryMsg,
-		$author$project$Library$view(
-			$author$project$BooksEditor$toModel(model)));
-};
-var $author$project$Checkin$view = function (model) {
-	return A2(
-		$elm$html$Html$map,
-		$author$project$Checkin$LibraryMsg,
-		$author$project$Library$view(
-			$author$project$Checkin$toModel(model)));
 };
 var $author$project$Login$SignInRequested = {$: 'SignInRequested'};
 var $elm$html$Html$h1 = _VirtualDom_node('h1');
@@ -15589,8 +16053,8 @@ var $author$project$Menu$menuActionsNoAccessToken = _List_fromArray(
 	[
 		{description: 'You must log in to use the library', imageLink: '', page: $author$project$Session$LoginPage, title: 'Login'}
 	]);
+var $author$project$Session$BookEditorPage = {$: 'BookEditorPage'};
 var $author$project$Session$BookSelectorPage = {$: 'BookSelectorPage'};
-var $author$project$Session$BooksEditorPage = {$: 'BooksEditorPage'};
 var $author$project$Session$CheckinPage = {$: 'CheckinPage'};
 var $author$project$Session$LibraryPage = {$: 'LibraryPage'};
 var $author$project$Session$LogoutPage = {$: 'LogoutPage'};
@@ -15599,7 +16063,7 @@ var $author$project$Menu$menuActionsWithAccessToken = _List_fromArray(
 		{description: 'Add books to the library', imageLink: '', page: $author$project$Session$BookSelectorPage, title: 'Add books'},
 		{description: 'Checkout books from the library', imageLink: '', page: $author$project$Session$LibraryPage, title: 'Library'},
 		{description: 'Return books to the library', imageLink: '', page: $author$project$Session$CheckinPage, title: 'Checkin'},
-		{description: 'Administer your books in the library', imageLink: '', page: $author$project$Session$BooksEditorPage, title: 'Your books'},
+		{description: 'Administer your books in the library', imageLink: '', page: $author$project$Session$BookEditorPage, title: 'Your books'},
 		{description: 'Say goodbye', imageLink: '', page: $author$project$Session$LogoutPage, title: 'Logout'}
 	]);
 var $rundis$elm_bootstrap$Bootstrap$Navbar$maybeBrand = function (brand_) {
@@ -16406,59 +16870,13 @@ var $author$project$Welcome$ChangedPage = function (a) {
 	return {$: 'ChangedPage', a: a};
 };
 var $author$project$Welcome$view = function (session) {
-	var _v0 = _Utils_Tuple2(session.token, session.user);
-	if (_v0.a.$ === 'Nothing') {
-		var _v1 = _v0.a;
-		return A2(
-			$elm$html$Html$div,
-			_List_fromArray(
-				[
-					$elm$html$Html$Attributes$class('container')
-				]),
-			_List_fromArray(
-				[
-					A2(
-					$elm$html$Html$h1,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Welcome')
-						])),
-					A2(
-					$elm$html$Html$p,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('Welcome to the Lunatech\'s Library App.'),
-							A2($elm$html$Html$br, _List_Nil, _List_Nil),
-							$elm$html$Html$text('Browse interesting books. Books that you can borrow from your colleagues.')
-						])),
-					A2(
-					$elm$html$Html$p,
-					_List_Nil,
-					_List_fromArray(
-						[
-							$elm$html$Html$text('And maybe you have some books at home that are interesting for others...'),
-							A2($elm$html$Html$br, _List_Nil, _List_Nil),
-							A2(
-							$elm$html$Html$div,
-							_List_fromArray(
-								[
-									$elm$html$Html$Events$onClick(
-									$author$project$Welcome$ChangedPage($author$project$Session$LoginPage)),
-									$elm$html$Html$Attributes$class('linktext')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Please login and take a look.')
-								]))
-						]))
-				]));
-	} else {
-		switch (_v0.b.$) {
-			case 'Success':
-				var token = _v0.a.a;
-				var user = _v0.b.a;
+	var _v0 = _Utils_Tuple3(session.token, session.user, session.userInfo);
+	_v0$3:
+	while (true) {
+		_v0$4:
+		while (true) {
+			if (_v0.a.$ === 'Nothing') {
+				var _v1 = _v0.a;
 				return A2(
 					$elm$html$Html$div,
 					_List_fromArray(
@@ -16479,146 +16897,299 @@ var $author$project$Welcome$view = function (session) {
 							_List_Nil,
 							_List_fromArray(
 								[
-									$elm$html$Html$text('Hi ' + (user.name + ', welcome to the Lunatech\'s Library App.')),
+									$elm$html$Html$text('Welcome to the Lunatech\'s Library App.'),
 									A2($elm$html$Html$br, _List_Nil, _List_Nil),
-									A2(
-									$elm$html$Html$div,
-									_List_fromArray(
-										[
-											$elm$html$Html$Events$onClick(
-											$author$project$Welcome$ChangedPage($author$project$Session$LibraryPage)),
-											$elm$html$Html$Attributes$class('linktext')
-										]),
-									_List_fromArray(
-										[
-											$elm$html$Html$text('Now you can browse interesting books in the library. Books that you can borrow from your colleagues.')
-										]))
+									$elm$html$Html$text('Browse interesting books. Books that you can borrow from your colleagues.')
 								])),
 							A2(
 							$elm$html$Html$p,
 							_List_Nil,
 							_List_fromArray(
 								[
+									$elm$html$Html$text('And maybe you have some books at home that are interesting for others...'),
+									A2($elm$html$Html$br, _List_Nil, _List_Nil),
 									A2(
 									$elm$html$Html$div,
 									_List_fromArray(
 										[
 											$elm$html$Html$Events$onClick(
-											$author$project$Welcome$ChangedPage($author$project$Session$BookSelectorPage)),
+											$author$project$Welcome$ChangedPage($author$project$Session$LoginPage)),
 											$elm$html$Html$Attributes$class('linktext')
 										]),
 									_List_fromArray(
 										[
-											$elm$html$Html$text('Or add some books to the library that are interesting for others...')
+											$elm$html$Html$text('Please login and take a look.')
 										]))
-								])),
-							function () {
-							var _v2 = session.message;
-							switch (_v2.$) {
-								case 'Succeeded':
-									var message = _v2.a;
-									return A2(
-										$elm$html$Html$p,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-success')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$div,
-												_List_Nil,
-												_List_fromArray(
-													[
-														$elm$html$Html$text(message)
-													]))
-											]));
-								case 'Warning':
-									var message = _v2.a;
-									return A2(
-										$elm$html$Html$p,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-warning')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$div,
-												_List_Nil,
-												_List_fromArray(
-													[
-														$elm$html$Html$text(message)
-													]))
-											]));
-								case 'Error':
-									var message = _v2.a;
-									return A2(
-										$elm$html$Html$p,
-										_List_fromArray(
-											[
-												$elm$html$Html$Attributes$class('text-danger')
-											]),
-										_List_fromArray(
-											[
-												A2(
-												$elm$html$Html$div,
-												_List_Nil,
-												_List_fromArray(
-													[
-														$elm$html$Html$text(message)
-													]))
-											]));
-								default:
-									return A2($elm$html$Html$p, _List_Nil, _List_Nil);
-							}
-						}()
+								]))
 						]));
-			case 'Failure':
-				var token = _v0.a.a;
-				var httpError = _v0.b.a;
-				return A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('container')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$p,
+			} else {
+				switch (_v0.b.$) {
+					case 'Success':
+						switch (_v0.c.$) {
+							case 'Success':
+								var token = _v0.a.a;
+								var user = _v0.b.a;
+								var userInfo = _v0.c.a;
+								return A2(
+									$elm$html$Html$div,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('container')
+										]),
+									_List_fromArray(
+										[
+											A2(
+											$elm$html$Html$h1,
+											_List_Nil,
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Welcome')
+												])),
+											A2(
+											$elm$html$Html$p,
+											_List_Nil,
+											_List_fromArray(
+												[
+													$elm$html$Html$text('Hi ' + (user.name + ', welcome to the Lunatech\'s Library App.')),
+													A2($elm$html$Html$br, _List_Nil, _List_Nil),
+													(userInfo.numberCheckouts > 0) ? A2(
+													$elm$html$Html$div,
+													_List_Nil,
+													_List_fromArray(
+														[
+															A2(
+															$elm$html$Html$div,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Events$onClick(
+																	$author$project$Welcome$ChangedPage($author$project$Session$CheckinPage)),
+																	$elm$html$Html$Attributes$class('linktext')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text(
+																	'You have checked out ' + ($elm$core$String$fromInt(userInfo.numberCheckouts) + '  books. Now you can return these books to the library.'))
+																])),
+															A2(
+															$elm$html$Html$div,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Events$onClick(
+																	$author$project$Welcome$ChangedPage($author$project$Session$LibraryPage)),
+																	$elm$html$Html$Attributes$class('linktext')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Or browse for more interesting books in the library.')
+																]))
+														])) : A2(
+													$elm$html$Html$div,
+													_List_fromArray(
+														[
+															$elm$html$Html$Events$onClick(
+															$author$project$Welcome$ChangedPage($author$project$Session$LibraryPage)),
+															$elm$html$Html$Attributes$class('linktext')
+														]),
+													_List_fromArray(
+														[
+															$elm$html$Html$text('Now you can browse interesting books in the library. Books that you can borrow from your colleagues.')
+														]))
+												])),
+											A2(
+											$elm$html$Html$p,
+											_List_Nil,
+											_List_fromArray(
+												[
+													(userInfo.numberBooks > 0) ? A2(
+													$elm$html$Html$div,
+													_List_Nil,
+													_List_fromArray(
+														[
+															A2(
+															$elm$html$Html$div,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Events$onClick(
+																	$author$project$Welcome$ChangedPage($author$project$Session$BookEditorPage)),
+																	$elm$html$Html$Attributes$class('linktext')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text(
+																	'You have registered ' + ($elm$core$String$fromInt(userInfo.numberBooks) + ' books in the library. Now you can manage these books.'))
+																])),
+															A2(
+															$elm$html$Html$div,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Events$onClick(
+																	$author$project$Welcome$ChangedPage($author$project$Session$BookSelectorPage)),
+																	$elm$html$Html$Attributes$class('linktext')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Or add some more interesting books.')
+																]))
+														])) : A2(
+													$elm$html$Html$div,
+													_List_Nil,
+													_List_fromArray(
+														[
+															A2(
+															$elm$html$Html$div,
+															_List_fromArray(
+																[
+																	$elm$html$Html$Events$onClick(
+																	$author$project$Welcome$ChangedPage($author$project$Session$BookSelectorPage)),
+																	$elm$html$Html$Attributes$class('linktext')
+																]),
+															_List_fromArray(
+																[
+																	$elm$html$Html$text('Or add some books to the library that are interesting for others...')
+																]))
+														]))
+												])),
+											function () {
+											var _v2 = session.message;
+											switch (_v2.$) {
+												case 'Succeeded':
+													var message = _v2.a;
+													return A2(
+														$elm$html$Html$p,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('text-success')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$div,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(message)
+																	]))
+															]));
+												case 'Warning':
+													var message = _v2.a;
+													return A2(
+														$elm$html$Html$p,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('text-warning')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$div,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(message)
+																	]))
+															]));
+												case 'Error':
+													var message = _v2.a;
+													return A2(
+														$elm$html$Html$p,
+														_List_fromArray(
+															[
+																$elm$html$Html$Attributes$class('text-danger')
+															]),
+														_List_fromArray(
+															[
+																A2(
+																$elm$html$Html$div,
+																_List_Nil,
+																_List_fromArray(
+																	[
+																		$elm$html$Html$text(message)
+																	]))
+															]));
+												default:
+													return A2($elm$html$Html$p, _List_Nil, _List_Nil);
+											}
+										}()
+										]));
+							case 'Failure':
+								break _v0$3;
+							default:
+								break _v0$4;
+						}
+					case 'Failure':
+						var token = _v0.a.a;
+						var httpError = _v0.b.a;
+						return A2(
+							$elm$html$Html$div,
 							_List_fromArray(
 								[
-									$elm$html$Html$Attributes$class('text-danger')
+									$elm$html$Html$Attributes$class('container')
 								]),
 							_List_fromArray(
 								[
-									$elm$html$Html$text(
-									$author$project$Utils$buildErrorMessage(httpError))
-								]))
-						]));
-			default:
-				return A2(
-					$elm$html$Html$div,
-					_List_fromArray(
-						[
-							$elm$html$Html$Attributes$class('container')
-						]),
-					_List_fromArray(
-						[
-							A2(
-							$elm$html$Html$p,
-							_List_fromArray(
-								[
-									$elm$html$Html$Attributes$class('text-danger')
-								]),
-							_List_fromArray(
-								[
-									$elm$html$Html$text('Something went wrong here.')
-								]))
-						]));
+									A2(
+									$elm$html$Html$p,
+									_List_fromArray(
+										[
+											$elm$html$Html$Attributes$class('text-danger')
+										]),
+									_List_fromArray(
+										[
+											$elm$html$Html$text(
+											$author$project$Utils$buildErrorMessage(httpError))
+										]))
+								]));
+					default:
+						if (_v0.c.$ === 'Failure') {
+							break _v0$3;
+						} else {
+							break _v0$4;
+						}
+				}
+			}
 		}
+		return A2(
+			$elm$html$Html$div,
+			_List_fromArray(
+				[
+					$elm$html$Html$Attributes$class('container')
+				]),
+			_List_fromArray(
+				[
+					A2(
+					$elm$html$Html$p,
+					_List_fromArray(
+						[
+							$elm$html$Html$Attributes$class('text-danger')
+						]),
+					_List_fromArray(
+						[
+							$elm$html$Html$text('Something went wrong here.')
+						]))
+				]));
 	}
+	var token = _v0.a.a;
+	var httpError = _v0.c.a;
+	return A2(
+		$elm$html$Html$div,
+		_List_fromArray(
+			[
+				$elm$html$Html$Attributes$class('container')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				$elm$html$Html$p,
+				_List_fromArray(
+					[
+						$elm$html$Html$Attributes$class('text-danger')
+					]),
+				_List_fromArray(
+					[
+						$elm$html$Html$text(
+						$author$project$Utils$buildErrorMessage(httpError))
+					]))
+			]));
 };
 var $author$project$Main$view = function (model) {
 	var sessionModel = $author$project$Main$toSession(model);
@@ -16640,10 +17211,8 @@ var $author$project$Main$view = function (model) {
 							$author$project$Main$WelcomeMsg,
 							$author$project$Welcome$view(sessionModel));
 					case 'Login':
-						var session = model.a;
 						return A2($elm$html$Html$map, $author$project$Main$LoginMsg, $author$project$Login$view);
 					case 'Logout':
-						var session = model.a;
 						return A2($elm$html$Html$map, $author$project$Main$LogoutMsg, $author$project$Logout$view);
 					case 'BookSelector':
 						var bookSelectorModel = model.a;
@@ -16667,12 +17236,12 @@ var $author$project$Main$view = function (model) {
 							$author$project$Main$CheckinMsg,
 							$author$project$Checkin$view(checkinModel));
 					default:
-						var booksEditorModel = model.a;
+						var bookEditorModel = model.a;
 						var session = model.b;
 						return A2(
 							$elm$html$Html$map,
-							$author$project$Main$BooksEditorMsg,
-							$author$project$BooksEditor$view(booksEditorModel));
+							$author$project$Main$BookEditorMsg,
+							$author$project$BookEditor$view(bookEditorModel));
 				}
 			}()
 			]),

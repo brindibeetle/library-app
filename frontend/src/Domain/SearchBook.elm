@@ -66,7 +66,7 @@ searchbookDecoder =
 -- Opaque
 authorListDecoder : Decoder String
 authorListDecoder =
-    map (String.join ", ") (list string)
+    Decode.map (String.join ", ") (list string)
 
 
 hasNext : SearchBooks -> Int -> Bool
@@ -107,10 +107,11 @@ baseUrl =
     "https://www.googleapis.com/books/v1/volumes"
 
 
-getBooks : (WebData (Array SearchBook) -> msg) -> { searchString : String, searchAuthors : String, searchTitle : String } -> Cmd msg
-getBooks msg { searchString, searchAuthors, searchTitle } =
+getBooks : (WebData (Array SearchBook) -> msg) -> { searchString : String, searchAuthors : String, searchTitle : String, searchIsbn : Int } -> Cmd msg
+getBooks msg { searchString, searchAuthors, searchTitle, searchIsbn } =
     let
         a = Debug.log "getBooks searchAuthors" searchAuthors
+        
         query = searchString
             ++
             (
@@ -126,10 +127,10 @@ getBooks msg { searchString, searchAuthors, searchTitle } =
                 else
                     "+inauthor:" ++ searchAuthors
             )
-            -- ++ if searchIsbn == 0 then
-            --     ""
-            -- else
-            --     "+isbn:" ++ String.fromInt searchIsbn
+            ++ if searchIsbn == 0 then
+                ""
+            else
+                "+isbn:" ++ String.fromInt searchIsbn
 
     in
         Http.get

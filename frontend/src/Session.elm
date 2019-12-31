@@ -5,12 +5,14 @@ import Bootstrap.Navbar as Navbar
 import RemoteData exposing (RemoteData, WebData, succeed)
 
 import Domain.User as User
+import Domain.UserInfo as UserInfo
 import Domain.InitFlags exposing (..) 
 import Url exposing (Url)
 
 type alias Session =
     { token : Maybe OAuth.Token
     , user : WebData User.User
+    , userInfo : WebData UserInfo.UserInfo
     , page : Page
     , navbarState : Navbar.State 
     , message : Message
@@ -39,6 +41,7 @@ initialSession : Maybe OAuth.Token -> Navbar.State -> InitFlags -> Session
 initialSession token navbarState initFlags =
     { token = token
     , user = RemoteData.NotAsked
+    , userInfo = RemoteData.NotAsked
     , page = WelcomePage
     , navbarState = navbarState
     , message = Empty
@@ -50,6 +53,13 @@ succeed session message =
     { session 
     | message = Succeeded message
     , page = WelcomePage }
+
+succeed1 : Session -> String -> Session
+succeed1 session message =
+    { session 
+    | message = Succeeded message
+    , page = WelcomePage
+    , userInfo = RemoteData.NotAsked }
 
 fail : Session -> String -> Session
 fail session message =
@@ -90,7 +100,7 @@ type Page
     | BookSelectorPage 
     | LibraryPage
     | CheckinPage
-    | BooksEditorPage
+    | BookEditorPage
 
 
 getGoogleClientId : Session -> String

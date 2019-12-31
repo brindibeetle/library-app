@@ -15,7 +15,7 @@ import Welcome
 import BookSelector exposing (..)
 import Library exposing (..)
 import Checkin exposing (..)
-import BooksEditor exposing (..)
+import BookEditor exposing (..)
 import LibraryAppCDN as LibraryAppCDN
 import Domain.InitFlags exposing (..)
 
@@ -44,7 +44,7 @@ type Model =
     BookSelector BookSelector.Model Session
     | Library Library.Model Session
     | Checkin Checkin.Model Session
-    | BooksEditor BooksEditor.Model Session
+    | BookEditor BookEditor.Model Session
     | Login Session
     | Logout Session
     | Welcome Session
@@ -53,7 +53,6 @@ type Model =
 initialState : Maybe OAuth.Token -> String -> (Model, Cmd Msg )
 initialState maybeToken flags =
     let
-        a = Debug.log "initialState" (getInitFlags flags)
         ( navbarState, menuCmd ) = Menu.initialState
         session = initialSession maybeToken navbarState (getInitFlags flags)
         ( loginSession, loginCmd ) = Login.initialLogin session
@@ -99,10 +98,10 @@ view model =
                 Welcome _ ->
                     Welcome.view sessionModel |> Html.map WelcomeMsg
 
-                Login session ->
+                Login _ ->
                     Login.view |> Html.map LoginMsg
 
-                Logout session ->
+                Logout _ ->
                     Logout.view |> Html.map LogoutMsg
             
                 BookSelector bookSelectorModel session ->
@@ -114,8 +113,8 @@ view model =
                 Checkin checkinModel session  ->
                     Checkin.view checkinModel |> Html.map CheckinMsg   
 
-                BooksEditor booksEditorModel session  ->
-                    BooksEditor.view booksEditorModel |> Html.map BooksEditorMsg   
+                BookEditor bookEditorModel session  ->
+                    BookEditor.view bookEditorModel |> Html.map BookEditorMsg   
             ]
         }
 
@@ -129,7 +128,7 @@ toSession model =
             session
         Checkin _ session ->
             session
-        BooksEditor _ session ->
+        BookEditor _ session ->
             session
         Login session ->
             session
@@ -154,8 +153,8 @@ toModel model cmd session =
         ( CheckinPage, Checkin checkinModel session1  ) ->
             ( Checkin checkinModel session, cmd )
 
-        ( BooksEditorPage, BooksEditor booksEditorModel session1  ) ->
-            ( BooksEditor booksEditorModel session, cmd )
+        ( BookEditorPage, BookEditor bookEditorModel session1  ) ->
+            ( BookEditor bookEditorModel session, cmd )
 
         ( LoginPage, model1 ) ->
             ( Login (toSession model1), cmd )
@@ -178,11 +177,11 @@ toModel model cmd session =
             in
                 ( Checkin checkinModel session, Cmd.batch [ cmd, initialCheckinCmd |> Cmd.map CheckinMsg ] )
 
-        ( BooksEditorPage, model1 ) ->
+        ( BookEditorPage, model1 ) ->
             let
-                ( booksEditorModel, initialBooksEditorCmd ) = BooksEditor.initialModelCmd session
+                ( bookEditorModel, initialBookEditorCmd ) = BookEditor.initialModelCmd session
             in
-                ( BooksEditor booksEditorModel session, Cmd.batch [ cmd, initialBooksEditorCmd |> Cmd.map BooksEditorMsg ] )
+                ( BookEditor bookEditorModel session, Cmd.batch [ cmd, initialBookEditorCmd |> Cmd.map BookEditorMsg ] )
 
 
 
@@ -199,7 +198,7 @@ type Msg
     | BookSelectorMsg BookSelector.Msg
     | LibraryMsg Library.Msg
     | CheckinMsg Checkin.Msg
-    | BooksEditorMsg BooksEditor.Msg
+    | BookEditorMsg BookEditor.Msg
     | LinkClicked UrlRequest
     | UrlChanged Url
 
@@ -261,12 +260,12 @@ update msg model =
             in
                 toModel (Checkin checkinUpdated.model checkinUpdated.session) (checkinUpdated.cmd |> Cmd.map CheckinMsg) checkinUpdated.session
 
-        ( BooksEditorMsg subMsg, BooksEditor booksEditorModel session ) ->
+        ( BookEditorMsg subMsg, BookEditor bookEditorModel session ) ->
             let
-                booksEditorUpdated =
-                    BooksEditor.update subMsg booksEditorModel session
+                bookEditorUpdated =
+                    BookEditor.update subMsg bookEditorModel session
             in
-                toModel (BooksEditor booksEditorUpdated.model booksEditorUpdated.session) (booksEditorUpdated.cmd |> Cmd.map BooksEditorMsg) booksEditorUpdated.session
+                toModel (BookEditor bookEditorUpdated.model bookEditorUpdated.session) (bookEditorUpdated.cmd |> Cmd.map BookEditorMsg) bookEditorUpdated.session
 
         ( LinkClicked _, _ ) ->
             ( model, Cmd.none )

@@ -46,16 +46,6 @@ public class CheckoutAPI {
                 .collect(Collectors.toList());
     }
 
-    @GetMapping(path = "/current/mine", produces = "application/json")
-    @ApiOperation(value = "Get my current checkouts from the repository", response = List.class)
-    @ResponseBody
-    public List<CheckoutDTO> findCurrentMine() {
-        List<Checkout> checkouts = checkoutService.findCurrentMine();
-        return checkouts.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
     @GetMapping(path = "/{id}", produces = "application/json")
     @ApiOperation(value = "Get a checkout from the repository", response = CheckoutDTO.class)
     @ResponseBody

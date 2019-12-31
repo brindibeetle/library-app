@@ -1,4 +1,4 @@
-module BooksEditor exposing (..)
+module Checkin exposing (..)
 
 import Html exposing (..)
 import Html.Events exposing (..)
@@ -19,14 +19,15 @@ type Model =
     Library Library.Model
 
 
+
 initialModel : String -> Model
 initialModel userEmail =
     Library (Library.initialModel userEmail)
-    |> model2BooksEditor
+    |> model2Checkin
 
 
-model2BooksEditor : Model -> Model
-model2BooksEditor model =
+model2Checkin : Model -> Model
+model2Checkin model =
     let
         libraryModel = toModel model
         booktiles = libraryModel.booktiles
@@ -35,18 +36,40 @@ model2BooksEditor model =
         Library 
         { libraryModel 
         | booktiles = booktiles
-            |>  Tiles.setShowSearch { title = True, authors = True, location = True, owner = False, checkStatus = False, checkoutUser = False }
-            |> setSearch { title = "", authors = "", location = "", owner = userEmail, checkStatus = "", checkoutUser = "" } 
+            |>  Tiles.setShowSearch { title = False, authors = False, location = False, owner = False, checkStatus = False, checkoutUser = False }
+            |> setSearch { title = "", authors = "", location = "", owner = "", checkStatus = "checkedout", checkoutUser = userEmail } 
         }
 
 
 initialModelCmd : Session -> ( Model, Cmd Msg )
 initialModelCmd session1 =
     let
-        { model, session, cmd } = Library.doSearch (toModel (initialModel (Session.getUser session1))) session1
+        ( booktiles, cmd ) = LibraryTiles.initialModelCmd session1 
+        model = initialModel (getUser session1)
+        model1 = 
+            { model
+            | booktiles = booktiles 
+                |> Tiles.setShowSearch 
+                    { title = False
+                    , authors = False
+                    , location = False
+                    , owner = False
+                    , checkStatus = False
+                    , checkoutUser = False
+                    }
+                |> Tiles.setSearch 
+                    { title = ""
+                    , authors = ""
+                    , location = ""
+                    , owner = ""
+                    , checkStatus = "checkedout"
+                    , checkoutUser = userEmail
+                    } 
+            }
     in
-        ( Library model, Cmd.map LibraryMsg cmd )
+        ( model1, cmd |> Cmd.map LibraryTilesMsg )
     
+
 
 toModel : Model -> Library.Model
 toModel model =
