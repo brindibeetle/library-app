@@ -35,16 +35,6 @@ public class BookAPI {
                 .collect(Collectors.toList());
     }
 
-    @GetMapping(path = "/mine", produces = "application/json")
-    @ApiOperation(value = "Get my books from the repository", response = List.class)
-    @ResponseBody
-    public List<BookDTO> findMyBooks() {
-        List<Book> books = bookService.findMyBooks();
-        return books.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-
     @PostMapping(consumes = "application/json", produces = "application/json")
     @ApiOperation(value = "Add a book to the repository", response = BookDTO.class)
     @ResponseBody

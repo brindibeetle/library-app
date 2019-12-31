@@ -3,25 +3,7 @@ module Welcome exposing (..)
 import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
-import Http as Http
-
-import Bootstrap.CDN as CDN
-import Bootstrap.Table as Table
-import Bootstrap.Form as Form
-import Bootstrap.Form.Input as Input
-import Bootstrap.Form.Select as Select
-import Bootstrap.Form.Checkbox as Checkbox
-import Bootstrap.Form.Radio as Radio
-import Bootstrap.Form.Textarea as Textarea
-import Bootstrap.Form.Fieldset as Fieldset
-import Bootstrap.Button as Button
-import Bootstrap.Card as Card
-import Bootstrap.Text as Text
-import Bootstrap.Card.Block as Block
-import Bootstrap.Badge as Badge
 import RemoteData exposing (RemoteData, WebData, succeed)
-
-import Debug as Debug
 
 import Utils exposing (buildErrorMessage)
 import Session exposing (..)
@@ -32,8 +14,8 @@ type Msg = ChangedPage Page
 
 view : Session -> Html Msg
 view session =
-    case ( session.token, session.user ) of
-        ( Nothing, _ ) ->
+    case ( session.token, session.user, session.userInfo ) of
+        ( Nothing, _, _ ) ->
              div [ class "container" ]
                 [ h1 [] [ text "Welcome" ]
                 , p [] 
@@ -48,18 +30,37 @@ view session =
                     ]
                 ]
 
-        ( Just token, RemoteData.Success user ) ->
+        ( Just token, RemoteData.Success user, RemoteData.Success userInfo ) ->
              div [ class "container" ]
                 [ h1 [] [ text ("Welcome") ]
                 , p [] 
                     [ text ("Hi " ++ user.name ++ ", welcome to the Lunatech's Library App.")
                     , br [] []
-                    , div [ onClick (ChangedPage LibraryPage), class "linktext"  ] 
-                        [ text "Now you can browse interesting books in the library. Books that you can borrow from your colleagues." ]
+                    , if userInfo.numberCheckouts > 0 then 
+                        div [] 
+                        [ div [ onClick (ChangedPage CheckinPage), class "linktext"  ] 
+                            [ text ("You have checked out " ++ (String.fromInt userInfo.numberCheckouts) ++ "  books. Now you can return these books to the library." ) ]
+                        , div [ onClick (ChangedPage LibraryPage), class "linktext"  ] 
+                            [ text ("Or browse for more interesting books in the library." ) ]
+                        ]
+                      else
+                        div [ onClick (ChangedPage LibraryPage), class "linktext"  ] 
+                            [ text "Now you can browse interesting books in the library. Books that you can borrow from your colleagues." ]
+
                     ]
                 , p [] 
-                    [ div [ onClick (ChangedPage BookSelectorPage), class "linktext"  ] 
-                        [ text "Or add some books to the library that are interesting for others..." ]
+                    [ if userInfo.numberBooks > 0 then 
+                        div []
+                        [ div [ onClick (ChangedPage BookEditorPage), class "linktext"  ] 
+                            [ text ("You have registered " ++ (String.fromInt userInfo.numberBooks) ++ " books in the library. Now you can manage these books." ) ]
+                        , div [ onClick (ChangedPage BookSelectorPage), class "linktext"  ] 
+                            [ text ("Or add some more interesting books.") ]
+                        ]
+                      else
+                        div []
+                        [ div [ onClick (ChangedPage BookSelectorPage), class "linktext"  ] 
+                            [ text ("Or add some books to the library that are interesting for others..." )]
+                        ]
                     ]
                 , case session.message of
                     Session.Succeeded message ->
@@ -80,17 +81,22 @@ view session =
 
                 ]
 
-        ( Just token, RemoteData.Failure httpError ) ->
+        ( Just token, RemoteData.Failure httpError, _ ) ->
             div [ class "container" ]
                 [ p [ class "text-danger" ] [ text (buildErrorMessage httpError) ] ]
 
-        ( _ , _ ) ->
+        ( Just token, _, RemoteData.Failure httpError ) ->
+            div [ class "container" ]
+                [ p [ class "text-danger" ] [ text (buildErrorMessage httpError) ] ]
+
+        ( _ , _, _ ) ->
             div [ class "container" ]
                 [ p [ class "text-danger" ] [ text "Something went wrong here." ] ]
 
 
 update : Msg -> Session -> ( Session, Cmd Msg )
 update msg session =
+    
     case msg of
         ChangedPage page ->
             ( changedPageSession page session, Cmd.none )

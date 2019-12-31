@@ -34,13 +34,16 @@ public class BookDTO {
             , position = 5)
     private String description;
 
-    @ApiModelProperty(notes = "The proprietor.", example = "Femke Halsema", position = 6)
+    @ApiModelProperty(notes = "The language.", example = "en", position = 6)
+    private String language;
+
+    @ApiModelProperty(notes = "The proprietor.", example = "Femke Halsema", position = 7)
     private String owner;
 
-    @ApiModelProperty(notes = "The place where you can find the book.", example = "Usually one of the offices of Lunatech. Amsterdam, Rotterdam, Chessy.", position = 7)
+    @ApiModelProperty(notes = "The place where you can find the book.", example = "Usually one of the offices of Lunatech. Amsterdam, Rotterdam, Chessy.", position = 8)
     private String location;
 
-    @ApiModelProperty(notes = "A url to the thumbnail of the book.", example = "http://books.google.com/books/content?id=6Lb3CQAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api", position = 8)
+    @ApiModelProperty(notes = "A url to the thumbnail of the book.", example = "http://books.google.com/books/content?id=6Lb3CQAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api", position = 9)
     private String thumbnail;
 
     @ApiModelProperty(notes = "A url to a small thumbnail of the book.", example = "http://books.google.com/books/content?id=6Lb3CQAAQBAJ&printsec=frontcover&img=1&zoom=5&edge=curl&source=gbs_api", position = 9)

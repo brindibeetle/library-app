@@ -4,7 +4,6 @@ import Html exposing (..)
 import Html.Events exposing (..)
 import Html.Attributes exposing (..)
 
-import Http as Http
 import RemoteData exposing (WebData)
 
 import Array exposing (..)
@@ -13,7 +12,7 @@ import Domain.LibraryBook exposing (..)
 import Utils exposing (..)
 import View.SelectorTiles as SelectorTiles exposing (..)
 import View.SelectorDetails as SelectorDetails exposing (..)
-import View.SelectorDetailsEdit as SelectorDetailsEdit exposing (..)
+import View.LibraryEdit as LibraryEdit exposing (..)
 import Session exposing (..)
 
 type alias Model = 
@@ -24,7 +23,7 @@ type alias Model =
 
         , booktiles : SelectorTiles.Config Msg
         , bookdetails : SelectorDetails.Config Msg
-        , bookDetailsEdit : Maybe (SelectorDetailsEdit.Config Msg)
+        , bookDetailsEdit : LibraryEdit.Config
     }
 
 initialModel : Model
@@ -35,9 +34,10 @@ initialModel =
         { searchTitle = ""
         , searchAuthors = ""
         , searchString = ""
-        -- , searchIsbn = 0
+        , searchIsbn = 0
         , updateSearchTitle = UpdateSearchTitle
         , updateSearchAuthor = UpdateSearchAuthor
+        , updateSearchIsbn = UpdateSearchIsbn
         , updateSearchString = UpdateSearchString
         , doSearch = DoSearch
         , doAction = DoDetail
@@ -55,28 +55,19 @@ initialModel =
         , hasNext = False
         , actionHtml = []
         }
-    , bookDetailsEdit = Nothing
+    , bookDetailsEdit = { book = emptyLibrarybook, doInsert = { visible = True}, doUpdate  = {visible = False }}
     }
 
-initialBookDetailsEdit : (Maybe SearchBook) -> String -> SelectorDetailsEdit.Config Msg
+initialBookDetailsEdit : (Maybe SearchBook) -> String -> LibraryEdit.Config
 initialBookDetailsEdit searchBook user =
-    { updateTitle =  UpdateTitle
-    , updateAuthors = UpdateAuthors
-    , updateDescription = UpdateDescription 
-    , updatePublishedDate = UpdatePublishedDate
-    , updateLanguage = UpdateLanguage
-    , updateOwner = UpdateOwner
-    , updateLocation = UpdateLocation
-    , doAction = DoLibraryBookInsert
-    , textAction = "Add to library"
-    , doActionDisabled = True
-    , doCancel = DoCancel
-    , book = case searchBook of
+    { book = case searchBook of
         Just actualSearchBook ->
             searchbook2librarybook actualSearchBook |> setOwner user
             
         Nothing ->
             emptyLibrarybook
+    , doInsert = { visible = True}
+    , doUpdate  = {visible = False }
     }
 
 
@@ -101,14 +92,8 @@ view model =
             SelectorDetails.view model.bookdetails
 
         DetailsEdit index ->
-            case model.bookDetailsEdit of
-                Just bookDetailsEdit ->
-                    SelectorDetailsEdit.view bookDetailsEdit
+            LibraryEdit.view model.bookDetailsEdit |> Html.map LibraryEditMsg
             
-                Nothing ->
-                    div [] []                    
-            
-
 
 -- #####
 -- #####   UPDATE
@@ -120,42 +105,54 @@ type Msg
         UpdateSearchTitle String
         | UpdateSearchAuthor String
         | UpdateSearchString String
+        | UpdateSearchIsbn String
         | DoSearch
         | DoBooksReceived (WebData (Array SearchBook))
         | DoDetail Int
-        | UpdateTitle String
-        | UpdateAuthors String
-        | UpdateDescription String
-        | UpdatePublishedDate String
-        | UpdateLanguage String
-        | UpdateOwner String
-        | UpdateLocation String
+
+        | LibraryEditMsg LibraryEdit.Msg
+
         | DoNext
         | DoPrevious
         | DoCancel
         | DoAddToLibrary
-        | DoLibraryBookInsert
-        | LibraryBookInserted (Result Http.Error LibraryBook)
-
 
 update : Msg -> Model -> Session -> { model : Model, session : Session, cmd : Cmd Msg } 
-update msg model session =
+update msg1 model1 session1 =
     let
-        a = Debug.log "update msg = " msg
+        a = Debug.log "update msg = " msg1
         -- a1 = Debug.log "update model.searchTitle = " model.searchTitle
         -- a2 = Debug.log "update msg = " msg
     in
-    
-    case model.bookView of
+    case model1.bookView of
         Tiles ->
-            updateTiles msg model session
-        
+            updateTiles msg1 model1 session1
+
         Details index ->
-            updateDetails msg model session index
+            updateDetails msg1 model1 session1 index
 
         DetailsEdit index ->
-            updateDetailsEdit msg model session index
-    
+            case msg1  of
+                LibraryEditMsg LibraryEdit.DoCancel ->
+                    { model = 
+                        { model1 
+                        | bookView = Details index
+                        }
+                        , session = session1, cmd = Cmd.none }
+
+                LibraryEditMsg subMsg ->
+                    let
+                        { model, session, cmd } = LibraryEdit.update subMsg model1.bookDetailsEdit session1
+                        model2 = 
+                            { model1
+                            | bookDetailsEdit = model
+                            }
+                    in
+                        { model = model2, session = session, cmd = cmd |> Cmd.map LibraryEditMsg }
+
+                _ ->
+                    { model = model1, session = session1, cmd = Cmd.none }
+
 
 updateTiles : Msg -> Model -> Session -> { model : Model, session : Session, cmd : Cmd Msg } 
 updateTiles msg model session =
@@ -170,6 +167,11 @@ updateTiles msg model session =
            , session = session
            , cmd = Cmd.none }
 
+        UpdateSearchIsbn isbn ->
+           { model = model.booktiles |> setSearchIsbn ( isbn |> String.toInt |> Maybe.withDefault 0 ) |> setBookTiles model
+           , session = session
+           , cmd = Cmd.none }
+
         UpdateSearchString string ->
            { model = model.booktiles |> setSearchString string |> setBookTiles model
            , session = session
@@ -181,6 +183,7 @@ updateTiles msg model session =
            , cmd = Domain.SearchBook.getBooks DoBooksReceived 
                     { searchTitle = model.booktiles.searchTitle
                     , searchAuthors = model.booktiles.searchAuthors
+                    , searchIsbn = model.booktiles.searchIsbn
                     , searchString = model.booktiles.searchString }
            }
 
@@ -242,7 +245,7 @@ updateDetails msg model session index =
                 { model = 
                     { model 
                     | bookView = DetailsEdit index
-                    , bookDetailsEdit = Just (initialBookDetailsEdit searchBook (Session.getUser session))
+                    , bookDetailsEdit = initialBookDetailsEdit searchBook (Session.getUser session)
                     }
                     , session = session, cmd = Cmd.none }
 
@@ -250,90 +253,6 @@ updateDetails msg model session index =
             { model = model, session = session, cmd = Cmd.none}
 
 
-updateDetailsEdit : Msg -> Model -> Session -> Int -> { model : Model, session : Session, cmd : Cmd Msg } 
-updateDetailsEdit msg model session index =
-    case ( msg, model.bookDetailsEdit ) of
-        ( DoCancel, _ ) ->
-            { model = 
-                { model 
-                | bookView = Details index
-                }
-                , session = session, cmd = Cmd.none }
-
-        ( UpdateTitle title, Just bookDetailsEdit ) ->
-            let
-                book = bookDetailsEdit.book |> setTitle title
-                bookDetailsEdit1 = { bookDetailsEdit | book = book }
-            in
-                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
-
-        ( UpdateAuthors authors, Just bookDetailsEdit ) ->
-            let
-                book = bookDetailsEdit.book |> setAuthors authors
-                bookDetailsEdit1 = { bookDetailsEdit | book = book }
-            in
-                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
-
-        ( UpdateDescription description, Just bookDetailsEdit ) ->
-            let
-                book = bookDetailsEdit.book |> setDescription description
-                bookDetailsEdit1 = { bookDetailsEdit | book = book }
-            in
-                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
-
-        ( UpdateLanguage language, Just bookDetailsEdit ) ->
-            let
-                book = bookDetailsEdit.book |> setLanguage language
-                bookDetailsEdit1 = { bookDetailsEdit | book = book }
-            in
-                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
-
-        ( UpdatePublishedDate publishedDate, Just bookDetailsEdit ) ->
-            let
-                book = bookDetailsEdit.book |> setPublishedDate publishedDate
-                bookDetailsEdit1 = { bookDetailsEdit | book = book }
-            in
-                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
-
-        ( UpdateOwner owner, Just bookDetailsEdit ) ->
-            let
-                book = bookDetailsEdit.book |> setOwner owner
-                bookDetailsEdit1 = { bookDetailsEdit | book = book }
-            in
-                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
-
-        ( UpdateLocation location, Just bookDetailsEdit ) ->
-            let
-                book = bookDetailsEdit.book |> setLocation location
-                bookDetailsEdit1 = { bookDetailsEdit | book = book }
-            in
-                { model = { model | bookDetailsEdit = Just bookDetailsEdit1 }, session = session, cmd = Cmd.none }
-
-        ( DoLibraryBookInsert, Just bookDetailsEdit ) ->
-            case session.token of
-                Just token ->
-                    let
-                        libraryAppApiCmd = Debug.log " oLibraryBookInsert -> "
-                            insertBook LibraryBookInserted session token bookDetailsEdit.book
-                    in
-                        { model = model, session = session, cmd = libraryAppApiCmd }
-                Nothing ->
-                        { model = model, session = session, cmd = Cmd.none }
-
-        ( LibraryBookInserted (Result.Err err), Just bookDetailsEdit ) ->
-            { model = model
-            , session = Session.fail session ("LibraryBookInserted Result.Err error : " ++ buildErrorMessage err)
-            , cmd = Cmd.none
-            }
-                
-        ( LibraryBookInserted (Result.Ok libraryBookInserted), Just bookDetailsEdit ) ->
-            { model = model
-            , session = Session.succeed session ("The book \"" ++ bookDetailsEdit.book.title ++ "\" has been added to the library!")
-            , cmd = Cmd.none 
-            }
-
-        ( _, _ ) ->
-                    { model = model, session = session, cmd = Cmd.none }
 
 
 -- #####

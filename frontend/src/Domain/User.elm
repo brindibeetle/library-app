@@ -1,14 +1,7 @@
-module Domain.User exposing (..)
+module Domain.User exposing (User, userDecoder)
 
-import Http
-import Array exposing (Array)
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
--- import Json.Encode as Encode
-import Url.Parser exposing (Parser, custom)
-import RemoteData exposing (RemoteData, WebData, succeed)
-
-import GoogleBookApi as Api exposing (..)
 
 
 type alias User = 
@@ -16,6 +9,7 @@ type alias User =
         name : String
         , email : String
         , picture : String
+
     }
 
 
@@ -29,7 +23,6 @@ emptyUser =
     }
 
 
--- Opaque
 userDecoder : Decoder User
 userDecoder =
     Decode.succeed User

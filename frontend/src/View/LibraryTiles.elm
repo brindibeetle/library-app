@@ -23,6 +23,7 @@ import Bootstrap.Card.Block as Block
 import Domain.Checkout exposing (..)
 import Domain.LibraryBook exposing (..)
 import Utils exposing (..)
+import Session exposing (..)
 
 import Css exposing (..)
 
@@ -32,7 +33,7 @@ import Css exposing (..)
 -- #####
 
 
-type alias Config msg =
+type alias Config =
     { userEmail : String
 
     , searchTitle : String 
@@ -42,13 +43,6 @@ type alias Config msg =
     , searchCheckStatus : String 
     , searchCheckoutUser : String
 
-    , updateSearchTitle :  String -> msg 
-    , updateSearchAuthors :  String -> msg 
-    , updateSearchLocation :  String -> msg 
-    , updateSearchOwner :  String -> msg 
-    , updateSearchCheckStatus :  String -> msg 
-    , updateSearchCheckoutUser :  String -> msg 
-
     , showSearchTitle : Bool
     , showSearchAuthors : Bool
     , showSearchLocation : Bool
@@ -56,15 +50,44 @@ type alias Config msg =
     , showSearchCheckStatus : Bool
     , showSearchCheckoutUser : Bool
 
-    , doSearch : msg
-    , doAction : Int -> msg
     , books : WebData (Array LibraryBook) 
-    , checkouts : WebData (Array (Maybe Checkout)) 
+    , checkouts : WebData (Array Checkout)
+    , checkoutsDistributed : WebData (Array (Maybe Checkout)) 
+    }
+
+intialConfig : String ->  Config
+intialConfig userEmail =
+    { userEmail = userEmail
+
+    , searchTitle = ""
+    , searchAuthors = ""
+    , searchLocation = ""
+    , searchOwner = ""
+    , searchCheckStatus = ""
+    , searchCheckoutUser = ""
+
+    , showSearchTitle = False
+    , showSearchAuthors = False
+    , showSearchLocation = False
+    , showSearchOwner = False
+    , showSearchCheckStatus = False
+    , showSearchCheckoutUser = False
+
+    , books = RemoteData.NotAsked
+    , checkouts = RemoteData.NotAsked
+    , checkoutsDistributed = RemoteData.NotAsked
     }
 
 
+initialModelCmd : Session -> ( Config, Cmd Msg )
+initialModelCmd session1 =
+    let
+        { model, session, cmd } = doSearch ( intialConfig (Session.getUser session1)) session1
+    in
+        ( model, cmd )
 
-setShowSearch : { title : Bool, authors : Bool, location : Bool, owner : Bool, checkStatus : Bool, checkoutUser : Bool } -> Config msg -> Config msg
+
+setShowSearch : { title : Bool, authors : Bool, location : Bool, owner : Bool, checkStatus : Bool, checkoutUser : Bool } -> Config -> Config
 setShowSearch { title, authors, location, owner, checkStatus, checkoutUser } config =
     { config 
     | showSearchTitle = title
@@ -76,7 +99,7 @@ setShowSearch { title, authors, location, owner, checkStatus, checkoutUser } con
     }
 
 
-setSearch : { title : String, authors : String, location : String, owner : String, checkStatus : String, checkoutUser : String } -> Config msg -> Config msg
+setSearch : { title : String, authors : String, location : String, owner : String, checkStatus : String, checkoutUser : String } -> Config -> Config
 setSearch { title, authors, location, owner, checkStatus, checkoutUser } config =
     { config 
     | searchTitle = title
@@ -94,7 +117,7 @@ setSearch { title, authors, location, owner, checkStatus, checkoutUser } config 
 
 
 -- view : WebData (Array (Book a)) -> WebData (Array (Maybe Checkout)) ->  Html Msg
-view : Config msg -> Html msg
+view : Config -> Html Msg
 view config =
     div [ class "row containerFluid"]
         [ div [ class "col-lg-2 col-md-3 mb-4" ]
@@ -104,10 +127,10 @@ view config =
         ]
 
 
-viewBookFilter : Config msg -> Html msg
+viewBookFilter : Config -> Html Msg
 viewBookFilter config =
     let
-        { books, doSearch } = config
+        { books } = config
 
     in
         div [ class "container" ]
@@ -117,21 +140,21 @@ viewBookFilter config =
                     if config.showSearchTitle then
                         Form.group []
                             [ Form.label [ ] [ text "Title"]
-                            , Input.text [ Input.small, Input.value config.searchTitle, Input.onInput (config.updateSearchTitle) ]
+                            , Input.text [ Input.small, Input.value config.searchTitle, Input.onInput UpdateSearchTitle ]
                             ]
                         else
                             div [] []
                     , if config.showSearchAuthors then
                         Form.group []
                             [ Form.label [ ] [ text "Author(s)"]
-                            , Input.text [  Input.small,Input.value config.searchAuthors, Input.onInput (config.updateSearchAuthors)   ]
+                            , Input.text [  Input.small,Input.value config.searchAuthors, Input.onInput UpdateSearchAuthors ]
                             ]
                         else
                             div [] []
                     , if config.showSearchLocation then
                         Form.group []
                             [ Form.label [ ] [ text "Location"]
-                            , Select.select [ Select.onChange config.updateSearchLocation
+                            , Select.select [ Select.onChange UpdateSearchLocation
                                 ]
                                 ( List.map (selectitem config.searchLocation) (("","") :: getLocations books) )
                             ]
@@ -140,7 +163,7 @@ viewBookFilter config =
                     , if config.showSearchOwner then
                         Form.group []
                             [ Form.label [ ] [ text "Owner"]
-                            , Select.select [ Select.onChange config.updateSearchOwner
+                            , Select.select [ Select.onChange UpdateSearchOwner
                                 ]
                                 ( List.map (selectitem config.searchOwner) (("","") :: getOwners books) )
                             ]
@@ -149,7 +172,7 @@ viewBookFilter config =
                     , if config.showSearchCheckStatus then
                         Form.group []
                             [ Form.label [ ] [ text "Availability"]
-                            , Select.select [ Select.onChange config.updateSearchCheckStatus
+                            , Select.select [ Select.onChange UpdateSearchCheckStatus
                                 ]
                                 ( List.map (selectitem config.searchCheckStatus) (("","") :: Dict.toList checkedStatusList) )
                             ]
@@ -158,9 +181,9 @@ viewBookFilter config =
                     , if config.showSearchCheckoutUser then
                         Form.group []
                             [ Form.label [ ] [ text "Checked out by"]
-                            , Select.select [ Select.onChange config.updateSearchCheckoutUser
+                            , Select.select [ Select.onChange UpdateSearchCheckoutUser
                                 ]
-                                ( List.map (selectitem config.searchCheckoutUser) (("","") :: getCheckoutUsers config.checkouts ) )
+                                ( List.map (selectitem config.searchCheckoutUser) (("","") :: getCheckoutUsers config.checkoutsDistributed ) )
                             ]
                         else
                             div [] []
@@ -169,8 +192,6 @@ viewBookFilter config =
                     --     [ text "Filter" ]
                 ]
             ]
-
-
 
 
 viewFetchError : String -> Html msg
@@ -194,15 +215,15 @@ merge2RemoteDatas a b =
 
 -- viewBooks : msg -> WebData (Array (Book a)) -> WebData (Array (Maybe Checkout)) -> Html msg
 -- viewBooks doSearch books checkoutsCorresponding =
-viewBooks : Config msg -> Html msg
+viewBooks : Config -> Html Msg
 viewBooks config =
     let
-        { books, checkouts, doSearch } = config
+        { books, checkoutsDistributed } = config
 
         waarzijnwe = Debug.log "Library.elm viewBooks libraryBooks " books
         -- waarzijnwe1 = Debug.log "Library.elm viewBooks checkoutsCorresponding " checkouts
 
-        books_checkouts = merge2RemoteDatas books checkouts
+        books_checkouts = merge2RemoteDatas books checkoutsDistributed
         
     in
     case books_checkouts of
@@ -230,7 +251,7 @@ viewBooks config =
                 ]
 
         
-viewBookTiles : Config msg -> Array LibraryBook -> Array (Maybe Checkout) -> Html msg
+viewBookTiles : Config -> Array LibraryBook -> Array (Maybe Checkout) -> Html Msg
 viewBookTiles config books checkouts =
     List.range 0 (Array.length books - 1)
         |> List.map3 bookCheckoutIndex (Array.toList books) (Array.toList checkouts)
@@ -255,12 +276,12 @@ getthumbnail book =
     String.replace "&zoom=1&" "&zoom=7&" book.thumbnail
 
 
-viewBookTilesCard : Config msg -> { book : LibraryBook , checkout : Maybe Checkout , index : Int } -> Html msg
-viewBookTilesCard { doAction, userEmail } { book, checkout, index } =
+viewBookTilesCard : Config -> { book : LibraryBook , checkout : Maybe Checkout , index : Int } -> Html Msg
+viewBookTilesCard { userEmail } { book, checkout, index } =
     case checkout of
         Just checkout1 ->
             if ( userEmail == checkout1.userEmail) then
-                div [ class "col-lg-3 col-md-4 mb-4", onClick (doAction index) ]
+                div [ class "col-lg-3 col-md-4 mb-4", onClick (DoDetail index) ]
                     [ 
                         Card.config [ Card.attrs [ class "card-checkout-x" ] ]
                             |> Card.imgTop [ src (getthumbnail book), class "bookselector-img-top" ] [] 
@@ -279,7 +300,7 @@ viewBookTilesCard { doAction, userEmail } { book, checkout, index } =
                             |> Card.view
                     ]
             else
-                    div [ class "col-lg-3 col-md-4 mb-4", onClick (doAction index) ]
+                    div [ class "col-lg-3 col-md-4 mb-4", onClick (DoDetail index) ]
                     [ 
                         Card.config [ Card.attrs [ class "card-checkout" ] ]
                             |> Card.imgTop [ src (getthumbnail book), class "bookselector-img-top" ] [] 
@@ -299,7 +320,7 @@ viewBookTilesCard { doAction, userEmail } { book, checkout, index } =
                     ]
 
         Nothing ->
-            div [ class "col-lg-3 col-md-4 mb-4", onClick (doAction index) ]
+            div [ class "col-lg-3 col-md-4 mb-4", onClick (DoDetail index) ]
             -- div [ class "col-lg-4 col-md-6 mb-4", onClick (doAction index) ]
                 [ 
                     Card.config [ Card.attrs [] ]
@@ -314,39 +335,166 @@ viewBookTilesCard { doAction, userEmail } { book, checkout, index } =
                         |> Card.imgBottom [ src (getthumbnail book), class "bookselector-img-bottom" ] [] 
                         |> Card.view
                 ]
-
         
+
+-- #####
+-- #####   UPDATE
+-- #####
+
+type Msg
+    = 
+        UpdateSearchTitle String
+        | UpdateSearchAuthors String
+        | UpdateSearchLocation String
+        | UpdateSearchOwner String
+        | UpdateSearchCheckStatus String
+        | UpdateSearchCheckoutUser String
+        | DoSearch
+        | DoBooksReceived (WebData (Array (LibraryBook)))
+        | DoCheckoutsReceived (WebData (Array Checkout))
+        | DoDetail Int
+
+
+update : Msg -> Config -> Session -> { model : Config, session : Session, cmd : Cmd Msg } 
+update msg model session =
+    let
+        waarzijnwe = Debug.log "Library.elm updateTiles msg " msg
+    in
+    case msg of
+        UpdateSearchTitle title ->
+           { model = setSearchTitle title model
+           , session = session
+           , cmd = Cmd.none }
+
+        UpdateSearchAuthors authors ->
+           { model = setSearchAuthors authors model
+           , session = session
+           , cmd = Cmd.none }
+
+        UpdateSearchLocation location ->
+           { model = setSearchLocation location model
+           , session = session
+           , cmd = Cmd.none }
+
+        UpdateSearchOwner owner ->
+           { model = setSearchOwner owner model
+           , session = session
+           , cmd = Cmd.none }
+
+        UpdateSearchCheckStatus status ->
+            { model = setCheckStatus status model
+            , session = session
+            , cmd = Cmd.none }
+
+        UpdateSearchCheckoutUser user ->
+            { model = setCheckoutUser user model
+            , session = session
+            , cmd = Cmd.none }
+
+        DoSearch ->
+            doSearch model session
+
+        DoBooksReceived response ->
+            { model = 
+                { model 
+                | books = response 
+                , checkoutsDistributed = distributeCheckouts response model.checkouts 
+                }
+                , session = session
+                , cmd = Cmd.none }
+
+        DoCheckoutsReceived response ->
+            { model = 
+                { model
+                | checkouts = response
+                , checkoutsDistributed = distributeCheckouts model.books response
+                }
+                , session = session
+                , cmd = Cmd.none }
+
+        DoDetail index ->
+            { model = model
+            , session = session
+            , cmd = Cmd.none }
+
+
 
 -- #####
 -- #####   UTILITY
 -- #####
 
 
-setSearchTitle : String -> Config msg -> Config msg
+doSearch : Config -> Session -> { model : Config, session : Session, cmd : Cmd Msg } 
+doSearch model session =
+    case session.token of
+        Just token ->
+            { model =  
+                { model 
+                | checkouts = RemoteData.Loading
+                , books = RemoteData.Loading
+                }
+            , session = session
+            , cmd = Cmd.batch 
+                [ Domain.LibraryBook.getBooks DoBooksReceived session token
+                , getCheckoutsCurrent DoCheckoutsReceived session token 
+                ]
+                }
+        Nothing ->
+            { model = model, session = session, cmd = Cmd.none }
+
+
+distributeCheckouts : WebData (Array LibraryBook) -> WebData (Array Checkout) -> WebData (Array (Maybe Checkout))
+distributeCheckouts librarybooks checkouts =
+    case ( librarybooks, checkouts ) of
+        ( RemoteData.Success actualLibraryBooks, RemoteData.Success actualCheckouts ) ->
+            let
+                actualCheckoutsList = Array.toList actualCheckouts
+            in
+            
+                Array.toList actualLibraryBooks
+                    |> List.map (distributeCheckoutsLibrarybook actualCheckoutsList )
+                    |> Array.fromList
+                    |> RemoteData.Success
+    
+        ( _, _ ) ->
+            RemoteData.NotAsked
+
+
+distributeCheckoutsLibrarybook : ( List Checkout ) -> LibraryBook -> Maybe Checkout
+distributeCheckoutsLibrarybook actualCheckouts librarybook =
+    List.filter (\checkout -> checkout.bookId == librarybook.id) actualCheckouts
+    |> List.head
+
+
+
+
+
+
+setSearchTitle : String -> Config -> Config
 setSearchTitle title config =
     { config | searchTitle = title }
 
-setSearchAuthors : String -> Config msg -> Config msg
+setSearchAuthors : String -> Config -> Config
 setSearchAuthors authors config =
     { config | searchAuthors = authors }
 
 
-setSearchLocation : String -> Config msg -> Config msg
+setSearchLocation : String -> Config -> Config
 setSearchLocation location config =
     { config | searchLocation = location }
 
 
-setSearchOwner : String -> Config msg -> Config msg
+setSearchOwner : String -> Config -> Config
 setSearchOwner owner config =
     { config | searchOwner = owner }
 
 
-setCheckStatus : String -> Config msg -> Config msg
+setCheckStatus : String -> Config -> Config
 setCheckStatus status config =
     { config | searchCheckStatus = status }
 
 
-setCheckoutUser : String -> Config msg -> Config msg
+setCheckoutUser : String -> Config -> Config
 setCheckoutUser user config =
     { config | searchCheckoutUser = user }
  

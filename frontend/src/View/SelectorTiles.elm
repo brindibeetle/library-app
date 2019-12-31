@@ -31,10 +31,11 @@ import Css exposing (..)
 type alias Config msg =
     { searchTitle : String 
     , searchAuthors : String 
+    , searchIsbn : Int
     , searchString : String 
-    -- , searchIsbn : Int
     , updateSearchTitle :  String -> msg 
     , updateSearchAuthor :  String -> msg 
+    , updateSearchIsbn :  String -> msg 
     , updateSearchString :  String -> msg 
     , doSearch : msg
     , doAction : Int -> msg
@@ -66,6 +67,11 @@ viewBookSearcher config =
                 [ Form.label [ ] [ text "Author(s)"]
                 , Input.text [ Input.value config.searchAuthors, Input.onInput config.updateSearchAuthor   ]
                 , Form.help [] [ text "What is (part of) the authors of the book." ]
+                ]
+              , Form.group []
+                [ Form.label [ ] [ text "Isbn"]
+                , Input.text [ Input.value ( displaySearchIsbn config.searchIsbn ), Input.onInput config.updateSearchIsbn   ]
+                , Form.help [] [ text "What is the Isbn of the book." ]
                 ]
               , Form.group []
                 [ Form.label [ ] [ text "Keywords"]
@@ -113,7 +119,7 @@ viewBooks config =
                 ]
 
         RemoteData.Success actualBooks ->
-            div [ class "containerFluid" ]
+            div [ class "container" ]
                 [ Button.button
                     [ Button.primary, Button.attrs [ class "float-left" ], Button.onClick doSearch ]
                     [ text "Search" ]
@@ -148,8 +154,8 @@ getthumbnail book =
 
 viewBookTilesCard : Config msg -> SearchBook -> Int -> Html msg
 viewBookTilesCard { doAction } book index =
-    -- div [ class "col-lg-4 col-md-6 mb-4", onClick (doAction index) ]
-    div [ class "col-lg-2 col-md-3 mb-4", onClick (doAction index) ]
+    div [ class "col-lg-4 col-md-6 mb-4", onClick (doAction index) ]
+    -- div [ class "col-lg-2 col-md-3 mb-4", onClick (doAction index) ]
         [ 
             Card.config [ Card.attrs [] ]
                 |> Card.imgTop [ src (getthumbnail book), class "bookselector-img-top" ] [] 
@@ -179,7 +185,18 @@ setSearchAuthors : String -> Config msg -> Config msg
 setSearchAuthors authors config =
     { config | searchAuthors = authors }
 
+setSearchIsbn : Int -> Config msg -> Config msg 
+setSearchIsbn isbn config =
+    { config | searchIsbn = isbn }
 
 setSearchString : String -> Config msg -> Config msg 
 setSearchString string config =
     { config | searchString = string }
+
+displaySearchIsbn : Int -> String
+displaySearchIsbn isbn =
+    if isbn == 0
+        then ""   
+        else String.fromInt isbn
+
+    

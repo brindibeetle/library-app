@@ -27,6 +27,8 @@ public class Book {
     @Column(length = 4000)
     private String description;
 
+    private String language;
+
     private String owner;
 
     private String location;

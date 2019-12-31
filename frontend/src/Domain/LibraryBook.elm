@@ -33,6 +33,7 @@ searchbook2librarybook searchbook =
         id = 0
         , title = searchbook.title
         , authors = searchbook.authors
+        -- , isbn = sea
         , description = searchbook.description
         , publishedDate = searchbook.publishedDate
         , language = searchbook.language
@@ -56,7 +57,7 @@ librarybook2String libraryBook =
     ++ ", owner = " ++ libraryBook.owner
     ++ ", location = " ++ libraryBook.location
 
--- Opaque
+-- 
 emptyLibrarybook : LibraryBook
 emptyLibrarybook =
     {
@@ -92,8 +93,8 @@ getBooks msg session token =
             }
 
 
-insertBook : (Result Http.Error LibraryBook -> msg ) -> Session -> OAuth.Token -> LibraryBook -> Cmd msg
-insertBook msg session token libraryBook =
+insert : (Result Http.Error LibraryBook -> msg ) -> Session -> OAuth.Token -> LibraryBook -> Cmd msg
+insert msg session token libraryBook =
     let
         -- librarybook1 = Debug.log "BookSelector.insertBook " libraryBook
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
@@ -108,6 +109,52 @@ insertBook msg session token libraryBook =
             { url = requestUrl
             , body = Http.jsonBody (newLibraryBookEncoder libraryBook)
             , expect = Http.expectJson msg libraryBookDecoder
+            }
+
+
+delete : (Result Http.Error String -> msg ) -> Session -> OAuth.Token -> LibraryBook -> Cmd msg
+delete msg session token libraryBook =
+    let
+        -- librarybook1 = Debug.log "BookSelector.insertBook " libraryBook
+        puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
+        requestUrl = Debug.log "requestUrl" (libraryApiBooksUrl session) ++ "/" ++ String.fromInt libraryBook.id ++ "?access_token=" ++ puretoken
+        -- requestUrl = Debug.log "requestUrl" LibraryAppApi.libraryApiBooksUrl
+        jsonBody = Debug.log "jsonBody" (newLibraryBookEncoder libraryBook)
+        printheaders = Debug.log "token" (OAuth.tokenToString token)
+        headers = OAuth.useToken token []
+        -- headers1 = Http.header
+    in
+        Http.request
+            { method = "delete"
+            , url = requestUrl
+            , headers = headers
+            , body = Http.jsonBody (newLibraryBookEncoder libraryBook)
+            , expect = Http.expectString msg
+            , timeout = Nothing
+            , tracker = Nothing
+            }
+
+
+update : (Result Http.Error String -> msg ) -> Session -> OAuth.Token -> LibraryBook -> Cmd msg
+update msg session token libraryBook =
+    let
+        -- librarybook1 = Debug.log "BookSelector.insertBook " libraryBook
+        puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
+        requestUrl = Debug.log "requestUrl" ((libraryApiBooksUrl session) ++ "/" ++ String.fromInt libraryBook.id ++ "?access_token=" ++ puretoken)
+        -- requestUrl = Debug.log "requestUrl" LibraryAppApi.libraryApiBooksUrl
+        jsonBody = Debug.log "jsonBody" (libraryBookEncoder libraryBook)
+        printheaders = Debug.log "token" (OAuth.tokenToString token)
+        headers = OAuth.useToken token []
+        -- headers1 = Http.header
+    in
+        Http.request
+            { method = "put"
+            , url = requestUrl
+            , headers = headers
+            , body = Http.jsonBody jsonBody
+            , expect = Http.expectString msg
+            , timeout = Nothing
+            , tracker = Nothing
             }
 
 
@@ -170,6 +217,8 @@ setLocation location libraryBook =
 
 libraryBookEncoder : LibraryBook -> Encode.Value
 libraryBookEncoder libraryBook =
+    let a = Debug.log "libraryBookEncoder" libraryBook
+    in
     Encode.object
         [ ( "id", Encode.int libraryBook.id )
         , ( "title", Encode.string libraryBook.title )
@@ -186,7 +235,7 @@ libraryBookEncoder libraryBook =
 
 newLibraryBookEncoder : LibraryBook -> Encode.Value
 newLibraryBookEncoder libraryBook =
-    let a = Debug.log "libraryBookEncoder" libraryBook
+    let a = Debug.log "newLibraryBookEncoder" libraryBook
     in
     Encode.object
         [ ( "title", Encode.string libraryBook.title )

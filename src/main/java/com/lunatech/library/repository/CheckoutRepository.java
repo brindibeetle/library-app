@@ -45,5 +45,10 @@ public interface CheckoutRepository extends JpaRepository<Checkout, Long> {
     )
     List<Checkout> findByBookId(@Param("bookId") Long bookId, @Param("from") ZonedDateTime from, @Param("to") ZonedDateTime to);
 
-
+    @Query(
+            "SELECT COUNT(c) FROM Checkout c " +
+                    "WHERE c.dateTimeFrom <= :to and (c.dateTimeTo > :from or c.dateTimeTo = null) " +
+                    "and c.userEmail = :userEmail"
+    )
+    Long countAtDatesOfUser(@Param("userEmail") String userEmail, @Param("from") ZonedDateTime from, @Param("to") ZonedDateTime to);
 }
