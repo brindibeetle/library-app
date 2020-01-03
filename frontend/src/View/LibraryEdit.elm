@@ -281,7 +281,7 @@ update msg model session =
             case session.token of
                 Just token ->
                     let
-                        libraryAppApiCmd = Debug.log " oLibraryBookInsert -> "
+                        libraryAppApiCmd = 
                             LibraryBook.insert DoInserted session token model.book
                     in
                         { model = model, session = session, cmd = libraryAppApiCmd }
@@ -292,7 +292,7 @@ update msg model session =
             case session.token of
                 Just token ->
                     let
-                        libraryAppApiCmd = Debug.log " oLibraryBookUpdate -> "
+                        libraryAppApiCmd = 
                             LibraryBook.update DoUpdated session token model.book
                     in
                         { model = model, session = session, cmd = libraryAppApiCmd }

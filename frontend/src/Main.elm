@@ -4,7 +4,6 @@ import Browser exposing (Document, UrlRequest)
 import Browser.Navigation as Nav
 import Url exposing (Url)
 import Html exposing (..)
-import Debug as Debug exposing (log)
 import OAuth
 import OAuth.Implicit
 
@@ -205,11 +204,6 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    let
-        a = Debug.log "Main update msg " msg
-        b = Debug.log "Main update model " model
-    in
-    
     case (msg, model) of
         ( WelcomeMsg subMsg, model1 ) ->
            let

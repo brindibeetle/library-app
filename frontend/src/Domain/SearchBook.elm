@@ -110,8 +110,6 @@ baseUrl =
 getBooks : (WebData (Array SearchBook) -> msg) -> { searchString : String, searchAuthors : String, searchTitle : String, searchIsbn : Int } -> Cmd msg
 getBooks msg { searchString, searchAuthors, searchTitle, searchIsbn } =
     let
-        a = Debug.log "getBooks searchAuthors" searchAuthors
-        
         query = searchString
             ++
             (
@@ -134,7 +132,7 @@ getBooks msg { searchString, searchAuthors, searchTitle, searchIsbn } =
 
     in
         Http.get
-            { url =  Debug.log "getBooks" (baseUrl ++ "?q=" ++ query )
+            { url =  baseUrl ++ "?q=" ++ query 
             , expect =
                 searchbooksDecoder
                 |> Http.expectJson (RemoteData.fromResult >> msg)

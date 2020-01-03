@@ -23,12 +23,10 @@ emptyUserInfo =
     }
 
 
-
 userInfoDecoder : Decoder UserInfo
 userInfoDecoder =
     Decode.succeed UserInfo
         |> required "name" string
         |> optional "numberBooks" int 0
         |> optional "numberCheckouts" int 0
-
 

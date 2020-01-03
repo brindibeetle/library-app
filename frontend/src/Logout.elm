@@ -28,8 +28,6 @@ import Bootstrap.Card as Card
 import Bootstrap.Text as Text
 import Bootstrap.Card.Block as Block
 
-import Debug as Debug
-
 import Session exposing (..)
 import Utils exposing (..)
 
@@ -53,6 +51,7 @@ view = div [ class "container" ]
 logoutUri : Session -> String
 logoutUri session = Session.getThisBaseUrlString session
 
+
 update : Msg -> Session -> ( Session, Cmd Msg )
 update msg session =
     case msg of
@@ -60,5 +59,4 @@ update msg session =
             ( session
             , Navigation.load (logoutUri session)
             )
-
 

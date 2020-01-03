@@ -83,7 +83,7 @@ getBooks :  (WebData (Array LibraryBook) -> msg) -> Session -> OAuth.Token -> Cm
 getBooks msg session token =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiBooksUrl session) ++ "?access_token=" ++ puretoken
+        requestUrl = libraryApiBooksUrl session ++ "?access_token=" ++ puretoken
     in
         Http.get
             { url = requestUrl
@@ -96,12 +96,10 @@ getBooks msg session token =
 insert : (Result Http.Error LibraryBook -> msg ) -> Session -> OAuth.Token -> LibraryBook -> Cmd msg
 insert msg session token libraryBook =
     let
-        -- librarybook1 = Debug.log "BookSelector.insertBook " libraryBook
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiBooksUrl session) ++ "?access_token=" ++ puretoken
-        -- requestUrl = Debug.log "requestUrl" LibraryAppApi.libraryApiBooksUrl
-        jsonBody = Debug.log "jsonBody" (newLibraryBookEncoder libraryBook)
-        printheaders = Debug.log "token" (OAuth.tokenToString token)
+        requestUrl = libraryApiBooksUrl session ++ "?access_token=" ++ puretoken
+        jsonBody = newLibraryBookEncoder libraryBook
+        printheaders = OAuth.tokenToString token
         headers = OAuth.useToken token []
         -- headers1 = Http.header
     in
@@ -115,12 +113,10 @@ insert msg session token libraryBook =
 delete : (Result Http.Error String -> msg ) -> Session -> OAuth.Token -> LibraryBook -> Cmd msg
 delete msg session token libraryBook =
     let
-        -- librarybook1 = Debug.log "BookSelector.insertBook " libraryBook
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiBooksUrl session) ++ "/" ++ String.fromInt libraryBook.id ++ "?access_token=" ++ puretoken
-        -- requestUrl = Debug.log "requestUrl" LibraryAppApi.libraryApiBooksUrl
-        jsonBody = Debug.log "jsonBody" (newLibraryBookEncoder libraryBook)
-        printheaders = Debug.log "token" (OAuth.tokenToString token)
+        requestUrl = libraryApiBooksUrl session ++ "/" ++ String.fromInt libraryBook.id ++ "?access_token=" ++ puretoken
+        jsonBody = newLibraryBookEncoder libraryBook
+        printheaders = OAuth.tokenToString token
         headers = OAuth.useToken token []
         -- headers1 = Http.header
     in
@@ -138,12 +134,10 @@ delete msg session token libraryBook =
 update : (Result Http.Error String -> msg ) -> Session -> OAuth.Token -> LibraryBook -> Cmd msg
 update msg session token libraryBook =
     let
-        -- librarybook1 = Debug.log "BookSelector.insertBook " libraryBook
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" ((libraryApiBooksUrl session) ++ "/" ++ String.fromInt libraryBook.id ++ "?access_token=" ++ puretoken)
-        -- requestUrl = Debug.log "requestUrl" LibraryAppApi.libraryApiBooksUrl
-        jsonBody = Debug.log "jsonBody" (libraryBookEncoder libraryBook)
-        printheaders = Debug.log "token" (OAuth.tokenToString token)
+        requestUrl = (libraryApiBooksUrl session) ++ "/" ++ String.fromInt libraryBook.id ++ "?access_token=" ++ puretoken
+        jsonBody = libraryBookEncoder libraryBook
+        printheaders = OAuth.tokenToString token
         headers = OAuth.useToken token []
         -- headers1 = Http.header
     in
@@ -217,8 +211,6 @@ setLocation location libraryBook =
 
 libraryBookEncoder : LibraryBook -> Encode.Value
 libraryBookEncoder libraryBook =
-    let a = Debug.log "libraryBookEncoder" libraryBook
-    in
     Encode.object
         [ ( "id", Encode.int libraryBook.id )
         , ( "title", Encode.string libraryBook.title )
@@ -235,8 +227,6 @@ libraryBookEncoder libraryBook =
 
 newLibraryBookEncoder : LibraryBook -> Encode.Value
 newLibraryBookEncoder libraryBook =
-    let a = Debug.log "newLibraryBookEncoder" libraryBook
-    in
     Encode.object
         [ ( "title", Encode.string libraryBook.title )
         , ( "authors", Encode.string libraryBook.authors )

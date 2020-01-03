@@ -5604,16 +5604,13 @@ var $author$project$Domain$InitFlags$initFlagsBookDecoder = A3(
 			'google_oauth2_client_id',
 			$elm$json$Json$Decode$string,
 			$elm$json$Json$Decode$succeed($author$project$Domain$InitFlags$InitFlags))));
-var $elm$core$Debug$log = _Debug_log;
 var $author$project$Domain$InitFlags$getInitFlags = function (dvalue) {
 	var _v0 = A2($elm$json$Json$Decode$decodeString, $author$project$Domain$InitFlags$initFlagsBookDecoder, dvalue);
 	if (_v0.$ === 'Ok') {
 		var initFlags = _v0.a;
-		var r = A2($elm$core$Debug$log, 'InitFlags.getInitFlags OK', initFlags);
 		return initFlags;
 	} else {
 		var a = _v0.a;
-		var r = A2($elm$core$Debug$log, 'InitFlags.getInitFlags Err', a);
 		return $author$project$Domain$InitFlags$emptyInitFlags;
 	}
 };
@@ -7373,10 +7370,7 @@ var $author$project$Domain$LibraryBook$getBooks = F3(
 			$elm$core$String$dropLeft,
 			7,
 			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var requestUrl = A2(
-			$elm$core$Debug$log,
-			'requestUrl',
-			$author$project$Domain$LibraryBook$libraryApiBooksUrl(session)) + ('?access_token=' + puretoken);
+		var requestUrl = $author$project$Domain$LibraryBook$libraryApiBooksUrl(session) + ('?access_token=' + puretoken);
 		return $elm$http$Http$get(
 			{
 				expect: A2(
@@ -8201,10 +8195,7 @@ var $author$project$Domain$Checkout$getCheckoutsCurrent = F3(
 			$elm$core$String$dropLeft,
 			7,
 			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var requestUrl = A2(
-			$elm$core$Debug$log,
-			'requestUrl',
-			$author$project$Domain$Checkout$libraryApiCheckoutsCurrentUrl(session)) + ('?access_token=' + puretoken);
+		var requestUrl = $author$project$Domain$Checkout$libraryApiCheckoutsCurrentUrl(session) + ('?access_token=' + puretoken);
 		return $elm$http$Http$get(
 			{
 				expect: A2(
@@ -8772,7 +8763,6 @@ var $elm$json$Json$Encode$object = function (pairs) {
 };
 var $elm$json$Json$Encode$string = _Json_wrap;
 var $author$project$Domain$LibraryBook$newLibraryBookEncoder = function (libraryBook) {
-	var a = A2($elm$core$Debug$log, 'newLibraryBookEncoder', libraryBook);
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
 			[
@@ -8827,18 +8817,9 @@ var $author$project$Domain$LibraryBook$insert = F4(
 			$elm$core$String$dropLeft,
 			7,
 			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var requestUrl = A2(
-			$elm$core$Debug$log,
-			'requestUrl',
-			$author$project$Domain$LibraryBook$libraryApiBooksUrl(session)) + ('?access_token=' + puretoken);
-		var printheaders = A2(
-			$elm$core$Debug$log,
-			'token',
-			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var jsonBody = A2(
-			$elm$core$Debug$log,
-			'jsonBody',
-			$author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook));
+		var requestUrl = $author$project$Domain$LibraryBook$libraryApiBooksUrl(session) + ('?access_token=' + puretoken);
+		var printheaders = $truqu$elm_oauth2$OAuth$tokenToString(token);
+		var jsonBody = $author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook);
 		var headers = A2($truqu$elm_oauth2$OAuth$useToken, token, _List_Nil);
 		return $elm$http$Http$post(
 			{
@@ -8910,7 +8891,6 @@ var $elm$http$Http$expectString = function (toMsg) {
 };
 var $elm$json$Json$Encode$int = _Json_wrap;
 var $author$project$Domain$LibraryBook$libraryBookEncoder = function (libraryBook) {
-	var a = A2($elm$core$Debug$log, 'libraryBookEncoder', libraryBook);
 	return $elm$json$Json$Encode$object(
 		_List_fromArray(
 			[
@@ -8952,18 +8932,9 @@ var $author$project$Domain$LibraryBook$update = F4(
 			$elm$core$String$dropLeft,
 			7,
 			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var requestUrl = A2(
-			$elm$core$Debug$log,
-			'requestUrl',
-			$author$project$Domain$LibraryBook$libraryApiBooksUrl(session) + ('/' + ($elm$core$String$fromInt(libraryBook.id) + ('?access_token=' + puretoken))));
-		var printheaders = A2(
-			$elm$core$Debug$log,
-			'token',
-			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var jsonBody = A2(
-			$elm$core$Debug$log,
-			'jsonBody',
-			$author$project$Domain$LibraryBook$libraryBookEncoder(libraryBook));
+		var requestUrl = $author$project$Domain$LibraryBook$libraryApiBooksUrl(session) + ('/' + ($elm$core$String$fromInt(libraryBook.id) + ('?access_token=' + puretoken)));
+		var printheaders = $truqu$elm_oauth2$OAuth$tokenToString(token);
+		var jsonBody = $author$project$Domain$LibraryBook$libraryBookEncoder(libraryBook);
 		var headers = A2($truqu$elm_oauth2$OAuth$useToken, token, _List_Nil);
 		return $elm$http$Http$request(
 			{
@@ -9067,7 +9038,7 @@ var $author$project$View$LibraryEdit$update = F3(
 				var _v1 = session.token;
 				if (_v1.$ === 'Just') {
 					var token = _v1.a;
-					var libraryAppApiCmd = A6($elm$core$Debug$log, ' oLibraryBookInsert -> ', $author$project$Domain$LibraryBook$insert, $author$project$View$LibraryEdit$DoInserted, session, token, model.book);
+					var libraryAppApiCmd = A4($author$project$Domain$LibraryBook$insert, $author$project$View$LibraryEdit$DoInserted, session, token, model.book);
 					return {cmd: libraryAppApiCmd, model: model, session: session};
 				} else {
 					return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
@@ -9076,7 +9047,7 @@ var $author$project$View$LibraryEdit$update = F3(
 				var _v2 = session.token;
 				if (_v2.$ === 'Just') {
 					var token = _v2.a;
-					var libraryAppApiCmd = A6($elm$core$Debug$log, ' oLibraryBookUpdate -> ', $author$project$Domain$LibraryBook$update, $author$project$View$LibraryEdit$DoUpdated, session, token, model.book);
+					var libraryAppApiCmd = A4($author$project$Domain$LibraryBook$update, $author$project$View$LibraryEdit$DoUpdated, session, token, model.book);
 					return {cmd: libraryAppApiCmd, model: model, session: session};
 				} else {
 					return {cmd: $elm$core$Platform$Cmd$none, model: model, session: session};
@@ -9241,7 +9212,6 @@ var $author$project$View$LibraryTiles$setSearchTitle = F2(
 	});
 var $author$project$View$LibraryTiles$update = F3(
 	function (msg, model, session) {
-		var waarzijnwe = A2($elm$core$Debug$log, 'Library.elm updateTiles msg ', msg);
 		switch (msg.$) {
 			case 'UpdateSearchTitle':
 				var title = msg.a;
@@ -9325,18 +9295,9 @@ var $author$project$Domain$LibraryBook$delete = F4(
 			$elm$core$String$dropLeft,
 			7,
 			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var requestUrl = A2(
-			$elm$core$Debug$log,
-			'requestUrl',
-			$author$project$Domain$LibraryBook$libraryApiBooksUrl(session)) + ('/' + ($elm$core$String$fromInt(libraryBook.id) + ('?access_token=' + puretoken)));
-		var printheaders = A2(
-			$elm$core$Debug$log,
-			'token',
-			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var jsonBody = A2(
-			$elm$core$Debug$log,
-			'jsonBody',
-			$author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook));
+		var requestUrl = $author$project$Domain$LibraryBook$libraryApiBooksUrl(session) + ('/' + ($elm$core$String$fromInt(libraryBook.id) + ('?access_token=' + puretoken)));
+		var printheaders = $truqu$elm_oauth2$OAuth$tokenToString(token);
+		var jsonBody = $author$project$Domain$LibraryBook$newLibraryBookEncoder(libraryBook);
 		var headers = A2($truqu$elm_oauth2$OAuth$useToken, token, _List_Nil);
 		return $elm$http$Http$request(
 			{
@@ -9525,7 +9486,6 @@ var $author$project$BookEditor$updateDoActionDone = F4(
 	});
 var $author$project$BookEditor$update = F3(
 	function (msg1, model1, session1) {
-		var a = A2($elm$core$Debug$log, 'update msg = ', msg1);
 		var _v0 = model1.bookView;
 		switch (_v0.$) {
 			case 'Tiles':
@@ -9603,6 +9563,7 @@ var $author$project$BookSelector$Details = function (a) {
 var $author$project$BookSelector$LibraryEditMsg = function (a) {
 	return {$: 'LibraryEditMsg', a: a};
 };
+var $elm$core$Debug$log = _Debug_log;
 var $author$project$BookSelector$DetailsEdit = function (a) {
 	return {$: 'DetailsEdit', a: a};
 };
@@ -9793,14 +9754,13 @@ var $author$project$Domain$SearchBook$getBooks = F2(
 				_Utils_ap(
 					(searchAuthors === '') ? '' : ('+inauthor:' + searchAuthors),
 					(!searchIsbn) ? '' : ('+isbn:' + $elm$core$String$fromInt(searchIsbn)))));
-		var a = A2($elm$core$Debug$log, 'getBooks searchAuthors', searchAuthors);
 		return $elm$http$Http$get(
 			{
 				expect: A2(
 					$elm$http$Http$expectJson,
 					A2($elm$core$Basics$composeR, $krisajenkins$remotedata$RemoteData$fromResult, msg),
 					$author$project$Domain$SearchBook$searchbooksDecoder),
-				url: A2($elm$core$Debug$log, 'getBooks', $author$project$Domain$SearchBook$baseUrl + ('?q=' + query))
+				url: $author$project$Domain$SearchBook$baseUrl + ('?q=' + query)
 			});
 	});
 var $author$project$BookSelector$setBookTiles = F2(
@@ -10065,10 +10025,7 @@ var $author$project$Domain$Checkout$doCheckin = F4(
 			$elm$core$String$dropLeft,
 			7,
 			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var requestUrl = A2(
-			$elm$core$Debug$log,
-			'requestUrl',
-			A2($author$project$Domain$Checkout$libraryApiCheckinUrl, session, bookId)) + ('?access_token=' + puretoken);
+		var requestUrl = A2($author$project$Domain$Checkout$libraryApiCheckinUrl, session, bookId) + ('?access_token=' + puretoken);
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$emptyBody,
@@ -10090,10 +10047,7 @@ var $author$project$Domain$Checkout$doCheckout = F4(
 			$elm$core$String$dropLeft,
 			7,
 			$truqu$elm_oauth2$OAuth$tokenToString(token));
-		var requestUrl = A2(
-			$elm$core$Debug$log,
-			'requestUrl',
-			A2($author$project$Domain$Checkout$libraryApiCheckoutUrl, session, bookId)) + ('?access_token=' + puretoken);
+		var requestUrl = A2($author$project$Domain$Checkout$libraryApiCheckoutUrl, session, bookId) + ('?access_token=' + puretoken);
 		return $elm$http$Http$request(
 			{
 				body: $elm$http$Http$emptyBody,
@@ -10249,7 +10203,6 @@ var $author$project$Checkin$updateDoActionDone = F4(
 	});
 var $author$project$Checkin$update = F3(
 	function (msg1, model1, session1) {
-		var a = A2($elm$core$Debug$log, 'update msg = ', msg1);
 		if (msg1.$ === 'LibraryTilesMsg') {
 			if (msg1.a.$ === 'DoDetail') {
 				var index = msg1.a.a;
@@ -10503,7 +10456,6 @@ var $author$project$Library$updateDoActionDone = F4(
 	});
 var $author$project$Library$update = F3(
 	function (msg1, model1, session1) {
-		var a = A2($elm$core$Debug$log, 'update msg = ', msg1);
 		if (msg1.$ === 'LibraryTilesMsg') {
 			if (msg1.a.$ === 'DoDetail') {
 				var index = msg1.a.a;
@@ -10867,8 +10819,6 @@ var $author$project$Welcome$update = F2(
 	});
 var $author$project$Main$update = F2(
 	function (msg, model) {
-		var b = A2($elm$core$Debug$log, 'Main update model ', model);
-		var a = A2($elm$core$Debug$log, 'Main update msg ', msg);
 		var _v0 = _Utils_Tuple2(msg, model);
 		_v0$10:
 		while (true) {
@@ -14782,7 +14732,6 @@ var $author$project$View$LibraryTiles$viewBooks = function (config) {
 	var _v0 = config;
 	var books = _v0.books;
 	var checkoutsDistributed = _v0.checkoutsDistributed;
-	var waarzijnwe = A2($elm$core$Debug$log, 'Library.elm viewBooks libraryBooks ', books);
 	var books_checkouts = A2($author$project$View$LibraryTiles$merge2RemoteDatas, books, checkoutsDistributed);
 	switch (books_checkouts.$) {
 		case 'NotAsked':
