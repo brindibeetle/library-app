@@ -30,8 +30,8 @@ hs_err_pid*
 
 # ELM
 frontend/elm-stuff/
-frontend/index.html
 .DS_Store
+frontend/main.js
 
 # dotenv
-env.js
+frontend/env.js
