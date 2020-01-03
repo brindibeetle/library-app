@@ -64,7 +64,7 @@ getCheckouts : (WebData (Array Checkout) -> msg) -> Session -> OAuth.Token  -> C
 getCheckouts msg session token  =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutsUrl session) ++ "?access_token=" ++ puretoken
+        requestUrl = libraryApiCheckoutsUrl session ++ "?access_token=" ++ puretoken
     in
         Http.get
             { url = requestUrl
@@ -77,7 +77,7 @@ getCheckoutsCurrent : (WebData (Array Checkout) -> msg) -> Session -> OAuth.Toke
 getCheckoutsCurrent msg session token =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutsCurrentUrl session) ++ "?access_token=" ++ puretoken
+        requestUrl = libraryApiCheckoutsCurrentUrl session ++ "?access_token=" ++ puretoken
     in
         Http.get
             { url = requestUrl
@@ -90,7 +90,7 @@ getCheckoutsCurrentMine : (WebData (Array Checkout) -> msg) -> Session -> OAuth.
 getCheckoutsCurrentMine msg session token =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutsCurrentMineUrl session) ++ "?access_token=" ++ puretoken
+        requestUrl = libraryApiCheckoutsCurrentMineUrl session ++ "?access_token=" ++ puretoken
     in
         Http.get
             { url = requestUrl
@@ -103,7 +103,7 @@ doCheckout : (Result Http.Error () -> msg) -> Session -> OAuth.Token -> Int -> C
 doCheckout msg session token bookId =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiCheckoutUrl session bookId) ++ "?access_token=" ++ puretoken
+        requestUrl = libraryApiCheckoutUrl session bookId ++ "?access_token=" ++ puretoken
     in
         Http.request
             { method = "PUT"
@@ -119,7 +119,7 @@ doCheckin : (Result Http.Error () -> msg) -> Session -> OAuth.Token -> Int -> Cm
 doCheckin msg session token bookId =
     let
         puretoken = String.dropLeft 7 (OAuth.tokenToString token) -- cutoff /Bearer /
-        requestUrl = Debug.log "requestUrl" (libraryApiCheckinUrl session bookId) ++ "?access_token=" ++ puretoken
+        requestUrl = libraryApiCheckinUrl session bookId ++ "?access_token=" ++ puretoken
     in
         Http.request
             { method = "PUT"

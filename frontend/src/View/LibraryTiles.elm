@@ -12,9 +12,7 @@ import Utils exposing (buildErrorMessage)
 
 import Bootstrap.Form as Form
 import Bootstrap.Form.Input as Input
-import Bootstrap.Form.Radio as Radio
 import Bootstrap.Form.Select as Select
-import Bootstrap.Button as Button
 import Bootstrap.Card as Card
 import Bootstrap.Text as Text
 import Bootstrap.Spinner as Spinner
@@ -219,12 +217,7 @@ viewBooks : Config -> Html Msg
 viewBooks config =
     let
         { books, checkoutsDistributed } = config
-
-        waarzijnwe = Debug.log "Library.elm viewBooks libraryBooks " books
-        -- waarzijnwe1 = Debug.log "Library.elm viewBooks checkoutsCorresponding " checkouts
-
         books_checkouts = merge2RemoteDatas books checkoutsDistributed
-        
     in
     case books_checkouts of
         RemoteData.NotAsked ->
@@ -357,9 +350,6 @@ type Msg
 
 update : Msg -> Config -> Session -> { model : Config, session : Session, cmd : Cmd Msg } 
 update msg model session =
-    let
-        waarzijnwe = Debug.log "Library.elm updateTiles msg " msg
-    in
     case msg of
         UpdateSearchTitle title ->
            { model = setSearchTitle title model

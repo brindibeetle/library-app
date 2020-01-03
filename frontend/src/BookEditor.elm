@@ -193,12 +193,6 @@ type Msg
 
 update : Msg -> Model -> Session -> { model : Model, session : Session, cmd : Cmd Msg } 
 update msg1 model1 session1 =
-    let
-        a = Debug.log "update msg = " msg1
-        -- a1 = Debug.log "update model.searchTitle = " model.searchTitle
-        -- a2 = Debug.log "update msg = " msg
-    in
-
     case model1.bookView of
         Tiles ->
             case msg1 of

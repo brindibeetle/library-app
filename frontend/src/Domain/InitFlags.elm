@@ -2,7 +2,6 @@ module Domain.InitFlags exposing (..)
 
 import Json.Decode as Decode exposing (..)
 import Json.Decode.Pipeline exposing (..)
-import Json.Encode as Encode
 
 import Utils exposing (..)
 
@@ -37,14 +36,8 @@ getInitFlags dvalue =
     case Decode.decodeString initFlagsBookDecoder dvalue  of
 
         Result.Ok initFlags ->
-            let
-                r = Debug.log "InitFlags.getInitFlags OK" initFlags
-            in
-                initFlags
+            initFlags
     
         Result.Err a ->
-            let
-                r = Debug.log "InitFlags.getInitFlags Err" a
-            in
-                emptyInitFlags
+            emptyInitFlags
     
