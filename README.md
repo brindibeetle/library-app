@@ -67,6 +67,10 @@ See the swagger-ui for the endpoints and model.
 
 ## Frontend
 
+### Technical
+
+This frontend is coded in Elm 0.19.1.
+
 ### Resources
 
 Github:				`https://github.com/lunatech-labs/lunatech-library-app/frontend`
