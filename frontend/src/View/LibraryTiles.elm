@@ -266,7 +266,8 @@ viewBookTiles config books checkouts =
 -- zoom=1 -> zoom=10 for better resolution
 getthumbnail : LibraryBook -> String
 getthumbnail book =
-    String.replace "&zoom=1&" "&zoom=7&" book.thumbnail
+    -- String.replace "&zoom=1&" "&zoom=7&" book.thumbnail
+    book.thumbnail
 
 
 viewBookTilesCard : Config -> { book : LibraryBook , checkout : Maybe Checkout , index : Int } -> Html Msg

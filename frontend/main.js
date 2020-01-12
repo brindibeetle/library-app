@@ -14094,15 +14094,8 @@ var $author$project$Utils$getNiceTime = function (datetime) {
 		A2($elm$time$Time$toMonth, $author$project$Utils$getTimeZone, datetime)) + (' ' + $elm$core$String$fromInt(
 		A2($elm$time$Time$toYear, $author$project$Utils$getTimeZone, datetime)))))));
 };
-var $elm$core$String$replace = F3(
-	function (before, after, string) {
-		return A2(
-			$elm$core$String$join,
-			after,
-			A2($elm$core$String$split, before, string));
-	});
 var $author$project$View$LibraryTiles$getthumbnail = function (book) {
-	return A3($elm$core$String$replace, '&zoom=1&', '&zoom=7&', book.thumbnail);
+	return book.thumbnail;
 };
 var $rundis$elm_bootstrap$Bootstrap$Card$ImageBottom = function (a) {
 	return {$: 'ImageBottom', a: a};
